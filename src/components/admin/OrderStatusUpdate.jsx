@@ -18,12 +18,12 @@ const OrderStatusUpdate = ({ order }) => {
     setLoading(true);
 
     try {
-      const response = await fetch(`/api/orders/${order._id}`, {
+      const response = await fetch(`/api/admin/orders/${order._id}`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ status }),
+        body: JSON.stringify({ status: newStatus }),
       });
 
       if (!response.ok) {

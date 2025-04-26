@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
-import dbConnect from "@/lib/db-connect";
+import dbConnect from "@/lib/db";
 import Order from "@/models/Order";
 import { getPaymentsByExternalReference } from "@/lib/mercadopago";
 

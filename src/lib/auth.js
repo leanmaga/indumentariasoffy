@@ -1,6 +1,6 @@
 import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
-import connectDB from "@/lib/db";
+import connectDB from "./db";
 import User from "@/models/User";
 
 export const authOptions = {
@@ -16,7 +16,7 @@ export const authOptions = {
           return null;
         }
 
-        await dbConnect();
+        await connectDB();
 
         try {
           // Buscar usuario por email
