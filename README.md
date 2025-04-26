@@ -1,36 +1,153 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# E-commerce con Next.js, MongoDB y Cloudinary
 
-## Getting Started
+Este es un e-commerce completo desarrollado con Next.js, MongoDB y Cloudinary, con integración de MercadoPago para procesar pagos.
 
-First, run the development server:
+## Características principales
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+1. **Página de inicio**: Presentación atractiva con productos destacados y categorías.
+2. **Autenticación de usuario**:
+   - **Administrador**: Puede acceder a un panel donde gestiona productos, pedidos y usuarios.
+   - **Usuarios**: Pueden registrarse para realizar compras.
+3. **Carrito de compras**: Permite agregar productos, modificar cantidades y proceder al pago.
+4. **Pasarela de pago**: Integración con MercadoPago.
+5. **Base de datos**: MongoDB para almacenar información de productos, usuarios y pedidos.
+6. **Almacenamiento de imágenes**: Cloudinary para gestionar las imágenes de los productos.
+
+## Tecnologías utilizadas
+
+- **Frontend**: Next.js 14 con App Router, React y Tailwind CSS
+- **Backend**: API Routes de Next.js
+- **Base de datos**: MongoDB con Mongoose
+- **Autenticación**: NextAuth.js
+- **Gestión de estado**: Zustand
+- **Imágenes**: Cloudinary
+- **Pagos**: MercadoPago
+- **Formularios**: React Hook Form
+- **Notificaciones**: React Hot Toast
+
+## Configuración del proyecto
+
+1. **Clona el repositorio**:
+
+   ```bash
+   git clone https://github.com/tu-usuario/ecommerce-nextjs.git
+   cd ecommerce-nextjs
+   ```
+
+2. **Instala las dependencias**:
+
+   ```bash
+   npm install
+   ```
+
+3. **Configura las variables de entorno**:
+   Crea un archivo `.env.local` en la raíz del proyecto con el siguiente contenido:
+
+   ```
+   # MongoDB
+   MONGODB_URI=mongodb+srv://tu-usuario:tu-password@tu-cluster.mongodb.net/ecommerce
+
+   # NextAuth
+   NEXTAUTH_URL=http://localhost:3000
+   NEXTAUTH_SECRET=tu-clave-secreta
+
+   # Cloudinary
+   NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=tu-cloud-name
+   NEXT_PUBLIC_CLOUDINARY_API_KEY=tu-api-key
+   CLOUDINARY_API_SECRET=tu-api-secret
+
+   # MercadoPago
+   MERCADOPAGO_ACCESS_TOKEN=tu-access-token
+   NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY=tu-public-key
+   ```
+
+4. **Inicia el servidor de desarrollo**:
+
+   ```bash
+   npm run dev
+   ```
+
+5. **Accede a la aplicación**:
+   Abre tu navegador en [http://localhost:3000](http://localhost:3000)
+
+## Estructura del proyecto
+
+```
+e-commerce-app/
+├── app/                      # Directorio de la aplicación (App Router)
+│   ├── api/                  # Rutas de API
+│   ├── auth/                 # Páginas de autenticación
+│   ├── admin/                # Panel de administración
+│   ├── products/             # Páginas de productos
+│   ├── cart/                 # Página del carrito
+│   ├── checkout/             # Página de checkout
+│   └── contact/              # Página de contacto
+├── components/               # Componentes reutilizables
+├── lib/                      # Utilidades y lógica de la aplicación
+└── models/                   # Modelos de datos para MongoDB
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Acceso al panel de administración
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+Para acceder al panel de administración, debes crear un usuario administrador manualmente en la base de datos o modificar el siguiente código en `app/api/auth/register/route.js` para crear un administrador durante el proceso de registro:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```javascript
+// Crear nuevo usuario
+const newUser = new User({
+  name,
+  email,
+  password,
+  phone,
+  role: "admin", // Cambiar 'user' por 'admin'
+});
+```
 
-## Learn More
+Una vez que tengas un usuario con rol de administrador, podrás acceder al panel de administración en [http://localhost:3000/admin](http://localhost:3000/admin).
 
-To learn more about Next.js, take a look at the following resources:
+## Despliegue
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Para desplegar la aplicación en producción:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+1. **Construye la aplicación**:
 
-## Deploy on Vercel
+   ```bash
+   npm run build
+   ```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+2. **Inicia el servidor de producción**:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+   ```bash
+   npm start
+   ```
+
+3. **Despliegue en plataformas**:
+   - Vercel: Conecta tu repositorio de GitHub con Vercel para un despliegue automático.
+   - Netlify: Configura tu proyecto para despliegue continuo.
+   - Railway/Render/etc.: Sigue las guías específicas de cada plataforma.
+
+## Configuración de MercadoPago
+
+1. Crea una cuenta en [MercadoPago Developers](https://developers.mercadopago.com/)
+2. Obtén tus credenciales de prueba/producción
+3. Configura las variables de entorno con tus credenciales
+4. Para probar los pagos, utiliza las [tarjetas de prueba](https://www.mercadopago.com.ar/developers/es/docs/checkout-api/test-cards) proporcionadas por MercadoPago
+
+## Configuración de Cloudinary
+
+1. Crea una cuenta en [Cloudinary](https://cloudinary.com/)
+2. Obtén tus credenciales (Cloud Name, API Key, API Secret)
+3. Configura las variables de entorno con tus credenciales
+
+## Contribución
+
+Si deseas contribuir a este proyecto, por favor:
+
+1. Haz un fork del repositorio
+2. Crea una rama para tu funcionalidad (`git checkout -b feature/nueva-funcionalidad`)
+3. Realiza tus cambios y haz commits (`git commit -m 'Agrega nueva funcionalidad'`)
+4. Sube tus cambios (`git push origin feature/nueva-funcionalidad`)
+5. Abre un Pull Request
+
+## Licencia
+
+[MIT](LICENSE)
