@@ -1,8 +1,10 @@
 "use client";
 
+import { Suspense } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
-const CategoryFilter = () => {
+// Componente interno que usa useSearchParams
+function CategoryFilterContent() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -63,6 +65,21 @@ const CategoryFilter = () => {
         Hogar
       </button>
     </div>
+  );
+}
+
+// Componente principal con Suspense
+const CategoryFilter = () => {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex justify-center mb-8 gap-2 opacity-50">
+          Cargando categorías...
+        </div>
+      }
+    >
+      <CategoryFilterContent />
+    </Suspense>
   );
 };
 

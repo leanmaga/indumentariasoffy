@@ -1,12 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ClockIcon } from "@heroicons/react/24/outline";
 import { useCartStore } from "@/lib/store";
 
-export default function CheckoutPendingPage() {
+// Componente interno que usa useSearchParams
+function CheckoutPendingContent() {
   const [orderId, setOrderId] = useState(null);
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -78,5 +79,20 @@ export default function CheckoutPendingPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+// Componente principal con Suspense
+export default function CheckoutPendingPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600"></div>
+        </div>
+      }
+    >
+      <CheckoutPendingContent />
+    </Suspense>
   );
 }

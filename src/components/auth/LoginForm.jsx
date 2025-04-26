@@ -1,13 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { toast } from "react-hot-toast";
 
-const LoginForm = ({ type = "user" }) => {
+// Componente interno que usa useSearchParams
+function LoginFormContent({ type = "user" }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirect = searchParams.get("redirect") || "/";
@@ -135,6 +136,15 @@ const LoginForm = ({ type = "user" }) => {
         </p>
       )}
     </form>
+  );
+}
+
+// Componente principal con Suspense
+const LoginForm = (props) => {
+  return (
+    <Suspense fallback={<div className="p-4 text-center">Cargando...</div>}>
+      <LoginFormContent {...props} />
+    </Suspense>
   );
 };
 
