@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth/next";
 import connectDB from "@/lib/db";
 import Product from "@/models/Product";
-import { authOptions } from "../../auth/[...nextauth]/route";
+import { authOptions } from "@/lib/auth";
+import { getServerSession } from "next-auth/next";
 import { uploadImage, deleteImage } from "@/lib/cloudinary";
 
 // GET - Obtener un producto por ID

@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth/next";
 import connectDB from "@/lib/db";
 import Order from "@/models/Order";
 import User from "@/models/User";
-import { authOptions } from "../auth/[...nextauth]/route";
+import { authOptions } from "@/lib/auth";
+import { getServerSession } from "next-auth/next";
 import { createPaymentPreference } from "@/lib/mercadopago";
 
 // GET - Obtener las órdenes del usuario o todas las órdenes (para admin)

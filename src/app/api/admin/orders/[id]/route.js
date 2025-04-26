@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth/next";
 import connectDB from "@/lib/db";
 import Order from "@/models/Order";
-import { authOptions } from "../../auth/[...nextauth]/route";
+import { authOptions } from "@/lib/auth";
+import { getServerSession } from "next-auth/next";
 
 // GET - Obtener una orden por ID
 export async function GET(request, { params }) {
