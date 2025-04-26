@@ -61,7 +61,7 @@ export default function RegisterPage() {
       }
 
       toast.success("Usuario registrado correctamente");
-      router.push("/auth/signin");
+      router.push("/auth/login");
     } catch (error) {
       console.error("Error de registro:", error);
       setError(error.message || "Error al registrar usuario");

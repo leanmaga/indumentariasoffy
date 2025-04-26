@@ -10,7 +10,16 @@ const nextConfig = {
       },
     ],
   },
-  // Configuración adicional si es necesaria
+  // Añadir configuración de redirecciones
+  async redirects() {
+    return [
+      {
+        source: "/auth/signin",
+        destination: "/auth/login",
+        permanent: true,
+      },
+    ];
+  },
 };
 
 module.exports = nextConfig;
