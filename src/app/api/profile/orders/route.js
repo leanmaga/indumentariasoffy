@@ -1,3 +1,4 @@
+// src/app/api/profile/orders/route.js
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
@@ -40,8 +41,8 @@ export async function GET(request) {
       orders.length
     );
 
-    // Retornar las órdenes
-    return NextResponse.json({ orders });
+    // Importante: devolver un array en lugar de un objeto con una propiedad orders
+    return NextResponse.json(orders);
   } catch (error) {
     console.error("Error al obtener órdenes del usuario:", error);
     return NextResponse.json(
