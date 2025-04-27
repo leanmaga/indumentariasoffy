@@ -1,8 +1,8 @@
+// src/app/api/orders/route.js
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
-// Cambia esta línea para importar desde tu archivo existente
-import connectDB from "@/lib/db"; // En lugar de dbConnect
+import connectDB from "@/lib/db";
 import Order from "@/models/Order";
 import User from "@/models/User";
 import { createPaymentPreference } from "@/lib/mercadopago";
@@ -15,10 +15,9 @@ export async function POST(request) {
       return NextResponse.json({ message: "No autorizado" }, { status: 401 });
     }
 
-    // Conectar a la base de datos (usando tu función existente)
+    // Conectar a la base de datos
     await connectDB();
 
-    // Resto del código...
     // Obtener el usuario
     const user = await User.findOne({ email: session.user.email });
     if (!user) {
@@ -31,6 +30,91 @@ export async function POST(request) {
     // Obtener datos del body
     const orderData = await request.json();
 
+    // Verificar si existe una clave de idempotencia
+    if (orderData.idempotencyKey) {
+      // Buscar si ya existe una orden con esta clave de idempotencia
+      const existingOrder = await Order.findOne({
+        idempotencyKey: orderData.idempotencyKey,
+      });
+
+      // Si ya existe, devolver la información de esa orden
+      if (existingOrder) {
+        console.log(
+          `Orden duplicada detectada con clave ${orderData.idempotencyKey}. Devolviendo orden existente ${existingOrder._id}`
+        );
+
+        // Si la orden existente ya tiene información de pago de MercadoPago, devolverla
+        if (orderData.paymentMethod === "mercadopago") {
+          // Obtener la información de pago existente si ya fue creada antes
+          // Aquí podrías implementar una función para recuperar datos de pago de MercadoPago
+          // en lugar de crear una nueva preferencia
+
+          // Este es un ejemplo simplificado. Lo ideal sería recuperar la preferencia existente
+          const preferenceResponse = await createPaymentPreference(
+            existingOrder
+          );
+
+          return NextResponse.json({
+            message: "Orden existente recuperada",
+            orderId: existingOrder._id,
+            paymentInfo: {
+              id: preferenceResponse.id,
+              init_point: preferenceResponse.init_point,
+              sandbox_init_point: preferenceResponse.sandbox_init_point,
+            },
+          });
+        }
+
+        return NextResponse.json({
+          message: "Orden existente recuperada",
+          orderId: existingOrder._id,
+        });
+      }
+    }
+
+    // Verificar si existe un pedido similar reciente (mismo total, mismos items)
+    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+    const similarOrder = await Order.findOne({
+      user: user._id,
+      totalAmount: orderData.totalAmount,
+      createdAt: { $gt: fiveMinutesAgo },
+      status: "pendiente",
+    });
+
+    if (similarOrder) {
+      console.log(
+        `Orden similar reciente encontrada: ${similarOrder._id}. Posible duplicado.`
+      );
+
+      // Opción 1: Considerar esto como un duplicado y devolver la orden existente
+      // Aquí podrías habilitar esto para prevenir completamente los duplicados
+      /*
+      if (orderData.paymentMethod === "mercadopago") {
+        const preferenceResponse = await createPaymentPreference(similarOrder);
+        
+        return NextResponse.json({
+          message: "Orden existente recuperada",
+          orderId: similarOrder._id,
+          paymentInfo: {
+            id: preferenceResponse.id,
+            init_point: preferenceResponse.init_point,
+            sandbox_init_point: preferenceResponse.sandbox_init_point,
+          },
+        });
+      }
+      
+      return NextResponse.json({
+        message: "Orden existente recuperada",
+        orderId: similarOrder._id,
+      });
+      */
+
+      // Opción 2: Registrar pero continuar (por si el usuario realmente quiere hacer otro pedido igual)
+      console.log(
+        "Continuando con la creación de la orden a pesar de la similitud"
+      );
+    }
+
     // Crear la orden en la base de datos
     const order = new Order({
       user: user._id,
@@ -39,6 +123,7 @@ export async function POST(request) {
       paymentMethod: orderData.paymentMethod,
       shippingInfo: orderData.shippingInfo,
       status: "pendiente",
+      idempotencyKey: orderData.idempotencyKey, // Guardar la clave de idempotencia
     });
 
     await order.save();
@@ -49,18 +134,31 @@ export async function POST(request) {
 
     // Si el método de pago es MercadoPago, crear preferencia de pago
     if (orderData.paymentMethod === "mercadopago") {
-      const preferenceResponse = await createPaymentPreference(order);
+      try {
+        const preferenceResponse = await createPaymentPreference(order);
 
-      // Incluir ambas URLs, con prioridad al sandbox para entorno de prueba
-      return NextResponse.json({
-        message: "Orden creada correctamente",
-        orderId: order._id,
-        paymentInfo: {
-          id: preferenceResponse.id,
-          init_point: preferenceResponse.init_point,
-          sandbox_init_point: preferenceResponse.sandbox_init_point,
-        },
-      });
+        // Incluir ambas URLs, con prioridad al sandbox para entorno de prueba
+        return NextResponse.json({
+          message: "Orden creada correctamente",
+          orderId: order._id,
+          paymentInfo: {
+            id: preferenceResponse.id,
+            init_point: preferenceResponse.init_point,
+            sandbox_init_point: preferenceResponse.sandbox_init_point,
+          },
+        });
+      } catch (mpError) {
+        console.error("Error al crear preferencia en MercadoPago:", mpError);
+
+        // No eliminar la orden, solo actualizar su estado
+        order.status = "error_pago";
+        await order.save();
+
+        return NextResponse.json(
+          { message: `Error al crear preferencia de pago: ${mpError.message}` },
+          { status: 500 }
+        );
+      }
     }
 
     // Para otros métodos de pago
