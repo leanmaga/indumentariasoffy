@@ -18,24 +18,24 @@ export const createPaymentPreference = async (orderData) => {
 
     // Preparar los items para MercadoPago
     const items = orderData.items.map((item) => ({
-      id: item.product
-        ? item.product.toString()
-        : `item-${Math.random().toString(36).substring(7)}`,
+      id: item.product.toString(),
       title: item.title,
-      quantity: Number(item.quantity),
-      unit_price: Number(item.price),
+      quantity: item.quantity,
+      unit_price: item.price,
       currency_id: "ARS", // Argentina
-      picture_url: item.imageUrl || "",
+      picture_url: item.imageUrl,
     }));
 
     // Crear la preferencia con el formato correcto para v2
     const preferenceData = {
       items: items,
+      // URLs planas en lugar de objeto anidado
       back_urls: {
         success: `${process.env.NEXTAUTH_URL}/checkout/success`,
         failure: `${process.env.NEXTAUTH_URL}/checkout/failure`,
         pending: `${process.env.NEXTAUTH_URL}/checkout/pending`,
       },
+      // Eliminamos auto_return que está causando problemas
       external_reference: orderData._id.toString(),
       notification_url: `${process.env.NEXTAUTH_URL}/api/mercadopago/webhook`,
       payer: {
@@ -52,15 +52,12 @@ export const createPaymentPreference = async (orderData) => {
       statement_descriptor: "Mi Tienda Online",
     };
 
-    console.log(
-      "Creando preferencia de MercadoPago:",
-      JSON.stringify(preferenceData, null, 2)
-    );
+    console.log("Creando preferencia de MercadoPago:", preferenceData);
 
     const preference = new Preference(client);
     const response = await preference.create({ body: preferenceData });
 
-    console.log("Preferencia creada:", JSON.stringify(response, null, 2));
+    console.log("Preferencia creada:", response);
 
     return response;
   } catch (error) {
