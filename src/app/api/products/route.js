@@ -15,6 +15,7 @@ export async function GET(request) {
     const page = parseInt(searchParams.get("page") || "1");
     const sort = searchParams.get("sort") || "createdAt";
     const order = searchParams.get("order") === "asc" ? 1 : -1;
+    const gender = searchParams.get("gender");
 
     await connectDB();
 
@@ -27,6 +28,10 @@ export async function GET(request) {
 
     if (searchParams.has("featured")) {
       query.featured = featured;
+    }
+
+    if (gender) {
+      query.gender = gender;
     }
 
     // Ejecutar la consulta con paginación y ordenación
@@ -76,10 +81,10 @@ export async function POST(request) {
 
     await connectDB();
 
-    // Crear el producto con campos adicionales para calzado si es necesario
+    // Preparar los datos del producto según la categoría
     let productData = {
       title: data.title,
-      description: data.description,
+      description: data.description || "",
       price: data.price,
       stock: data.stock || 0,
       category: data.category,
@@ -87,12 +92,37 @@ export async function POST(request) {
       featured: data.featured || false,
     };
 
-    // Si es un producto de calzado, agregar los campos adicionales
-    if (data.category === "calzado") {
+    // Campos comunes para productos de indumentaria
+    const clothingCategories = [
+      "camisetas",
+      "pantalones",
+      "calzado",
+      "abrigos",
+      "accesorios",
+    ];
+    if (clothingCategories.includes(data.category)) {
       productData = {
         ...productData,
-        sizes: data.sizes || [],
-        colors: data.colors || [],
+        gender: data.gender || "",
+        material: data.material || "",
+        style: data.style || "",
+        season: data.season || "",
+      };
+    }
+
+    // Campos para productos con variantes
+    const variantCategories = ["camisetas", "pantalones", "calzado", "abrigos"];
+    if (
+      variantCategories.includes(data.category) &&
+      Array.isArray(data.sizes) &&
+      data.sizes.length > 0 &&
+      Array.isArray(data.colors) &&
+      data.colors.length > 0
+    ) {
+      productData = {
+        ...productData,
+        sizes: data.sizes,
+        colors: data.colors,
         variants: data.variants || [],
       };
 
@@ -103,6 +133,24 @@ export async function POST(request) {
           0
         );
       }
+    }
+
+    // Campos específicos para pantalones
+    if (data.category === "pantalones") {
+      productData = {
+        ...productData,
+        waistType: data.waistType || "",
+        fit: data.fit || "",
+      };
+    }
+
+    // Campos específicos para calzado
+    if (data.category === "calzado") {
+      productData = {
+        ...productData,
+        heelHeight: data.heelHeight || 0,
+        soleType: data.soleType || "",
+      };
     }
 
     // Crear el producto

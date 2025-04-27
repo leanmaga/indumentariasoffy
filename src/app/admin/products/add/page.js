@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import toast from "react-hot-toast";
 import { XCircleIcon, PlusCircleIcon } from "@heroicons/react/24/outline";
+import Image from "next/image";
 
 export default function AddProductPage() {
   const { data: session, status } = useSession();
@@ -19,30 +20,51 @@ export default function AddProductPage() {
     stock: "",
     category: "ropa", // Valor por defecto
     featured: false,
-    // Campos para calzado
+    // Campos para indumentaria
     sizes: [],
     colors: [],
     variants: [],
+    gender: "",
+    material: "",
+    style: "",
+    season: "",
+    // Campos para pantalones
+    waistType: "",
+    fit: "",
+    // Campos para calzado
+    heelHeight: "",
+    soleType: "",
   });
 
-  // Estado para opciones de talle y color de calzado
+  // Estado para opciones de talle y color
   const [newSize, setNewSize] = useState("");
   const [newColor, setNewColor] = useState("");
   const [showVariants, setShowVariants] = useState(false);
+  const [showExtraFields, setShowExtraFields] = useState(false);
+  const [clothingType, setClothingType] = useState("");
 
-  // Opciones predefinidas de talles y colores para calzado
-  const commonSizes = [
-    "36",
-    "37",
-    "38",
-    "39",
-    "40",
-    "41",
-    "42",
-    "43",
-    "44",
-    "45",
-  ];
+  // Opciones predefinidas de talles y colores por categoría
+  const sizeOptions = {
+    camisetas: ["XS", "S", "M", "L", "XL", "XXL", "XXXL"],
+    pantalones: ["36", "38", "40", "42", "44", "46", "48", "50", "52", "54"],
+    calzado: [
+      "35",
+      "36",
+      "37",
+      "38",
+      "39",
+      "40",
+      "41",
+      "42",
+      "43",
+      "44",
+      "45",
+      "46",
+    ],
+    abrigos: ["XS", "S", "M", "L", "XL", "XXL"],
+    accesorios: ["Único"],
+  };
+
   const commonColors = [
     "Negro",
     "Blanco",
@@ -51,14 +73,57 @@ export default function AddProductPage() {
     "Gris",
     "Marrón",
     "Verde",
+    "Amarillo",
+    "Naranja",
+    "Púrpura",
+    "Rosa",
+    "Beige",
+    "Navy",
+    "Khaki",
   ];
 
-  // Efecto para mostrar opciones de variantes cuando se selecciona la categoría calzado
-  useEffect(() => {
-    setShowVariants(formData.category === "calzado");
+  const genderOptions = [
+    "hombre",
+    "mujer",
+    "unisex",
+    "niños",
+    "niñas",
+    "bebés",
+  ];
+  const seasonOptions = ["verano", "invierno", "primavera", "otoño", "todas"];
+  const waistTypeOptions = ["regular", "alto", "bajo"];
+  const fitOptions = [
+    "skinny",
+    "slim",
+    "regular",
+    "relaxed",
+    "bootcut",
+    "wide",
+  ];
 
-    // Si cambia la categoría y no es calzado, limpiar las variantes
-    if (formData.category !== "calzado") {
+  // Categorías que usan variantes (talle + color)
+  const variantCategories = ["camisetas", "pantalones", "calzado", "abrigos"];
+
+  // Categorías que usan campos específicos
+  const clothingCategories = [
+    "camisetas",
+    "pantalones",
+    "calzado",
+    "abrigos",
+    "accesorios",
+  ];
+
+  // Efecto para mostrar campos específicos según la categoría
+  useEffect(() => {
+    const needsVariants = variantCategories.includes(formData.category);
+    const isClothing = clothingCategories.includes(formData.category);
+
+    setShowVariants(needsVariants);
+    setShowExtraFields(isClothing);
+    setClothingType(formData.category);
+
+    // Si cambia la categoría y no necesita variantes, limpiar las variantes
+    if (!needsVariants) {
       setFormData((prev) => ({
         ...prev,
         sizes: [],
@@ -71,7 +136,7 @@ export default function AddProductPage() {
   // Efecto para autogenerar variantes cuando cambian talles o colores
   useEffect(() => {
     if (
-      formData.category === "calzado" &&
+      showVariants &&
       formData.sizes.length > 0 &&
       formData.colors.length > 0
     ) {
@@ -101,7 +166,7 @@ export default function AddProductPage() {
         variants: newVariants,
       }));
     }
-  }, [formData.sizes, formData.colors, formData.category]);
+  }, [formData.sizes, formData.colors, showVariants]);
 
   // Usar useEffect para la redirección
   useEffect(() => {
@@ -246,13 +311,13 @@ export default function AddProductPage() {
         throw new Error("El precio debe ser un número positivo");
       }
 
-      // Validar stock para productos normales
-      if (formData.category !== "calzado") {
+      // Validar stock según la categoría
+      if (!showVariants) {
         if (isNaN(parseInt(formData.stock)) || parseInt(formData.stock) < 0) {
           throw new Error("El stock debe ser un número no negativo");
         }
       } else {
-        // Para calzado, validar que haya al menos un talle y un color
+        // Para productos con variantes, validar que haya al menos un talle y un color
         if (formData.sizes.length === 0) {
           throw new Error("Debe agregar al menos un talle");
         }
@@ -271,7 +336,7 @@ export default function AddProductPage() {
         }
       }
 
-      // Subir la imagen utilizando nuestra API en lugar de directamente a Cloudinary
+      // Subir la imagen utilizando nuestra API
       const imageData = new FormData();
       imageData.append("file", imageFile);
 
@@ -295,11 +360,11 @@ export default function AddProductPage() {
         imageUrl,
       };
 
-      // Para productos que no son calzado, incluir el stock total
-      if (formData.category !== "calzado") {
+      // Para productos sin variantes, incluir el stock total
+      if (!showVariants) {
         productData.stock = parseInt(formData.stock);
       } else {
-        // Para calzado, calcular el stock total a partir de las variantes
+        // Para productos con variantes, calcular el stock total
         productData.stock = formData.variants.reduce(
           (sum, variant) => sum + variant.stock,
           0
@@ -392,16 +457,20 @@ export default function AddProductPage() {
               className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
               required
             >
-              <option value="ropa">Ropa</option>
+              <option value="ropa">Ropa (General)</option>
+              <option value="camisetas">Camisetas</option>
+              <option value="pantalones">Pantalones</option>
+              <option value="abrigos">Abrigos</option>
+              <option value="calzado">Calzado</option>
+              <option value="accesorios">Accesorios</option>
               <option value="electronica">Electrónica</option>
               <option value="hogar">Hogar</option>
               <option value="deporte">Deporte</option>
-              <option value="calzado">Calzado</option>
               <option value="otros">Otros</option>
             </select>
           </div>
 
-          {/* Stock (solo para productos que no son calzado) */}
+          {/* Stock (solo para productos sin variantes) */}
           {!showVariants && (
             <div>
               <label
@@ -442,11 +511,201 @@ export default function AddProductPage() {
           ></textarea>
         </div>
 
-        {/* Sección de talle y color para calzado */}
+        {/* Campos adicionales para productos de indumentaria */}
+        {showExtraFields && (
+          <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+            <h3 className="text-lg font-medium text-gray-800 mb-3">
+              Detalles del producto
+            </h3>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              {/* Género */}
+              <div>
+                <label
+                  htmlFor="gender"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  Género
+                </label>
+                <select
+                  id="gender"
+                  name="gender"
+                  value={formData.gender}
+                  onChange={handleChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                >
+                  <option value="">Seleccionar</option>
+                  {genderOptions.map((option) => (
+                    <option key={option} value={option}>
+                      {option.charAt(0).toUpperCase() + option.slice(1)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Temporada */}
+              <div>
+                <label
+                  htmlFor="season"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  Temporada
+                </label>
+                <select
+                  id="season"
+                  name="season"
+                  value={formData.season}
+                  onChange={handleChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                >
+                  <option value="">Seleccionar</option>
+                  {seasonOptions.map((option) => (
+                    <option key={option} value={option}>
+                      {option.charAt(0).toUpperCase() + option.slice(1)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Material */}
+              <div>
+                <label
+                  htmlFor="material"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  Material
+                </label>
+                <input
+                  type="text"
+                  id="material"
+                  name="material"
+                  value={formData.material}
+                  onChange={handleChange}
+                  placeholder="Ej: Algodón, Poliéster, Lana..."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                />
+              </div>
+
+              {/* Estilo */}
+              <div>
+                <label
+                  htmlFor="style"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  Estilo
+                </label>
+                <input
+                  type="text"
+                  id="style"
+                  name="style"
+                  value={formData.style}
+                  onChange={handleChange}
+                  placeholder="Ej: Casual, Formal, Deportivo..."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                />
+              </div>
+            </div>
+
+            {/* Campos específicos para pantalones */}
+            {formData.category === "pantalones" && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                <div>
+                  <label
+                    htmlFor="waistType"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
+                    Tipo de cintura
+                  </label>
+                  <select
+                    id="waistType"
+                    name="waistType"
+                    value={formData.waistType}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                  >
+                    <option value="">Seleccionar</option>
+                    {waistTypeOptions.map((option) => (
+                      <option key={option} value={option}>
+                        {option.charAt(0).toUpperCase() + option.slice(1)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="fit"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
+                    Corte
+                  </label>
+                  <select
+                    id="fit"
+                    name="fit"
+                    value={formData.fit}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                  >
+                    <option value="">Seleccionar</option>
+                    {fitOptions.map((option) => (
+                      <option key={option} value={option}>
+                        {option.charAt(0).toUpperCase() + option.slice(1)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            )}
+
+            {/* Campos específicos para calzado */}
+            {formData.category === "calzado" && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                <div>
+                  <label
+                    htmlFor="heelHeight"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
+                    Altura del tacón (cm)
+                  </label>
+                  <input
+                    type="number"
+                    id="heelHeight"
+                    name="heelHeight"
+                    value={formData.heelHeight}
+                    onChange={handleChange}
+                    min="0"
+                    step="0.1"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                  />
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="soleType"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
+                    Tipo de suela
+                  </label>
+                  <input
+                    type="text"
+                    id="soleType"
+                    name="soleType"
+                    value={formData.soleType}
+                    onChange={handleChange}
+                    placeholder="Ej: Goma, Cuero, Sintética..."
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Sección de talle y color para productos con variantes */}
         {showVariants && (
           <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
             <h3 className="text-lg font-medium text-gray-800 mb-3">
-              Opciones para Calzado
+              Opciones de talle y color
             </h3>
 
             {/* Sección de Talles */}
@@ -457,7 +716,7 @@ export default function AddProductPage() {
 
               {/* Añadir talles predefinidos */}
               <div className="flex flex-wrap gap-2 mb-3">
-                {commonSizes.map((size) => (
+                {sizeOptions[formData.category]?.map((size) => (
                   <button
                     key={size}
                     type="button"
@@ -640,7 +899,7 @@ export default function AddProductPage() {
           </div>
           {imagePreview && (
             <div className="mt-2">
-              <img
+              <Image
                 src={imagePreview}
                 alt="Vista previa"
                 className="h-40 w-auto object-contain border rounded-md"

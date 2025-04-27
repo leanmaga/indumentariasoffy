@@ -25,10 +25,21 @@ const productSchema = new mongoose.Schema(
     category: {
       type: String,
       required: [true, "Por favor proporcione una categoría"],
-      enum: ["ropa", "electronica", "hogar", "deporte", "calzado", "otros"],
+      enum: [
+        "ropa",
+        "camisetas",
+        "pantalones",
+        "abrigos",
+        "calzado",
+        "accesorios",
+        "electronica",
+        "hogar",
+        "deporte",
+        "otros",
+      ],
       default: "otros",
     },
-    // Nuevos campos para productos de tipo calzado
+    // Atributos comunes para productos de indumentaria
     sizes: {
       type: [String],
       default: [],
@@ -52,11 +63,51 @@ const productSchema = new mongoose.Schema(
       ],
       default: [],
     },
+    // Campos específicos para categorías de indumentaria
+    gender: {
+      type: String,
+      enum: ["hombre", "mujer", "unisex", "niños", "niñas", "bebés", ""],
+      default: "",
+    },
+    material: {
+      type: String,
+      default: "",
+    },
+    style: {
+      type: String,
+      default: "",
+    },
+    season: {
+      type: String,
+      enum: ["verano", "invierno", "primavera", "otoño", "todas", ""],
+      default: "",
+    },
+    // Campos específicos para pantalones
+    waistType: {
+      type: String,
+      enum: ["regular", "alto", "bajo", ""],
+      default: "",
+    },
+    fit: {
+      type: String,
+      enum: ["skinny", "slim", "regular", "relaxed", "bootcut", "wide", ""],
+      default: "",
+    },
+    // Campos específicos para calzado
+    heelHeight: {
+      type: Number,
+      default: 0,
+    },
+    soleType: {
+      type: String,
+      default: "",
+    },
+    // Campos para fotos y presentación
     imageUrl: {
       type: String,
       required: [true, "Por favor proporcione una imagen"],
     },
-    // Opcional: imágenes adicionales para diferentes colores
+    // Imágenes adicionales para diferentes colores
     additionalImages: {
       type: [
         {
@@ -70,6 +121,7 @@ const productSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    // Campos para valoraciones
     rating: {
       type: Number,
       default: 0,
@@ -90,6 +142,8 @@ const productSchema = new mongoose.Schema(
 productSchema.index({ category: 1 });
 productSchema.index({ featured: 1 });
 productSchema.index({ price: 1 });
+productSchema.index({ gender: 1 });
+productSchema.index({ "variants.size": 1, "variants.color": 1 });
 
 // Verificar si el modelo ya existe para evitar sobreescribirlo
 const Product =
