@@ -68,11 +68,14 @@ export default function CheckoutPage() {
 
   const total = getTotal();
 
+  // Este es un fragmento de la parte relevante de tu archivo checkout/page.jsx
+  // Solo incluye las correcciones para la parte de MercadoPago
+
   const onSubmit = async (data) => {
     setIsSubmitting(true);
 
     try {
-      // Preparar datos de la orden (igual que antes)
+      // Preparar datos de la orden
       const orderData = {
         items: items.map((item) => ({
           product: item.id,
@@ -93,6 +96,11 @@ export default function CheckoutPage() {
         },
       };
 
+      console.log(
+        "Enviando datos de orden:",
+        JSON.stringify(orderData, null, 2)
+      );
+
       // Enviar a la API
       const response = await fetch("/api/orders", {
         method: "POST",
@@ -108,17 +116,26 @@ export default function CheckoutPage() {
       }
 
       const result = await response.json();
+      console.log("Respuesta de API:", JSON.stringify(result, null, 2));
 
       // Si el pago es con MercadoPago, guardar el preferenceId
       if (selectedPaymentMethod === "mercadopago" && result.paymentInfo?.id) {
         setPreferenceId(result.paymentInfo.id);
-        // Guardamos la URL de sandbox para ambiente de prueba
-        setMercadoPagoUrl(
-          result.paymentInfo.sandbox_init_point || result.paymentInfo.init_point
-        );
 
-        // Opción alternativa: redirigir directamente (más confiable para pruebas)
-        // window.location.href = result.paymentInfo.sandbox_init_point || result.paymentInfo.init_point;
+        // Priorizar sandbox en ambiente de desarrollo
+        const redirectUrl =
+          result.paymentInfo.sandbox_init_point ||
+          result.paymentInfo.init_point;
+        setMercadoPagoUrl(redirectUrl);
+
+        console.log("PreferenceId configurado:", result.paymentInfo.id);
+        console.log("URL de redirección configurada:", redirectUrl);
+
+        // Alternativa de respaldo: redirección manual
+        if (!result.paymentInfo.id && redirectUrl) {
+          console.log("Redirigiendo manualmente a MercadoPago...");
+          window.location.href = redirectUrl;
+        }
       } else {
         // Para otros métodos (tarjeta), mostrar éxito
         toast.success("Orden creada correctamente");
