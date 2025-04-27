@@ -25,12 +25,46 @@ const productSchema = new mongoose.Schema(
     category: {
       type: String,
       required: [true, "Por favor proporcione una categoría"],
-      enum: ["ropa", "electronica", "hogar", "deporte", "otros"],
+      enum: ["ropa", "electronica", "hogar", "deporte", "calzado", "otros"],
       default: "otros",
+    },
+    // Nuevos campos para productos de tipo calzado
+    sizes: {
+      type: [String],
+      default: [],
+    },
+    colors: {
+      type: [String],
+      default: [],
+    },
+    // Variantes para combinaciones de talle y color con stock individual
+    variants: {
+      type: [
+        {
+          size: String,
+          color: String,
+          stock: {
+            type: Number,
+            default: 0,
+            min: 0,
+          },
+        },
+      ],
+      default: [],
     },
     imageUrl: {
       type: String,
       required: [true, "Por favor proporcione una imagen"],
+    },
+    // Opcional: imágenes adicionales para diferentes colores
+    additionalImages: {
+      type: [
+        {
+          color: String,
+          imageUrl: String,
+        },
+      ],
+      default: [],
     },
     featured: {
       type: Boolean,

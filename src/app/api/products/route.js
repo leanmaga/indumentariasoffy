@@ -1,3 +1,4 @@
+// src/app/api/products/route.js
 import { NextResponse } from "next/server";
 import connectDB from "@/lib/db";
 import Product from "@/models/Product";
@@ -75,8 +76,8 @@ export async function POST(request) {
 
     await connectDB();
 
-    // Crear el producto
-    const product = new Product({
+    // Crear el producto con campos adicionales para calzado si es necesario
+    let productData = {
       title: data.title,
       description: data.description,
       price: data.price,
@@ -84,7 +85,28 @@ export async function POST(request) {
       category: data.category,
       imageUrl: data.imageUrl,
       featured: data.featured || false,
-    });
+    };
+
+    // Si es un producto de calzado, agregar los campos adicionales
+    if (data.category === "calzado") {
+      productData = {
+        ...productData,
+        sizes: data.sizes || [],
+        colors: data.colors || [],
+        variants: data.variants || [],
+      };
+
+      // Calcular el stock total basado en las variantes
+      if (Array.isArray(data.variants) && data.variants.length > 0) {
+        productData.stock = data.variants.reduce(
+          (total, variant) => total + (variant.stock || 0),
+          0
+        );
+      }
+    }
+
+    // Crear el producto
+    const product = new Product(productData);
 
     await product.save();
 
@@ -95,7 +117,7 @@ export async function POST(request) {
   } catch (error) {
     console.error("Error al crear producto:", error);
     return NextResponse.json(
-      { message: "Error al crear producto" },
+      { message: "Error al crear producto: " + error.message },
       { status: 500 }
     );
   }
