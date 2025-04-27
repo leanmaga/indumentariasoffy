@@ -174,3 +174,58 @@ export async function POST(request) {
     );
   }
 }
+// Agregar este método al archivo existente api/orders/route.js
+
+// GET - Obtener todas las órdenes (solo para admins)
+export async function GET(request) {
+  try {
+    // Verificar la sesión del usuario
+    const session = await getServerSession(authOptions);
+    if (!session) {
+      return NextResponse.json({ message: "No autorizado" }, { status: 401 });
+    }
+
+    // Verificar si es admin
+    if (session.user.role !== "admin") {
+      return NextResponse.json({ message: "No autorizado" }, { status: 403 });
+    }
+
+    // Conectar a la base de datos
+    await connectDB();
+
+    // Parámetros de búsqueda
+    const { searchParams } = new URL(request.url);
+    const limit = parseInt(searchParams.get("limit") || "100");
+    const page = parseInt(searchParams.get("page") || "1");
+    const status = searchParams.get("status");
+
+    // Construir la consulta
+    let query = {};
+    if (status) {
+      query.status = status;
+    }
+
+    // Obtener todas las órdenes con populate del usuario
+    const orders = await Order.find(query)
+      .populate("user", "name email")
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .lean();
+
+    // Contar el total para paginación
+    const total = await Order.countDocuments(query);
+
+    // Agregar logs para depuración
+    console.log(`Órdenes recuperadas para admin: ${orders.length}`);
+
+    // Retornar las órdenes
+    return NextResponse.json(orders);
+  } catch (error) {
+    console.error("Error al obtener órdenes:", error);
+    return NextResponse.json(
+      { message: "Error al obtener órdenes" },
+      { status: 500 }
+    );
+  }
+}

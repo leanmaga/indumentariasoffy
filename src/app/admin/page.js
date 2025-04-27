@@ -41,30 +41,76 @@ export default function AdminDashboard() {
   // Cargar datos del dashboard
   useEffect(() => {
     const fetchDashboardData = async () => {
+      if (status !== "authenticated" || session?.user?.role !== "admin") {
+        return;
+      }
+
       try {
-        // Cargar productos
-        const productsRes = await fetch("/api/products");
-        const productsData = await productsRes.json();
+        setIsDataLoading(true);
 
-        // Cargar órdenes
-        const ordersRes = await fetch("/api/orders");
-        const ordersData = await ordersRes.json();
+        // Cargar productos con manejo de errores
+        let productsData = [];
+        try {
+          const productsRes = await fetch("/api/products");
+          if (productsRes.ok) {
+            const data = await productsRes.json();
+            productsData = data.products || [];
+          } else {
+            console.error("Error al cargar productos:", productsRes.status);
+          }
+        } catch (error) {
+          console.error("Error al cargar productos:", error);
+        }
 
-        // Cargar usuarios
-        const usersRes = await fetch("/api/users");
-        const usersData = await usersRes.json();
+        // Cargar órdenes con manejo de errores
+        let ordersData = [];
+        try {
+          const ordersRes = await fetch("/api/orders");
+          if (ordersRes.ok) {
+            ordersData = await ordersRes.json();
+            // Si no es un array, manejar el caso
+            if (!Array.isArray(ordersData)) {
+              console.error("Respuesta de órdenes no es un array:", ordersData);
+              ordersData = [];
+            }
+          } else {
+            console.error("Error al cargar órdenes:", ordersRes.status);
+          }
+        } catch (error) {
+          console.error("Error al cargar órdenes:", error);
+        }
+
+        // Cargar usuarios con manejo de errores
+        let usersData = [];
+        try {
+          const usersRes = await fetch("/api/users");
+          if (usersRes.ok) {
+            usersData = await usersRes.json();
+            // Si no es un array, manejar el caso
+            if (!Array.isArray(usersData)) {
+              console.error("Respuesta de usuarios no es un array:", usersData);
+              usersData = [];
+            }
+          } else {
+            console.error("Error al cargar usuarios:", usersRes.status);
+          }
+        } catch (error) {
+          console.error("Error al cargar usuarios:", error);
+        }
 
         // Calcular estadísticas
-        const totalSales = ordersData.reduce(
-          (sum, order) => sum + order.totalAmount,
-          0
-        );
-        const pendingOrders = ordersData.filter(
-          (order) => order.status === "pendiente"
-        ).length;
+        const totalSales = Array.isArray(ordersData)
+          ? ordersData.reduce((sum, order) => sum + (order.totalAmount || 0), 0)
+          : 0;
+
+        const pendingOrders = Array.isArray(ordersData)
+          ? ordersData.filter((order) => order.status === "pendiente").length
+          : 0;
 
         // Órdenes recientes (las últimas 5)
-        const recentOrders = ordersData.slice(0, 5);
+        const recentOrders = Array.isArray(ordersData)
+          ? ordersData.slice(0, 5)
+          : [];
 
         setDashboardData({
           products: productsData,
@@ -75,7 +121,7 @@ export default function AdminDashboard() {
           recentOrders,
         });
       } catch (error) {
-        console.error("Error al cargar datos del dashboard:", error);
+        console.error("Error general al cargar datos del dashboard:", error);
         toast.error("Error al cargar datos del dashboard");
       } finally {
         setIsDataLoading(false);
@@ -110,7 +156,7 @@ export default function AdminDashboard() {
   // Mostrar pantalla de carga mientras se cargan los datos
   if (isDataLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="flex items-center justify-center min-h-[300px]">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
       </div>
     );
@@ -121,7 +167,7 @@ export default function AdminDashboard() {
     dashboardData;
 
   return (
-    <div>
+    <div className="bg-white rounded-lg shadow-md p-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-semibold">Dashboard</h1>
         <button
@@ -133,7 +179,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* Información del administrador */}
-      <div className="bg-white p-4 rounded-lg shadow mb-6">
+      <div className="bg-white p-4 rounded-lg border border-gray-200 mb-6">
         <h2 className="text-lg font-medium text-gray-700 mb-2">
           Admin: {session.user.name}
         </h2>
@@ -142,14 +188,14 @@ export default function AdminDashboard() {
 
       {/* Tarjetas de Estadísticas */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <div className="bg-white rounded-lg p-6 shadow hover:shadow-lg transition-shadow">
+        <div className="bg-white rounded-lg p-6 shadow hover:shadow-lg transition-shadow border border-gray-100">
           <div className="flex items-center">
             <div className="bg-blue-100 p-3 rounded-full">
               <CubeIcon className="h-6 w-6 text-blue-600" />
             </div>
             <div className="ml-4">
               <h2 className="text-gray-500 text-sm">Productos</h2>
-              <p className="text-2xl font-semibold">{products.length}</p>
+              <p className="text-2xl font-semibold">{products.length || 0}</p>
             </div>
           </div>
           <Link
@@ -160,14 +206,14 @@ export default function AdminDashboard() {
           </Link>
         </div>
 
-        <div className="bg-white rounded-lg p-6 shadow hover:shadow-lg transition-shadow">
+        <div className="bg-white rounded-lg p-6 shadow hover:shadow-lg transition-shadow border border-gray-100">
           <div className="flex items-center">
             <div className="bg-green-100 p-3 rounded-full">
               <ClipboardDocumentListIcon className="h-6 w-6 text-green-600" />
             </div>
             <div className="ml-4">
               <h2 className="text-gray-500 text-sm">Pedidos</h2>
-              <p className="text-2xl font-semibold">{orders.length}</p>
+              <p className="text-2xl font-semibold">{orders.length || 0}</p>
             </div>
           </div>
           <Link
@@ -178,14 +224,14 @@ export default function AdminDashboard() {
           </Link>
         </div>
 
-        <div className="bg-white rounded-lg p-6 shadow hover:shadow-lg transition-shadow">
+        <div className="bg-white rounded-lg p-6 shadow hover:shadow-lg transition-shadow border border-gray-100">
           <div className="flex items-center">
             <div className="bg-purple-100 p-3 rounded-full">
               <UsersIcon className="h-6 w-6 text-purple-600" />
             </div>
             <div className="ml-4">
               <h2 className="text-gray-500 text-sm">Usuarios</h2>
-              <p className="text-2xl font-semibold">{users.length}</p>
+              <p className="text-2xl font-semibold">{users.length || 0}</p>
             </div>
           </div>
           <Link
@@ -196,7 +242,7 @@ export default function AdminDashboard() {
           </Link>
         </div>
 
-        <div className="bg-white rounded-lg p-6 shadow hover:shadow-lg transition-shadow">
+        <div className="bg-white rounded-lg p-6 shadow hover:shadow-lg transition-shadow border border-gray-100">
           <div className="flex items-center">
             <div className="bg-yellow-100 p-3 rounded-full">
               <CurrencyDollarIcon className="h-6 w-6 text-yellow-600" />
@@ -213,7 +259,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* Órdenes Recientes */}
-      <div className="bg-white rounded-lg shadow p-6 mb-8">
+      <div className="bg-white rounded-lg shadow p-6 mb-8 border border-gray-100">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-semibold">Pedidos Recientes</h2>
           <Link
@@ -276,10 +322,10 @@ export default function AdminDashboard() {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {new Date(order.createdAt).toLocaleDateString()}
+                      {new Date(order.createdAt).toLocaleDateString("es-ES")}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      ${order.totalAmount.toFixed(2)}
+                      ${order.totalAmount?.toFixed(2) || "0.00"}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span
@@ -295,8 +341,10 @@ export default function AdminDashboard() {
                             : "bg-red-100 text-red-800"
                         }`}
                       >
-                        {order.status.charAt(0).toUpperCase() +
-                          order.status.slice(1)}
+                        {order.status
+                          ? order.status.charAt(0).toUpperCase() +
+                            order.status.slice(1)
+                          : "N/A"}
                       </span>
                     </td>
                   </tr>
@@ -317,7 +365,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* Productos Populares */}
-      <div className="bg-white rounded-lg shadow p-6">
+      <div className="bg-white rounded-lg shadow p-6 border border-gray-100">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-semibold">Productos Populares</h2>
           <Link
@@ -329,34 +377,44 @@ export default function AdminDashboard() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {products.slice(0, 3).map((product) => (
-            <div
-              key={product._id}
-              className="border rounded-lg overflow-hidden flex"
-            >
-              <div className="w-24 h-24 bg-gray-200 relative flex-shrink-0">
-                {product.imageUrl && (
-                  <Image
-                    src={product.imageUrl}
-                    alt={product.title}
-                    className="w-full h-full object-cover"
-                  />
-                )}
+          {products && products.length > 0 ? (
+            products.slice(0, 3).map((product) => (
+              <div
+                key={product._id}
+                className="border rounded-lg overflow-hidden flex"
+              >
+                <div className="w-24 h-24 bg-gray-200 relative flex-shrink-0">
+                  {product.imageUrl && (
+                    <Image
+                      src={product.imageUrl}
+                      alt={product.title}
+                      fill
+                      sizes="96px"
+                      className="object-cover"
+                    />
+                  )}
+                </div>
+                <div className="p-4 flex-1">
+                  <h3 className="font-medium text-gray-900 mb-1 truncate">
+                    {product.title}
+                  </h3>
+                  <p className="text-gray-600 text-sm mb-2">
+                    ${product.price?.toFixed(2) || "0.00"}
+                  </p>
+                  <span className="text-xs bg-gray-100 text-gray-800 px-2 py-1 rounded">
+                    {product.category
+                      ? product.category.charAt(0).toUpperCase() +
+                        product.category.slice(1)
+                      : "Sin categoría"}
+                  </span>
+                </div>
               </div>
-              <div className="p-4 flex-1">
-                <h3 className="font-medium text-gray-900 mb-1 truncate">
-                  {product.title}
-                </h3>
-                <p className="text-gray-600 text-sm mb-2">
-                  ${product.price.toFixed(2)}
-                </p>
-                <span className="text-xs bg-gray-100 text-gray-800 px-2 py-1 rounded">
-                  {product.category.charAt(0).toUpperCase() +
-                    product.category.slice(1)}
-                </span>
-              </div>
+            ))
+          ) : (
+            <div className="col-span-3 text-center py-4 text-gray-500">
+              No hay productos disponibles
             </div>
-          ))}
+          )}
         </div>
       </div>
     </div>
