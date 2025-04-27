@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { toast } from "react-hot-toast";
-import { useForm } from "react-hook-form";
+import { useForm as useReactHookForm } from "react-hook-form";
+import { useForm as useFormspree, ValidationError } from "@formspree/react";
 import {
   PhoneIcon,
   EnvelopeIcon,
@@ -10,6 +11,8 @@ import {
 } from "@heroicons/react/24/outline";
 
 export default function ContactPage() {
+  // Reemplaza "xjvdrgba" con tu ID de formulario de Formspree
+  const [formspreeState, handleFormspreeSubmit] = useFormspree("xjvdrgba");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const {
@@ -17,25 +20,50 @@ export default function ContactPage() {
     handleSubmit,
     reset,
     formState: { errors },
-  } = useForm();
+  } = useReactHookForm();
+
+  // Mostrar mensaje de éxito cuando el formulario se envía correctamente
+  if (formspreeState.succeeded) {
+    return (
+      <div className="bg-gray-50 py-12">
+        <div className="container mx-auto px-4">
+          <div className="max-w-4xl mx-auto bg-white rounded-lg shadow-md p-8 text-center">
+            <svg
+              className="w-16 h-16 text-green-500 mx-auto mb-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M5 13l4 4L19 7"
+              ></path>
+            </svg>
+            <h2 className="text-2xl font-bold text-gray-800 mb-2">
+              ¡Gracias por tu mensaje!
+            </h2>
+            <p className="text-gray-600 mb-6">
+              Nos pondremos en contacto contigo lo antes posible.
+            </p>
+            <button
+              onClick={() => window.location.reload()}
+              className="bg-indigo-600 text-white py-2 px-6 rounded-lg hover:bg-indigo-700 transition font-medium"
+            >
+              Enviar otro mensaje
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const onSubmit = async (data) => {
     setIsSubmitting(true);
-
-    try {
-      // En una aplicación real, aquí iría el código para enviar el mensaje
-      // por ejemplo, a través de una API de correo electrónico
-
-      // Simulamos un retraso para mostrar el estado de carga
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      toast.success("Mensaje enviado correctamente");
-      reset(); // Limpiar el formulario
-    } catch (error) {
-      toast.error("Error al enviar el mensaje");
-    } finally {
-      setIsSubmitting(false);
-    }
+    // El handleFormspreeSubmit se encargará de enviar los datos a Formspree
+    // No necesitas hacer nada más aquí, ya que Formspree maneja el envío
   };
 
   return (
@@ -155,7 +183,7 @@ export default function ContactPage() {
                 Envía un Mensaje
               </h2>
 
-              <form onSubmit={handleSubmit(onSubmit)}>
+              <form onSubmit={handleFormspreeSubmit}>
                 <div className="mb-4">
                   <label htmlFor="name" className="block text-gray-700 mb-2">
                     Nombre
@@ -163,18 +191,17 @@ export default function ContactPage() {
                   <input
                     type="text"
                     id="name"
+                    name="name"
                     className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
                       errors.name ? "border-red-500" : "border-gray-300"
                     }`}
-                    {...register("name", {
-                      required: "El nombre es requerido",
-                    })}
+                    required
                   />
-                  {errors.name && (
-                    <p className="mt-1 text-sm text-red-500">
-                      {errors.name.message}
-                    </p>
-                  )}
+                  <ValidationError
+                    prefix="Name"
+                    field="name"
+                    errors={formspreeState.errors}
+                  />
                 </div>
 
                 <div className="mb-4">
@@ -184,22 +211,17 @@ export default function ContactPage() {
                   <input
                     type="email"
                     id="email"
+                    name="email"
                     className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
                       errors.email ? "border-red-500" : "border-gray-300"
                     }`}
-                    {...register("email", {
-                      required: "El correo electrónico es requerido",
-                      pattern: {
-                        value: /^\S+@\S+\.\S+$/,
-                        message: "Formato de correo electrónico inválido",
-                      },
-                    })}
+                    required
                   />
-                  {errors.email && (
-                    <p className="mt-1 text-sm text-red-500">
-                      {errors.email.message}
-                    </p>
-                  )}
+                  <ValidationError
+                    prefix="Email"
+                    field="email"
+                    errors={formspreeState.errors}
+                  />
                 </div>
 
                 <div className="mb-4">
@@ -208,27 +230,26 @@ export default function ContactPage() {
                   </label>
                   <textarea
                     id="message"
+                    name="message"
                     rows="4"
                     className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
                       errors.message ? "border-red-500" : "border-gray-300"
                     }`}
-                    {...register("message", {
-                      required: "El mensaje es requerido",
-                    })}
+                    required
                   ></textarea>
-                  {errors.message && (
-                    <p className="mt-1 text-sm text-red-500">
-                      {errors.message.message}
-                    </p>
-                  )}
+                  <ValidationError
+                    prefix="Message"
+                    field="message"
+                    errors={formspreeState.errors}
+                  />
                 </div>
 
                 <button
                   type="submit"
                   className="w-full bg-indigo-600 text-white py-2 px-4 rounded-lg hover:bg-indigo-700 transition font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-                  disabled={isSubmitting}
+                  disabled={formspreeState.submitting}
                 >
-                  {isSubmitting ? (
+                  {formspreeState.submitting ? (
                     <span className="flex items-center justify-center">
                       <svg
                         className="animate-spin -ml-1 mr-2 h-5 w-5 text-white"
