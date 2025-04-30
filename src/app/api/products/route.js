@@ -71,21 +71,48 @@ export async function POST(request) {
 
     const data = await request.json();
 
-    // Validar datos requeridos
-    if (!data.title || !data.price || !data.category || !data.imageUrl) {
+    console.log("Datos recibidos en API:", data);
+
+    // Validar campos requeridos según el nuevo modelo
+    if (
+      !data.title ||
+      data.salePrice === undefined ||
+      data.cost === undefined ||
+      data.profitMargin === undefined ||
+      !data.category ||
+      !data.imageUrl
+    ) {
+      // Listar los campos que faltan para mejor depuración
+      const missingFields = [];
+      if (!data.title) missingFields.push("title");
+      if (data.salePrice === undefined) missingFields.push("salePrice");
+      if (data.cost === undefined) missingFields.push("cost");
+      if (data.profitMargin === undefined) missingFields.push("profitMargin");
+      if (!data.category) missingFields.push("category");
+      if (!data.imageUrl) missingFields.push("imageUrl");
+
+      console.error("Faltan campos requeridos:", missingFields);
+
       return NextResponse.json(
-        { message: "Faltan campos requeridos" },
+        {
+          message: "Faltan campos requeridos",
+          details: `Campos faltantes: ${missingFields.join(", ")}`,
+        },
         { status: 400 }
       );
     }
 
     await connectDB();
 
-    // Preparar los datos del producto según la categoría
+    // Preparar los datos del producto según el nuevo modelo
     let productData = {
       title: data.title,
       description: data.description || "",
-      price: data.price,
+      // Campos financieros actualizados
+      salePrice: parseFloat(data.salePrice),
+      promoPrice: parseFloat(data.promoPrice || 0),
+      cost: parseFloat(data.cost),
+      profitMargin: parseFloat(data.profitMargin),
       stock: data.stock || 0,
       category: data.category,
       imageUrl: data.imageUrl,

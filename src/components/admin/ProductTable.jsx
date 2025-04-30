@@ -52,6 +52,37 @@ const ProductTable = ({ products: initialProducts }) => {
     }
   };
 
+  // Función para mostrar el precio de forma segura
+  const displayPrice = (product) => {
+    // Primero verificar salePrice, luego el antiguo price, o 0 si ninguno existe
+    const regularPrice =
+      product.salePrice !== undefined
+        ? product.salePrice
+        : product.price !== undefined
+        ? product.price
+        : 0;
+
+    // Verificar si hay un precio promocional
+    const hasPromo = product.promoPrice > 0;
+
+    return (
+      <>
+        {hasPromo ? (
+          <div>
+            <span className="text-red-600 font-medium">
+              ${product.promoPrice.toFixed(2)}
+            </span>
+            <span className="text-gray-400 line-through text-xs ml-2">
+              ${regularPrice.toFixed(2)}
+            </span>
+          </div>
+        ) : (
+          <span>${regularPrice.toFixed(2)}</span>
+        )}
+      </>
+    );
+  };
+
   return (
     <div>
       {/* Buscador */}
@@ -128,7 +159,6 @@ const ProductTable = ({ products: initialProducts }) => {
                       <Image
                         src={product.imageUrl}
                         alt={product.title}
-                        fill
                         sizes="48px"
                         className="object-cover rounded"
                       />
@@ -146,17 +176,19 @@ const ProductTable = ({ products: initialProducts }) => {
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    ${product.price.toFixed(2)}
+                    {displayPrice(product)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span
                       className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                        product.inStock
+                        product.stock > 0
                           ? "bg-green-100 text-green-800"
                           : "bg-red-100 text-red-800"
                       }`}
                     >
-                      {product.inStock ? "En Stock" : "Agotado"}
+                      {product.stock > 0
+                        ? `${product.stock} unidades`
+                        : "Agotado"}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">

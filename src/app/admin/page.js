@@ -388,8 +388,7 @@ export default function AdminDashboard() {
                     <Image
                       src={product.imageUrl}
                       alt={product.title}
-                      fill
-                      sizes="96px"
+                      sizes="100vw"
                       className="object-cover"
                     />
                   )}
@@ -399,7 +398,17 @@ export default function AdminDashboard() {
                     {product.title}
                   </h3>
                   <p className="text-gray-600 text-sm mb-2">
-                    ${product.price?.toFixed(2) || "0.00"}
+                    $
+                    {product.salePrice !== undefined
+                      ? product.salePrice.toFixed(2)
+                      : product.price !== undefined
+                      ? product.price.toFixed(2)
+                      : "0.00"}
+                    {product.promoPrice > 0 && (
+                      <span className="ml-2 text-red-500">
+                        Promo: ${product.promoPrice.toFixed(2)}
+                      </span>
+                    )}
                   </p>
                   <span className="text-xs bg-gray-100 text-gray-800 px-2 py-1 rounded">
                     {product.category

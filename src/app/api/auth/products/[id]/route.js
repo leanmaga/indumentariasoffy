@@ -21,7 +21,20 @@ export async function GET(request, { params }) {
       );
     }
 
-    return NextResponse.json(product);
+    // Asegurar que los campos financieros estén disponibles para productos antiguos
+    const processedProduct = {
+      ...product.toObject(),
+      // Usar el campo antiguo price como salePrice si no existe
+      salePrice:
+        product.salePrice !== undefined ? product.salePrice : product.price,
+      // Valores por defecto para campos posiblemente ausentes
+      promoPrice: product.promoPrice || 0,
+      cost: product.cost !== undefined ? product.cost : 0,
+      profitMargin:
+        product.profitMargin !== undefined ? product.profitMargin : 0,
+    };
+
+    return NextResponse.json(processedProduct);
   } catch (error) {
     console.error("Error al obtener producto:", error);
     return NextResponse.json(
@@ -45,7 +58,26 @@ export async function PUT(request, { params }) {
     }
 
     const { id } = params;
-    const formData = await request.formData();
+
+    // Obtener los datos - puede ser formData o JSON
+    let updateData;
+    const contentType = request.headers.get("content-type");
+
+    if (contentType && contentType.includes("multipart/form-data")) {
+      // Si es formData (para archivos)
+      const formData = await request.formData();
+
+      // Convertir formData a objeto
+      updateData = {};
+      for (const [key, value] of formData.entries()) {
+        if (key !== "image") {
+          updateData[key] = value;
+        }
+      }
+    } else {
+      // Si es JSON
+      updateData = await request.json();
+    }
 
     await connectDB();
 
@@ -59,19 +91,75 @@ export async function PUT(request, { params }) {
       );
     }
 
-    // Actualizar datos básicos
-    product.title = formData.get("title") || product.title;
-    product.description = formData.get("description") || product.description;
-    product.price = parseFloat(formData.get("price")) || product.price;
-    product.category = formData.get("category") || product.category;
-    product.featured = formData.get("featured") === "true";
+    // Actualizar campos básicos
+    product.title = updateData.title || product.title;
+    product.description = updateData.description || product.description;
+    product.category = updateData.category || product.category;
+    product.featured =
+      updateData.featured === true || updateData.featured === "true"
+        ? true
+        : !!product.featured;
 
-    // Actualizar imagen si se proporciona una nueva
-    const image = formData.get("image");
+    // Actualizar campos financieros
+    if (updateData.salePrice !== undefined) {
+      product.salePrice = parseFloat(updateData.salePrice);
+    } else if (updateData.price !== undefined) {
+      // Compatibilidad con campo antiguo
+      product.salePrice = parseFloat(updateData.price);
+    }
+
+    if (updateData.promoPrice !== undefined) {
+      product.promoPrice = parseFloat(updateData.promoPrice);
+    }
+
+    if (updateData.cost !== undefined) {
+      product.cost = parseFloat(updateData.cost);
+    }
+
+    if (updateData.profitMargin !== undefined) {
+      product.profitMargin = parseFloat(updateData.profitMargin);
+    }
+
+    // Actualizar stock
+    if (updateData.stock !== undefined) {
+      product.stock = parseInt(updateData.stock);
+    }
+
+    // Actualizar campos para indumentaria
+    if (updateData.gender !== undefined) product.gender = updateData.gender;
+    if (updateData.material !== undefined)
+      product.material = updateData.material;
+    if (updateData.style !== undefined) product.style = updateData.style;
+    if (updateData.season !== undefined) product.season = updateData.season;
+
+    // Campos específicos para pantalones
+    if (updateData.waistType !== undefined)
+      product.waistType = updateData.waistType;
+    if (updateData.fit !== undefined) product.fit = updateData.fit;
+
+    // Campos específicos para calzado
+    if (updateData.heelHeight !== undefined)
+      product.heelHeight = parseFloat(updateData.heelHeight);
+    if (updateData.soleType !== undefined)
+      product.soleType = updateData.soleType;
+
+    // Actualizar variantes, tallas y colores si se proporcionan
+    if (Array.isArray(updateData.sizes)) product.sizes = updateData.sizes;
+    if (Array.isArray(updateData.colors)) product.colors = updateData.colors;
+    if (Array.isArray(updateData.variants))
+      product.variants = updateData.variants;
+
+    // Manejar imagen si se proporciona una nueva
+    const image =
+      contentType && contentType.includes("multipart/form-data")
+        ? await request.formData().then((formData) => formData.get("image"))
+        : null;
 
     if (image && image.size > 0) {
-      // Eliminar imagen anterior de Cloudinary
-      await deleteImage(product.publicId);
+      // Eliminar imagen anterior de Cloudinary si existe
+      if (product.publicId) {
+        await deleteImage(product.publicId);
+      }
 
       // Subir nueva imagen
       const bytes = await image.arrayBuffer();
@@ -95,7 +183,7 @@ export async function PUT(request, { params }) {
   } catch (error) {
     console.error("Error al actualizar producto:", error);
     return NextResponse.json(
-      { message: "Error al actualizar el producto" },
+      { message: `Error al actualizar el producto: ${error.message}` },
       { status: 500 }
     );
   }
@@ -128,8 +216,10 @@ export async function DELETE(request, { params }) {
       );
     }
 
-    // Eliminar imagen de Cloudinary
-    await deleteImage(product.publicId);
+    // Eliminar imagen de Cloudinary si tiene publicId
+    if (product.publicId) {
+      await deleteImage(product.publicId);
+    }
 
     // Eliminar producto de la base de datos
     await Product.findByIdAndDelete(id);

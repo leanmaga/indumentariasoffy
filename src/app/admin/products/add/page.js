@@ -16,7 +16,11 @@ export default function AddProductPage() {
   const [formData, setFormData] = useState({
     title: "",
     description: "",
-    price: "",
+    // Cambio de price a salePrice y nuevos campos financieros
+    salePrice: "",
+    promoPrice: "0",
+    cost: "",
+    profitMargin: "",
     stock: "",
     category: "ropa", // Valor por defecto
     featured: false,
@@ -35,6 +39,9 @@ export default function AddProductPage() {
     heelHeight: "",
     soleType: "",
   });
+
+  // Estado para calcular automáticamente el margen
+  const [autoCalculateMargin, setAutoCalculateMargin] = useState(true);
 
   // Estado para opciones de talle y color
   const [newSize, setNewSize] = useState("");
@@ -90,6 +97,7 @@ export default function AddProductPage() {
     "niñas",
     "bebés",
   ];
+
   const seasonOptions = ["verano", "invierno", "primavera", "otoño", "todas"];
   const waistTypeOptions = ["regular", "alto", "bajo"];
   const fitOptions = [
@@ -112,6 +120,24 @@ export default function AddProductPage() {
     "abrigos",
     "accesorios",
   ];
+
+  // Efecto para calcular el margen automáticamente
+  useEffect(() => {
+    if (autoCalculateMargin && formData.salePrice && formData.cost) {
+      const cost = parseFloat(formData.cost);
+      const salePrice = parseFloat(formData.salePrice);
+
+      if (cost > 0 && salePrice > 0) {
+        // Cálculo del margen: (precio venta - costo) / precio venta * 100
+        const margin = ((salePrice - cost) / salePrice) * 100;
+        // Redondear a 2 decimales
+        setFormData((prev) => ({
+          ...prev,
+          profitMargin: Math.max(0, Math.min(100, margin)).toFixed(2),
+        }));
+      }
+    }
+  }, [formData.salePrice, formData.cost, autoCalculateMargin]);
 
   // Efecto para mostrar campos específicos según la categoría
   useEffect(() => {
@@ -177,22 +203,6 @@ export default function AddProductPage() {
       router.push("/auth/signin?callbackUrl=/admin");
     }
   }, [status, session, router]);
-
-  // Si está cargando o no está autenticado, mostrar estado apropiado
-  if (status === "loading") {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
-      </div>
-    );
-  }
-
-  if (
-    status === "unauthenticated" ||
-    (status === "authenticated" && session?.user?.role !== "admin")
-  ) {
-    return null; // No renderizar nada mientras se redirige
-  }
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -286,6 +296,7 @@ export default function AddProductPage() {
     }
   };
 
+  // Actualiza esta parte en tu handleSubmit (reemplaza el código existente)
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -294,7 +305,9 @@ export default function AddProductPage() {
       // Validar campos requeridos
       if (
         !formData.title ||
-        !formData.price ||
+        !formData.salePrice ||
+        !formData.cost ||
+        !formData.profitMargin ||
         !formData.category ||
         !imageFile
       ) {
@@ -303,12 +316,28 @@ export default function AddProductPage() {
         );
       }
 
-      // Validar que el precio sea un número positivo
+      // Validar que los precios sean números positivos
       if (
-        isNaN(parseFloat(formData.price)) ||
-        parseFloat(formData.price) <= 0
+        isNaN(parseFloat(formData.salePrice)) ||
+        parseFloat(formData.salePrice) <= 0
       ) {
-        throw new Error("El precio debe ser un número positivo");
+        throw new Error("El precio de venta debe ser un número positivo");
+      }
+
+      if (isNaN(parseFloat(formData.cost)) || parseFloat(formData.cost) <= 0) {
+        throw new Error("El costo debe ser un número positivo");
+      }
+
+      if (
+        isNaN(parseFloat(formData.profitMargin)) ||
+        parseFloat(formData.profitMargin) < 0 ||
+        parseFloat(formData.profitMargin) > 100
+      ) {
+        throw new Error("El margen de ganancia debe estar entre 0 y 100%");
+      }
+
+      if (formData.promoPrice && parseFloat(formData.promoPrice) < 0) {
+        throw new Error("El precio promocional no puede ser negativo");
       }
 
       // Validar stock según la categoría
@@ -353,23 +382,48 @@ export default function AddProductPage() {
       const imageResult = await imageUploadResponse.json();
       const imageUrl = imageResult.imageUrl;
 
-      // Preparar los datos del producto
+      // Preparar los datos del producto - CAMBIOS IMPORTANTES AQUÍ
       const productData = {
-        ...formData,
-        price: parseFloat(formData.price),
+        title: formData.title.trim(),
+        description: formData.description.trim(),
+        // Mantener compatibilidad con ambos campos
+        price: parseFloat(formData.salePrice), // Campo anterior para compatibilidad
+        salePrice: parseFloat(formData.salePrice),
+        promoPrice: parseFloat(formData.promoPrice) || 0,
+        cost: parseFloat(formData.cost),
+        profitMargin: parseFloat(formData.profitMargin),
+        category: formData.category,
+        featured: formData.featured,
         imageUrl,
+        // Campos de indumentaria
+        gender: formData.gender,
+        material: formData.material,
+        style: formData.style,
+        season: formData.season,
+        // Campos específicos
+        waistType: formData.waistType,
+        fit: formData.fit,
+        heelHeight: formData.heelHeight ? parseFloat(formData.heelHeight) : 0,
+        soleType: formData.soleType,
       };
 
-      // Para productos sin variantes, incluir el stock total
-      if (!showVariants) {
-        productData.stock = parseInt(formData.stock);
-      } else {
-        // Para productos con variantes, calcular el stock total
+      // Agregar talles, colores y variantes si corresponde
+      if (showVariants) {
+        productData.sizes = formData.sizes;
+        productData.colors = formData.colors;
+        productData.variants = formData.variants;
+        // Calcular stock total de las variantes
         productData.stock = formData.variants.reduce(
           (sum, variant) => sum + variant.stock,
           0
         );
+      } else {
+        // Para productos sin variantes
+        productData.stock = parseInt(formData.stock) || 0;
       }
+
+      // Para depuración - ver qué se está enviando
+      console.log("Datos enviados a la API:", productData);
 
       // Crear el producto
       const productResponse = await fetch("/api/products", {
@@ -381,8 +435,15 @@ export default function AddProductPage() {
       });
 
       if (!productResponse.ok) {
-        const error = await productResponse.json();
-        throw new Error(error.message || "Error al crear el producto");
+        // Intentar obtener el mensaje de error detallado
+        try {
+          const error = await productResponse.json();
+          throw new Error(error.message || "Error al crear el producto");
+        } catch (jsonError) {
+          throw new Error(
+            `Error HTTP ${productResponse.status}: Error al crear el producto`
+          );
+        }
       }
 
       toast.success("Producto creado exitosamente");
@@ -394,6 +455,22 @@ export default function AddProductPage() {
       setIsSubmitting(false);
     }
   };
+
+  // Si está cargando o no está autenticado, mostrar estado apropiado
+  if (status === "loading") {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
+      </div>
+    );
+  }
+
+  if (
+    status === "unauthenticated" ||
+    (status === "authenticated" && session?.user?.role !== "admin")
+  ) {
+    return null; // No renderizar nada mientras se redirige
+  }
 
   return (
     <div className="bg-white rounded-lg shadow-md p-6">
@@ -415,27 +492,6 @@ export default function AddProductPage() {
               name="title"
               value={formData.title}
               onChange={handleChange}
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-              required
-            />
-          </div>
-
-          {/* Precio */}
-          <div>
-            <label
-              htmlFor="price"
-              className="block text-sm font-medium text-gray-700"
-            >
-              Precio (ARS) *
-            </label>
-            <input
-              type="number"
-              id="price"
-              name="price"
-              value={formData.price}
-              onChange={handleChange}
-              step="0.01"
-              min="0"
               className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
               required
             />
@@ -469,29 +525,157 @@ export default function AddProductPage() {
               <option value="otros">Otros</option>
             </select>
           </div>
+        </div>
 
-          {/* Stock (solo para productos sin variantes) */}
-          {!showVariants && (
+        {/* Nueva sección de precios y costos */}
+        <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+          <h3 className="text-lg font-medium text-blue-800 mb-3">
+            Información financiera
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Costo */}
             <div>
               <label
-                htmlFor="stock"
+                htmlFor="cost"
                 className="block text-sm font-medium text-gray-700"
               >
-                Stock *
+                Costo (ARS) *
               </label>
               <input
                 type="number"
-                id="stock"
-                name="stock"
-                value={formData.stock}
+                id="cost"
+                name="cost"
+                value={formData.cost}
                 onChange={handleChange}
+                step="0.01"
                 min="0"
                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                 required
               />
+              <p className="mt-1 text-xs text-gray-500">
+                Costo interno del producto (no visible para clientes)
+              </p>
             </div>
-          )}
+
+            {/* Precio de venta */}
+            <div>
+              <label
+                htmlFor="salePrice"
+                className="block text-sm font-medium text-gray-700"
+              >
+                Precio de venta (ARS) *
+              </label>
+              <input
+                type="number"
+                id="salePrice"
+                name="salePrice"
+                value={formData.salePrice}
+                onChange={handleChange}
+                step="0.01"
+                min="0"
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                required
+              />
+              <p className="mt-1 text-xs text-gray-500">
+                Precio regular mostrado en la tienda
+              </p>
+            </div>
+
+            {/* Precio promocional */}
+            <div>
+              <label
+                htmlFor="promoPrice"
+                className="block text-sm font-medium text-gray-700"
+              >
+                Precio promocional (ARS)
+              </label>
+              <input
+                type="number"
+                id="promoPrice"
+                name="promoPrice"
+                value={formData.promoPrice}
+                onChange={handleChange}
+                step="0.01"
+                min="0"
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+              />
+              <p className="mt-1 text-xs text-gray-500">
+                Precio de oferta (dejar en 0 si no aplica)
+              </p>
+            </div>
+
+            {/* Margen de ganancia */}
+            <div>
+              <div className="flex justify-between">
+                <label
+                  htmlFor="profitMargin"
+                  className="block text-sm font-medium text-gray-700"
+                >
+                  Margen de ganancia (%) *
+                </label>
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    id="autoCalculate"
+                    checked={autoCalculateMargin}
+                    onChange={() =>
+                      setAutoCalculateMargin(!autoCalculateMargin)
+                    }
+                    className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                  />
+                  <label
+                    htmlFor="autoCalculate"
+                    className="ml-2 text-xs text-gray-600"
+                  >
+                    Calcular automáticamente
+                  </label>
+                </div>
+              </div>
+              <input
+                type="number"
+                id="profitMargin"
+                name="profitMargin"
+                value={formData.profitMargin}
+                onChange={handleChange}
+                step="0.01"
+                min="0"
+                max="100"
+                disabled={autoCalculateMargin}
+                className={`mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 ${
+                  autoCalculateMargin ? "bg-gray-100" : ""
+                }`}
+                required
+              />
+              <p className="mt-1 text-xs text-gray-500">
+                {autoCalculateMargin
+                  ? "Calculado como: (precio venta - costo) / precio venta * 100"
+                  : "Ingrese el margen manualmente (0-100%)"}
+              </p>
+            </div>
+          </div>
         </div>
+
+        {/* Stock (solo para productos sin variantes) */}
+        {!showVariants && (
+          <div>
+            <label
+              htmlFor="stock"
+              className="block text-sm font-medium text-gray-700"
+            >
+              Stock *
+            </label>
+            <input
+              type="number"
+              id="stock"
+              name="stock"
+              value={formData.stock}
+              onChange={handleChange}
+              min="0"
+              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+              required
+            />
+          </div>
+        )}
 
         {/* Descripción */}
         <div>
@@ -900,9 +1084,11 @@ export default function AddProductPage() {
           {imagePreview && (
             <div className="mt-2">
               <Image
-                src={imagePreview}
-                alt="Vista previa"
-                className="h-40 w-auto object-contain border rounded-md"
+                src={product.imageUrl}
+                alt={product.title}
+                width={160}
+                height={160}
+                className="object-cover"
               />
             </div>
           )}

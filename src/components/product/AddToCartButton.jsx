@@ -1,201 +1,272 @@
-import { Suspense } from "react";
-import Image from "next/image";
-import Link from "next/link";
-import { notFound } from "next/navigation";
-import { getProductById } from "@/lib/data";
-import AddToCartButton from "@/components/product/AddToCartButton";
+"use client";
 
-export async function generateMetadata({ params }) {
-  const product = await getProductById(params.id);
+import { useState } from "react";
+import { useCartStore } from "@/lib/store";
+import { toast } from "react-hot-toast";
 
-  if (!product) {
-    return {
-      title: "Producto no encontrado | TiendaOnline",
-      description: "El producto que buscas no está disponible",
-    };
-  }
+export default function AddToCartButton({ product }) {
+  const addToCart = useCartStore((state) => state.addItem);
+  const [quantity, setQuantity] = useState(1);
+  const [selectedVariant, setSelectedVariant] = useState(null);
+  const [isAdding, setIsAdding] = useState(false);
 
-  return {
-    title: `${product.title} | TiendaOnline`,
-    description: product.description,
+  // Determinar qué precio usar (promocional o regular)
+  const price =
+    product.promoPrice && product.promoPrice > 0
+      ? product.promoPrice
+      : product.salePrice !== undefined
+      ? product.salePrice
+      : product.price;
+
+  // Verificar si el producto tiene variantes
+  const hasVariants = product.variants && product.variants.length > 0;
+
+  // Verificar si el producto tiene stock disponible
+  const hasStock = hasVariants
+    ? selectedVariant
+      ? selectedVariant.stock > 0
+      : product.stock > 0
+    : product.stock > 0;
+
+  // Manejar selección de variante
+  const handleVariantSelect = (variant) => {
+    setSelectedVariant(variant);
   };
-}
 
-async function ProductContent({ id }) {
-  const product = await getProductById(id);
+  // Manejar cambio de cantidad
+  const incrementQuantity = () => {
+    if (selectedVariant && quantity < selectedVariant.stock) {
+      setQuantity(quantity + 1);
+    } else if (!selectedVariant && quantity < product.stock) {
+      setQuantity(quantity + 1);
+    }
+  };
 
-  if (!product) {
-    notFound();
-  }
+  const decrementQuantity = () => {
+    if (quantity > 1) {
+      setQuantity(quantity - 1);
+    }
+  };
+
+  // Manejar añadir al carrito
+  const handleAddToCart = () => {
+    // Verificar que se haya seleccionado una variante si el producto las tiene
+    if (hasVariants && !selectedVariant) {
+      toast.error("Por favor selecciona talle y color");
+      return;
+    }
+
+    // Verificar stock
+    if (!hasStock) {
+      toast.error("Producto agotado");
+      return;
+    }
+
+    setIsAdding(true);
+
+    // Crear objeto del producto para el carrito
+    const cartItem = {
+      id: product._id,
+      title: product.title,
+      price: price,
+      image: product.imageUrl,
+      quantity: quantity,
+      // Si hay variante seleccionada, incluir esa información
+      ...(selectedVariant && {
+        variant: {
+          size: selectedVariant.size,
+          color: selectedVariant.color,
+          variantId: `${selectedVariant.size}-${selectedVariant.color}`,
+        },
+      }),
+    };
+
+    // Añadir al carrito
+    addToCart(cartItem);
+    toast.success("Producto agregado al carrito");
+
+    // Resetear estado después de agregar
+    setTimeout(() => {
+      setIsAdding(false);
+    }, 500);
+  };
 
   return (
-    <div className="container mx-auto px-4 py-12">
-      <div className="bg-white rounded-lg shadow-md overflow-hidden">
-        <div className="md:flex">
-          {/* Imagen del producto */}
-          <div className="md:w-1/2 relative h-96 md:h-auto">
-            <Image
-              src={product.imageUrl}
-              alt={product.title}
-              fill
-              sizes="(max-width: 768px) 100vw, 50vw"
-              className="object-cover"
-              priority
-            />
-          </div>
+    <div className="space-y-4">
+      {/* Selector de variantes (si aplica) */}
+      {hasVariants && (
+        <div className="space-y-4">
+          {/* Selector de tallas */}
+          {product.sizes && product.sizes.length > 0 && (
+            <div>
+              <h3 className="text-sm font-medium text-gray-700 mb-2">Talle</h3>
+              <div className="flex flex-wrap gap-2">
+                {product.sizes.map((size) => {
+                  // Verificar si hay variantes disponibles con este talle
+                  const variantsWithSize = product.variants.filter(
+                    (v) => v.size === size
+                  );
+                  const hasSizeInStock = variantsWithSize.some(
+                    (v) => v.stock > 0
+                  );
 
-          {/* Detalles del producto */}
-          <div className="md:w-1/2 p-8">
-            <div className="mb-4">
-              <Link
-                href={`/products?category=${product.category}`}
-                className="text-sm text-indigo-600 hover:text-indigo-800"
-              >
-                {product.category.charAt(0).toUpperCase() +
-                  product.category.slice(1)}
-              </Link>
-            </div>
-
-            <h1 className="text-3xl font-bold text-gray-800 mb-4">
-              {product.title}
-            </h1>
-
-            <p className="text-2xl font-bold text-indigo-600 mb-6">
-              ${product.price.toFixed(2)}
-            </p>
-
-            <div className="mb-8">
-              <h2 className="text-lg font-semibold mb-2 text-gray-700">
-                Descripción
-              </h2>
-              <p className="text-gray-600">{product.description}</p>
-            </div>
-
-            <div className="mb-8">
-              <h2 className="text-lg font-semibold mb-2 text-gray-700">
-                Especificaciones
-              </h2>
-              <ul className="list-disc pl-5 text-gray-600">
-                <li>
-                  Categoría:{" "}
-                  {product.category.charAt(0).toUpperCase() +
-                    product.category.slice(1)}
-                </li>
-                <li>
-                  Disponibilidad: {product.inStock ? "En stock" : "Agotado"}
-                </li>
-              </ul>
-            </div>
-
-            <AddToCartButton product={product} />
-
-            <div className="mt-8 pt-8 border-t border-gray-200">
-              <h2 className="text-lg font-semibold mb-2 text-gray-700">
-                Métodos de pago
-              </h2>
-              <div className="flex space-x-4">
-                <div className="bg-gray-100 rounded p-2">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-6 w-6 text-gray-600"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
-                    />
-                  </svg>
-                </div>
-                <div className="bg-gray-100 rounded p-2">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-6 w-6 text-gray-600"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2z"
-                    />
-                  </svg>
-                </div>
-                <div className="bg-gray-100 rounded p-2">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-6 w-6 text-gray-600"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
-                    />
-                  </svg>
-                </div>
+                  return (
+                    <button
+                      key={size}
+                      type="button"
+                      onClick={() => {
+                        // Seleccionar primera variante disponible con este talle
+                        const variant =
+                          variantsWithSize.find((v) => v.stock > 0) ||
+                          variantsWithSize[0];
+                        handleVariantSelect(variant);
+                      }}
+                      disabled={!hasSizeInStock}
+                      className={`px-3 py-1 border rounded-md text-sm 
+                        ${
+                          !hasSizeInStock
+                            ? "border-gray-200 text-gray-300 cursor-not-allowed"
+                            : selectedVariant && selectedVariant.size === size
+                            ? "border-indigo-500 text-indigo-500"
+                            : "border-gray-300 hover:border-indigo-500 hover:text-indigo-500"
+                        }`}
+                    >
+                      {size}
+                    </button>
+                  );
+                })}
               </div>
             </div>
-          </div>
+          )}
+
+          {/* Selector de colores */}
+          {product.colors && product.colors.length > 0 && (
+            <div>
+              <h3 className="text-sm font-medium text-gray-700 mb-2">Color</h3>
+              <div className="flex flex-wrap gap-2">
+                {product.colors.map((color) => {
+                  // Verificar si hay variantes disponibles con este color
+                  const variantsWithColor = product.variants.filter(
+                    (v) => v.color === color
+                  );
+                  const hasColorInStock = variantsWithColor.some(
+                    (v) => v.stock > 0
+                  );
+
+                  return (
+                    <button
+                      key={color}
+                      type="button"
+                      onClick={() => {
+                        // Seleccionar primera variante disponible con este color
+                        const variant =
+                          variantsWithColor.find((v) => v.stock > 0) ||
+                          variantsWithColor[0];
+                        handleVariantSelect(variant);
+                      }}
+                      disabled={!hasColorInStock}
+                      className={`px-3 py-1 border rounded-md text-sm 
+                        ${
+                          !hasColorInStock
+                            ? "border-gray-200 text-gray-300 cursor-not-allowed"
+                            : selectedVariant && selectedVariant.color === color
+                            ? "border-indigo-500 text-indigo-500"
+                            : "border-gray-300 hover:border-indigo-500 hover:text-indigo-500"
+                        }`}
+                    >
+                      {color}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Selector de cantidad */}
+      <div className="flex items-center space-x-3">
+        <label htmlFor="quantity" className="text-sm font-medium text-gray-700">
+          Cantidad:
+        </label>
+        <div className="flex border border-gray-300 rounded-md">
+          <button
+            type="button"
+            onClick={decrementQuantity}
+            disabled={quantity <= 1}
+            className="px-3 py-1 text-gray-600 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            -
+          </button>
+          <span className="px-3 py-1 border-x border-gray-300 min-w-[40px] text-center">
+            {quantity}
+          </span>
+          <button
+            type="button"
+            onClick={incrementQuantity}
+            disabled={
+              hasVariants
+                ? selectedVariant
+                  ? quantity >= selectedVariant.stock
+                  : true
+                : quantity >= product.stock
+            }
+            className="px-3 py-1 text-gray-600 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            +
+          </button>
         </div>
       </div>
-    </div>
-  );
-}
 
-export default function ProductPage({ params }) {
-  return (
-    <Suspense fallback={<ProductDetailSkeleton />}>
-      <ProductContent id={params.id} />
-    </Suspense>
-  );
-}
-
-function ProductDetailSkeleton() {
-  return (
-    <div className="container mx-auto px-4 py-12">
-      <div className="bg-white rounded-lg shadow-md overflow-hidden">
-        <div className="md:flex">
-          <div className="md:w-1/2 h-96 bg-gray-200 animate-pulse"></div>
-          <div className="md:w-1/2 p-8">
-            <div className="h-4 bg-gray-200 rounded w-1/4 mb-4"></div>
-            <div className="h-8 bg-gray-200 rounded w-3/4 mb-4"></div>
-            <div className="h-6 bg-gray-200 rounded w-1/4 mb-6"></div>
-
-            <div className="mb-8">
-              <div className="h-6 bg-gray-200 rounded w-1/3 mb-2"></div>
-              <div className="h-4 bg-gray-200 rounded w-full mb-2"></div>
-              <div className="h-4 bg-gray-200 rounded w-full mb-2"></div>
-              <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-            </div>
-
-            <div className="mb-8">
-              <div className="h-6 bg-gray-200 rounded w-1/3 mb-2"></div>
-              <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-              <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-            </div>
-
-            <div className="h-10 bg-gray-200 rounded w-full mb-8"></div>
-
-            <div className="h-1 bg-gray-200 w-full mb-8"></div>
-
-            <div className="h-6 bg-gray-200 rounded w-1/3 mb-2"></div>
-            <div className="flex space-x-4">
-              <div className="h-10 w-10 bg-gray-200 rounded"></div>
-              <div className="h-10 w-10 bg-gray-200 rounded"></div>
-              <div className="h-10 w-10 bg-gray-200 rounded"></div>
-            </div>
+      {/* Información de stock */}
+      {hasVariants ? (
+        selectedVariant && (
+          <div className="text-sm text-gray-600">
+            Stock disponible: {selectedVariant.stock} unidades
           </div>
+        )
+      ) : (
+        <div className="text-sm text-gray-600">
+          Stock disponible: {product.stock} unidades
         </div>
-      </div>
+      )}
+
+      {/* Botón de agregar al carrito */}
+      <button
+        type="button"
+        onClick={handleAddToCart}
+        disabled={isAdding || !hasStock || (hasVariants && !selectedVariant)}
+        className={`w-full flex items-center justify-center px-6 py-3 border border-transparent rounded-md 
+          ${
+            isAdding
+              ? "bg-green-600 text-white"
+              : !hasStock || (hasVariants && !selectedVariant)
+              ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+              : "bg-indigo-600 text-white hover:bg-indigo-700"
+          } transition-colors duration-200 font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500`}
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          className="h-5 w-5 mr-2"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"
+          />
+        </svg>
+        {isAdding
+          ? "Agregando..."
+          : !hasStock
+          ? "Agotado"
+          : hasVariants && !selectedVariant
+          ? "Selecciona una variante"
+          : "Agregar al carrito"}
+      </button>
     </div>
   );
 }

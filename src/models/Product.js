@@ -11,10 +11,30 @@ const productSchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
-    price: {
+    // Precio de venta (precio principal en tienda)
+    salePrice: {
       type: Number,
-      required: [true, "Por favor proporcione un precio"],
+      required: [true, "Por favor proporcione el precio de venta"],
       min: [0, "El precio no puede ser negativo"],
+    },
+    // Precio promocional opcional
+    promoPrice: {
+      type: Number,
+      default: 0,
+      min: [0, "El precio promocional no puede ser negativo"],
+    },
+    // Costo interno (no se muestra en tienda)
+    cost: {
+      type: Number,
+      required: [true, "Por favor proporcione el costo del producto"],
+      min: [0, "El costo no puede ser negativo"],
+    },
+    // Margen de ganancia (%) calculado o manual
+    profitMargin: {
+      type: Number,
+      required: [true, "Por favor proporcione el margen de ganancia"],
+      min: [0, "El margen no puede ser negativo"],
+      max: [100, "El margen no puede exceder el 100%"],
     },
     stock: {
       type: Number,

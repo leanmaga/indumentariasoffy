@@ -28,6 +28,17 @@ async function ProductContent({ id }) {
     notFound();
   }
 
+  // Determinar el precio a mostrar (precio regular y promocional si existe)
+  const regularPrice =
+    product.salePrice !== undefined
+      ? product.salePrice
+      : product.price !== undefined
+      ? product.price
+      : 0;
+
+  const hasPromotion = product.promoPrice && product.promoPrice > 0;
+  const displayPrice = hasPromotion ? product.promoPrice : regularPrice;
+
   return (
     <div className="container mx-auto px-4 py-12">
       <div className="bg-white rounded-lg shadow-md overflow-hidden">
@@ -37,7 +48,6 @@ async function ProductContent({ id }) {
             <Image
               src={product.imageUrl}
               alt={product.title}
-              fill
               sizes="(max-width: 768px) 100vw, 50vw"
               className="object-cover"
               priority
@@ -60,9 +70,26 @@ async function ProductContent({ id }) {
               {product.title}
             </h1>
 
-            <p className="text-2xl font-bold text-indigo-600 mb-6">
-              ${product.price.toFixed(2)}
-            </p>
+            <div className="mb-6">
+              {hasPromotion ? (
+                <div className="flex items-center">
+                  <p className="text-2xl font-bold text-red-600">
+                    ${displayPrice.toFixed(2)}
+                  </p>
+                  <p className="ml-3 text-lg text-gray-500 line-through">
+                    ${regularPrice.toFixed(2)}
+                  </p>
+                  <span className="ml-3 px-2 py-1 bg-red-100 text-red-800 text-xs font-semibold rounded-md">
+                    {Math.round((1 - product.promoPrice / regularPrice) * 100)}%
+                    OFF
+                  </span>
+                </div>
+              ) : (
+                <p className="text-2xl font-bold text-indigo-600">
+                  ${displayPrice.toFixed(2)}
+                </p>
+              )}
+            </div>
 
             <div className="mb-8">
               <h2 className="text-lg font-semibold mb-2 text-gray-700">
@@ -82,10 +109,67 @@ async function ProductContent({ id }) {
                     product.category.slice(1)}
                 </li>
                 <li>
-                  Disponibilidad: {product.inStock ? "En stock" : "Agotado"}
+                  Disponibilidad: {product.stock > 0 ? "En stock" : "Agotado"}
                 </li>
+                {product.material && <li>Material: {product.material}</li>}
+                {product.gender && (
+                  <li>
+                    Género:{" "}
+                    {product.gender.charAt(0).toUpperCase() +
+                      product.gender.slice(1)}
+                  </li>
+                )}
+                {product.style && <li>Estilo: {product.style}</li>}
+                {product.season && (
+                  <li>
+                    Temporada:{" "}
+                    {product.season.charAt(0).toUpperCase() +
+                      product.season.slice(1)}
+                  </li>
+                )}
               </ul>
             </div>
+
+            {/* Selector de variantes si el producto las tiene */}
+            {product.variants && product.variants.length > 0 && (
+              <div className="mb-8">
+                {product.sizes && product.sizes.length > 0 && (
+                  <div className="mb-4">
+                    <h3 className="text-sm font-medium text-gray-700 mb-2">
+                      Talle
+                    </h3>
+                    <div className="flex flex-wrap gap-2">
+                      {product.sizes.map((size) => (
+                        <button
+                          key={size}
+                          className="px-3 py-1 border border-gray-300 rounded-md text-sm hover:border-indigo-500 hover:text-indigo-500"
+                        >
+                          {size}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {product.colors && product.colors.length > 0 && (
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-700 mb-2">
+                      Color
+                    </h3>
+                    <div className="flex flex-wrap gap-2">
+                      {product.colors.map((color) => (
+                        <button
+                          key={color}
+                          className="px-3 py-1 border border-gray-300 rounded-md text-sm hover:border-indigo-500 hover:text-indigo-500"
+                        >
+                          {color}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
             <AddToCartButton product={product} />
 

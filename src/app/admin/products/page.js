@@ -121,6 +121,19 @@ export default function ProductsAdminPage() {
     }
   };
 
+  // Función para mostrar el precio de forma segura
+  const displayPrice = (product) => {
+    // Verificar si el producto tiene salePrice, si no, buscar price antiguo, y si no, usar 0
+    const priceValue =
+      product.salePrice !== undefined
+        ? product.salePrice
+        : product.price !== undefined
+        ? product.price
+        : 0;
+
+    return priceValue.toFixed(2);
+  };
+
   return (
     <div className="bg-white rounded-lg shadow-md p-6">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
@@ -159,6 +172,11 @@ export default function ProductsAdminPage() {
         >
           <option value="all">Todas las categorías</option>
           <option value="ropa">Ropa</option>
+          <option value="camisetas">Camisetas</option>
+          <option value="pantalones">Pantalones</option>
+          <option value="abrigos">Abrigos</option>
+          <option value="calzado">Calzado</option>
+          <option value="accesorios">Accesorios</option>
           <option value="electronica">Electrónica</option>
           <option value="hogar">Hogar</option>
           <option value="deporte">Deporte</option>
@@ -247,7 +265,12 @@ export default function ProductsAdminPage() {
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        ${product.price.toFixed(2)}
+                        ${displayPrice(product)}
+                        {product.promoPrice > 0 && (
+                          <div className="text-xs text-red-600 mt-1">
+                            Promo: ${product.promoPrice.toFixed(2)}
+                          </div>
+                        )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {product.stock}
