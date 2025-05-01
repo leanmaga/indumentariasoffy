@@ -248,7 +248,8 @@ export default function ProductsAdminPage() {
                           <Image
                             src={product.imageUrl}
                             alt={product.title}
-                            fill
+                            width={200}
+                            height={200}
                             className="object-cover rounded-md"
                           />
                         </div>

@@ -76,7 +76,9 @@ export default async function OrderDetailPage({ params }) {
                     <Image
                       src={item.imageUrl}
                       alt={item.title}
-                      sizes="100px"
+                      layout="responsive"
+                      width={200}
+                      height={200}
                       className="object-cover object-center"
                     />
                   </div>

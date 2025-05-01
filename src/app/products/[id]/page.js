@@ -48,7 +48,8 @@ async function ProductContent({ id }) {
             <Image
               src={product.imageUrl}
               alt={product.title}
-              sizes="(max-width: 768px) 100vw, 50vw"
+              fill
+              sizes="(max-width: 640px) 100vw,(max-width: 1024px) 50vw,33vw"
               className="object-cover"
               priority
             />

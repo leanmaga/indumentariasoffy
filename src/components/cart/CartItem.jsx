@@ -26,10 +26,11 @@ const CartItem = ({ item }) => {
   return (
     <div className="flex items-center gap-4 py-4 border-b">
       {/* Imagen del producto */}
-      <div className="relative h-16 w-16 flex-shrink-0">
+      <div className="relative w-16 h-16 flex-shrink-0">
         <Image
           src={item.image}
           alt={item.title}
+          fill
           sizes="64px"
           className="object-cover rounded"
         />

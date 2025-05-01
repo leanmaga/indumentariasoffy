@@ -159,7 +159,8 @@ const ProductTable = ({ products: initialProducts }) => {
                       <Image
                         src={product.imageUrl}
                         alt={product.title}
-                        sizes="48px"
+                        width={200}
+                        height={200}
                         className="object-cover rounded"
                       />
                     </div>

@@ -1083,13 +1083,16 @@ export default function AddProductPage() {
           </div>
           {imagePreview && (
             <div className="mt-2">
-              <Image
-                src={product.imageUrl}
-                alt={product.title}
-                width={160}
-                height={160}
-                className="object-cover"
-              />
+              <div className="relative w-40 h-40">
+                <Image
+                  src={imagePreview}
+                  alt={formData.title || "Preview imagen"}
+                  fill
+                  sizes="160px"
+                  className="object-cover rounded-md"
+                  unoptimized
+                />
+              </div>
             </div>
           )}
         </div>

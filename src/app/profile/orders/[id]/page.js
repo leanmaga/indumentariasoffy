@@ -274,7 +274,8 @@ export default function OrderDetailsPage({ params }) {
                               <Image
                                 src={item.imageUrl}
                                 alt={item.title}
-                                sizes="48px"
+                                width={48}
+                                height={48}
                                 className="object-cover"
                               />
                             </div>

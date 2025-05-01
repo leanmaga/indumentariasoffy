@@ -277,7 +277,8 @@ const ProductForm = ({ product = null }) => {
                     <Image
                       src={imagePreview}
                       alt="Vista previa"
-                      fill
+                      width={200}
+                      height={200}
                       className="object-contain"
                     />
                   </div>
