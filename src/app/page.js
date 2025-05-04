@@ -5,32 +5,53 @@ import {
   CreditCardIcon,
 } from "@heroicons/react/24/outline";
 import FeaturedProducts from "@/components/product/FeaturedProducts";
+import Image from "next/image";
+import { ButtonContact, ButtonProducts, CTAButton } from "@/components/ui";
 
 export default function Home() {
   return (
     <>
       {/* Hero Section */}
-      <section className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white py-20">
-        <div className="container mx-auto px-4 text-center">
-          <h1 className="text-4xl md:text-5xl font-bold mb-6 slide-up">
-            Bienvenido a nuestra tienda
-          </h1>
-          <p className="text-xl md:text-2xl mb-8 max-w-2xl mx-auto slide-up">
-            Descubre los mejores productos al mejor precio. Calidad garantizada.
-          </p>
-          <Link
-            href="/products"
-            className="bg-white text-indigo-600 px-8 py-3 rounded-full font-bold text-lg hover:bg-indigo-100 transition duration-300 slide-up inline-block"
-          >
-            Ver Productos
-          </Link>
+      <section className="relative h-screen w-full bg-black text-white overflow-hidden">
+        <div className="absolute inset-0 z-0">
+          {/* Imagen de fondo */}
+          <Image
+            src="/images/sexitive1.webp"
+            alt="Hero background"
+            width={1000}
+            height={1000}
+            className="object-cover opacity-50"
+            priority
+          />
+        </div>
+
+        <div className="relative z-10 container mx-auto px-4 h-full flex items-center">
+          <div className="max-w-5xl">
+            {/* Texto principal */}
+            <h1 className="font-drop font-black uppercase leading-none mb-8">
+              <span className="block text-[12vw] xl:text-[10vw] tracking-tighter">
+                PRODUCTOS
+              </span>
+              <span className="block text-[12vw] xl:text-[10vw] tracking-tighter">
+                AL MEJOR PRECIO
+              </span>
+            </h1>
+
+            {/* Subtítulo */}
+            <p className="text-xl md:text-2xl font-medium mb-8 tracking-wider uppercase">
+              Calidad garantizada.
+            </p>
+
+            {/* CTA Button */}
+            <CTAButton />
+          </div>
         </div>
       </section>
 
       {/* Featured Categories */}
       <section className="py-12 bg-white">
         <div className="container mx-auto px-4">
-          <h2 className="text-3xl font-bold text-center mb-12 text-gray-800">
+          <h2 className="font-sora-bold uppercase text-3xl font-bold text-center mb-12 text-gray-800">
             Categorías Destacadas
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -119,17 +140,12 @@ export default function Home() {
       {/* Featured Products */}
       <section className="py-12 bg-gray-50">
         <div className="container mx-auto px-4">
-          <h2 className="text-3xl font-bold text-center mb-12 text-gray-800">
+          <h2 className="font-sora-bold uppercase text-3xl font-bold text-center mb-12 text-gray-800">
             Productos Destacados
           </h2>
           <FeaturedProducts />
           <div className="text-center mt-10">
-            <Link
-              href="/products"
-              className="bg-indigo-600 text-white px-6 py-3 rounded-lg hover:bg-indigo-700 transition inline-block"
-            >
-              Ver todos los productos
-            </Link>
+            <ButtonProducts />
           </div>
         </div>
       </section>
@@ -137,15 +153,15 @@ export default function Home() {
       {/* Benefits Section */}
       <section className="py-12 bg-white">
         <div className="container mx-auto px-4">
-          <h2 className="text-3xl font-bold text-center mb-12 text-gray-800">
+          <h2 className="font-sora-bold uppercase text-3xl font-bold text-center mb-12 text-gray-800">
             ¿Por qué comprar con nosotros?
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="flex flex-col items-center text-center">
-              <div className="bg-indigo-100 p-4 rounded-full mb-4">
-                <ShoppingBagIcon className="h-8 w-8 text-indigo-600" />
+              <div className="bg-black p-4 rounded-full mb-4">
+                <ShoppingBagIcon className="h-8 w-8 text-white" />
               </div>
-              <h3 className="text-xl font-semibold mb-2">
+              <h3 className="font-sora-regular uppercase text-xl font-semibold mb-2">
                 Gran variedad de productos
               </h3>
               <p className="text-gray-600">
@@ -155,10 +171,10 @@ export default function Home() {
             </div>
 
             <div className="flex flex-col items-center text-center">
-              <div className="bg-indigo-100 p-4 rounded-full mb-4">
-                <TruckIcon className="h-8 w-8 text-indigo-600" />
+              <div className="bg-black p-4 rounded-full mb-4">
+                <TruckIcon className="h-8 w-8 text-white" />
               </div>
-              <h3 className="text-xl font-semibold mb-2">
+              <h3 className="font-sora-regular uppercase text-xl font-semibold mb-2">
                 Coordinación de envíos
               </h3>
               <p className="text-gray-600">
@@ -168,10 +184,12 @@ export default function Home() {
             </div>
 
             <div className="flex flex-col items-center text-center">
-              <div className="bg-indigo-100 p-4 rounded-full mb-4">
-                <CreditCardIcon className="h-8 w-8 text-indigo-600" />
+              <div className="bg-black p-4 rounded-full mb-4">
+                <CreditCardIcon className="h-8 w-8 text-white" />
               </div>
-              <h3 className="text-xl font-semibold mb-2">Pagos seguros</h3>
+              <h3 className="font-sora-regular uppercase text-xl font-semibold mb-2">
+                Pagos seguros
+              </h3>
               <p className="text-gray-600">
                 Utiliza nuestra pasarela de pago con MercadoPago para una compra
                 segura.
@@ -182,18 +200,13 @@ export default function Home() {
       </section>
 
       {/* Contact CTA */}
-      <section className="py-16 bg-indigo-600 text-white">
+      <section className="py-16 bg-black text-white">
         <div className="container mx-auto px-4 text-center">
           <h2 className="text-3xl font-bold mb-4">¿Tienes preguntas?</h2>
           <p className="text-xl mb-8">
             Estamos aquí para ayudarte con cualquier duda o sugerencia.
           </p>
-          <Link
-            href="/contact"
-            className="bg-white text-indigo-600 px-6 py-3 rounded-lg hover:bg-indigo-50 transition inline-block font-medium"
-          >
-            Contáctanos
-          </Link>
+          <ButtonContact />
         </div>
       </section>
     </>

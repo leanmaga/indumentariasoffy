@@ -8,21 +8,21 @@ export const metadata = {
   description: "Explora nuestra amplia selección de productos de alta calidad.",
 };
 
-// Versión simplificada: obtiene todos los productos sin filtros previos
-export default async function ProductsPage() {
-  // Obtener todos los productos sin filtro de categoría
-  const { products } = await getProducts();
+// ⬇️ CAMBIO CLAVE: recibe searchParams
+export default async function ProductsPage({ searchParams }) {
+  const awaitedSearchParams = await searchParams;
+  const category = awaitedSearchParams?.category || "all";
+  const { products } = await getProducts({ category });
 
   return (
     <section className="py-12 bg-gray-50">
       <Suspense fallback={<ProductsPageSkeleton />}>
         <div className="container mx-auto px-4 py-8">
-          <h1 className="text-3xl font-bold text-center mb-8 text-gray-800">
+          <h1 className="font-sora-bold uppercase text-3xl font-bold text-center mb-8 text-gray-800">
             Todos los Productos
           </h1>
 
           <CategoryFilter />
-
           <ProductGrid products={products} />
         </div>
       </Suspense>

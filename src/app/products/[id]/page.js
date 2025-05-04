@@ -1,22 +1,27 @@
+// app/products/[id]/page.js
 import { Suspense } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getProductById } from "@/lib/data";
 import AddToCartButton from "@/components/product/AddToCartButton";
+import ProductReviews from "@/components/ProductReviews";
+import StarRating from "@/components/ui/StarRating";
 
 export async function generateMetadata({ params }) {
-  const product = await getProductById(params.id);
+  // Await params antes de usarlo
+  const awaitedParams = await params;
+  const product = await getProductById(awaitedParams.id);
 
   if (!product) {
     return {
-      title: "Producto no encontrado | TiendaOnline",
+      title: "Producto no encontrado | IndumentariaSoffy",
       description: "El producto que buscas no está disponible",
     };
   }
 
   return {
-    title: `${product.title} | TiendaOnline`,
+    title: `${product.title} | IndumentariaSoffy`,
     description: product.description,
   };
 }
@@ -70,6 +75,15 @@ async function ProductContent({ id }) {
             <h1 className="text-3xl font-bold text-gray-800 mb-4">
               {product.title}
             </h1>
+
+            {/* Rating y Reviews */}
+            <div className="flex items-center gap-4 mb-6">
+              <StarRating rating={product.rating || 0} size="md" />
+              <span className="text-gray-600">
+                {product.numReviews || 0}{" "}
+                {(product.numReviews || 0) === 1 ? "reseña" : "reseñas"}
+              </span>
+            </div>
 
             <div className="mb-6">
               {hasPromotion ? (
@@ -232,14 +246,22 @@ async function ProductContent({ id }) {
           </div>
         </div>
       </div>
+
+      {/* Sección de Reviews */}
+      <div className="mt-12">
+        <ProductReviews productId={id} />
+      </div>
     </div>
   );
 }
 
-export default function ProductPage({ params }) {
+export default async function ProductPage({ params }) {
+  // Await params antes de usarlo
+  const awaitedParams = await params;
+
   return (
     <Suspense fallback={<ProductDetailSkeleton />}>
-      <ProductContent id={params.id} />
+      <ProductContent id={awaitedParams.id} />
     </Suspense>
   );
 }

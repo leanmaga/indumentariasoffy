@@ -1,127 +1,162 @@
+import Link from "next/link";
+
 const Footer = () => {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="bg-gray-800 text-white py-8">
+    <footer className="bg-black text-white py-16">
       <div className="container mx-auto px-4">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-          <div>
-            <h3 className="text-xl font-bold mb-4">IndumentariaSoffy</h3>
-            <p className="text-gray-400">
-              Tu tienda de confianza para compras en línea. Calidad y servicio
-              garantizados.
-            </p>
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-8 mb-16">
+          {/* Logo Column */}
+          <div className="col-span-2 md:col-span-4 lg:col-span-1">
+            <Link href="/" className="text-2xl font-bold font-drop">
+              SOFFY
+            </Link>
           </div>
-          <div>
-            <h4 className="text-lg font-semibold mb-4">Enlaces Rápidos</h4>
+
+          {/* Company */}
+          <div className="space-y-3">
+            <h4 className="text-xs font-medium uppercase tracking-wider mb-4 font-drop">
+              Compañía
+            </h4>
             <ul className="space-y-2">
               <li>
-                <a
-                  href="/"
-                  className="text-gray-400 hover:text-white transition"
+                <Link
+                  href="/about"
+                  className="text-sm text-gray-300 hover:text-white transition font-drop"
                 >
-                  Inicio
-                </a>
+                  Sobre Nosotros
+                </Link>
               </li>
               <li>
-                <a
-                  href="/products"
-                  className="text-gray-400 hover:text-white transition"
+                <Link
+                  href="/students"
+                  className="text-sm text-gray-300 hover:text-white transition font-drop"
                 >
-                  Productos
-                </a>
+                  Descuento Estudiantes
+                </Link>
               </li>
               <li>
-                <a
+                <Link
+                  href="/privacy"
+                  className="text-sm text-gray-300 hover:text-white transition font-drop"
+                >
+                  Política de Privacidad
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/terms"
+                  className="text-sm text-gray-300 hover:text-white transition font-drop"
+                >
+                  Términos de Uso
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/cookies"
+                  className="text-sm text-gray-300 hover:text-white transition font-drop"
+                >
+                  Configuración de Cookies
+                </Link>
+              </li>
+            </ul>
+          </div>
+
+          {/* Newsletter */}
+          <div className="space-y-3">
+            <h4 className="text-xs font-medium uppercase tracking-wider mb-4 font-drop">
+              Newsletter
+            </h4>
+            <ul className="space-y-2">
+              <li>
+                <span className="text-sm text-gray-300 font-drop">
+                  Únete y recibe ofertas exclusivas
+                </span>
+              </li>
+              <li>
+                <Link
+                  href="/newsletter"
+                  className="text-sm text-gray-300 hover:text-white transition font-drop underline"
+                >
+                  Suscribirse
+                </Link>
+              </li>
+            </ul>
+          </div>
+
+          {/* Support */}
+          <div className="space-y-3">
+            <h4 className="text-xs font-medium uppercase tracking-wider mb-4 font-drop">
+              Soporte
+            </h4>
+            <ul className="space-y-2">
+              <li>
+                <Link
                   href="/contact"
-                  className="text-gray-400 hover:text-white transition"
+                  className="text-sm text-gray-300 hover:text-white transition font-drop"
                 >
                   Contacto
-                </a>
+                </Link>
               </li>
+
               <li>
-                <a
-                  href="/terms"
-                  className="text-gray-400 hover:text-white transition"
+                <Link
+                  href="/help"
+                  className="text-sm text-gray-300 hover:text-white transition font-drop"
                 >
-                  Términos y Condiciones
-                </a>
+                  Centro de Ayuda
+                </Link>
               </li>
             </ul>
           </div>
-          <div>
-            <h4 className="text-lg font-semibold mb-4">Categorías</h4>
-            <ul className="space-y-2">
-              <li>
-                <a
-                  href="/products?category=ropa"
-                  className="text-gray-400 hover:text-white transition"
-                >
-                  Ropa
-                </a>
-              </li>
-              <li>
-                <a
-                  href="/products?category=electronica"
-                  className="text-gray-400 hover:text-white transition"
-                >
-                  Electrónica
-                </a>
-              </li>
-              <li>
-                <a
-                  href="/products?category=hogar"
-                  className="text-gray-400 hover:text-white transition"
-                >
-                  Hogar
-                </a>
-              </li>
-              <li>
-                <a
-                  href="/products?featured=true"
-                  className="text-gray-400 hover:text-white transition"
-                >
-                  Ofertas
-                </a>
-              </li>
-            </ul>
-          </div>
-          <div>
-            <h4 className="text-lg font-semibold mb-4">Suscríbete</h4>
-            <p className="text-gray-400 mb-4">
-              Recibe nuestras últimas ofertas y novedades.
-            </p>
-            <form className="flex">
-              <input
-                type="email"
-                placeholder="Tu correo"
-                className="px-4 py-2 rounded-l-lg focus:outline-none text-gray-800 w-full"
-              />
-              <button
-                type="submit"
-                className="bg-indigo-600 px-4 py-2 rounded-r-lg hover:bg-indigo-700 transition"
-              >
+
+          {/* Follow */}
+          <div className="space-y-3">
+            <h4 className="text-xs font-medium uppercase tracking-wider mb-4 font-drop">
+              Síguenos
+            </h4>
+            <div className="flex space-x-4">
+              <a href="#" className="text-gray-300 hover:text-white transition">
                 <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-5 w-5"
-                  fill="none"
+                  fill="currentColor"
+                  className="w-5 h-5"
                   viewBox="0 0 24 24"
-                  stroke="currentColor"
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
-                  />
+                  <path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z" />
                 </svg>
-              </button>
-            </form>
+              </a>
+
+              <a href="#" className="text-gray-300 hover:text-white transition">
+                <svg
+                  fill="currentColor"
+                  className="w-5 h-5"
+                  viewBox="0 0 24 24"
+                >
+                  <path d="M23 3a10.9 10.9 0 01-3.14 1.53 4.48 4.48 0 00-7.86 3v1A10.66 10.66 0 013 4s-4 9 5 13a11.64 11.64 0 01-7 2c9 5 20 0 20-11.5a4.5 4.5 0 00-.08-.83A7.72 7.72 0 0023 3z" />
+                </svg>
+              </a>
+
+              <a href="#" className="text-gray-300 hover:text-white transition">
+                <svg
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  className="w-5 h-5"
+                  viewBox="0 0 24 24"
+                >
+                  <rect width="20" height="20" x="2" y="2" rx="5" ry="5" />
+                  <path d="M16 11.37A4 4 0 1112.63 8 4 4 0 0116 11.37zm1.5-4.87h.01" />
+                </svg>
+              </a>
+            </div>
           </div>
         </div>
-        <div className="border-t border-gray-700 mt-8 pt-6 text-center text-gray-400">
-          <p>
-            &copy; {currentYear} PatagoniaScript. Todos los derechos reservados.
+
+        {/* Copyright */}
+        <div className="text-right">
+          <p className="text-xs text-gray-400 font-drop">
+            © {currentYear} IndumentariaSoffy
           </p>
         </div>
       </div>

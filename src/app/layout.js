@@ -1,10 +1,11 @@
+// app/layout.js
 import { Inter } from "next/font/google";
 import { Toaster } from "react-hot-toast";
 import "./globals.css";
+import "./fonts.css";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
-import AuthProvider from "@/components/providers/AuthProvider";
-import { CartProvider } from "@/context/CartContext";
+import { Providers } from "./providers";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -19,14 +20,12 @@ export default function RootLayout({ children }) {
       <body
         className={`${inter.className} min-h-screen flex flex-col bg-gray-50`}
       >
-        <AuthProvider>
-          <CartProvider>
-            <Toaster position="top-center" />
-            <Navbar />
-            <main className="flex-grow">{children}</main>
-            <Footer />
-          </CartProvider>
-        </AuthProvider>
+        <Providers>
+          <Toaster position="top-center" />
+          <Navbar />
+          <main className="flex-grow">{children}</main>
+          <Footer />
+        </Providers>
       </body>
     </html>
   );

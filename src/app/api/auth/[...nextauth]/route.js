@@ -1,3 +1,4 @@
+// app/api/auth/[...nextauth]/route.js
 import NextAuth from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import connectDB from "@/lib/db";
@@ -14,22 +15,43 @@ export const authOptions = {
       },
       async authorize(credentials) {
         try {
+          // Validar que se proporcionaron credenciales
+          if (!credentials?.email || !credentials?.password) {
+            console.log("Credenciales faltantes");
+            throw new Error("Por favor proporciona email y contraseña");
+          }
+
           await connectDB();
 
+          // Buscar usuario con contraseña incluida
           const user = await User.findOne({ email: credentials.email }).select(
             "+password"
           );
 
           if (!user) {
+            console.log("Usuario no encontrado:", credentials.email);
             throw new Error("Credenciales incorrectas");
           }
 
+          // Verificar que el usuario tiene contraseña
+          if (!user.password) {
+            console.log("Usuario sin contraseña:", user.email);
+            throw new Error("Usuario no tiene contraseña configurada");
+          }
+
+          console.log("Intentando comparar contraseña para:", user.email);
+          console.log("Contraseña hasheada existe:", !!user.password);
+
+          // Comparar contraseña
           const isValid = await user.comparePassword(credentials.password);
+
+          console.log("Resultado de comparación:", isValid);
 
           if (!isValid) {
             throw new Error("Credenciales incorrectas");
           }
 
+          // Retornar datos del usuario (sin contraseña)
           return {
             id: user._id.toString(),
             name: user.name,
@@ -38,7 +60,7 @@ export const authOptions = {
             phone: user.phone,
           };
         } catch (error) {
-          console.error("Error de autenticación:", error);
+          console.error("Error de autenticación completo:", error);
           throw new Error(error.message || "Error de autenticación");
         }
       },
@@ -63,7 +85,7 @@ export const authOptions = {
     },
   },
   pages: {
-    signIn: "/auth/signin", // Usando /auth/signin consistentemente
+    signIn: "/auth/signin",
     error: "/auth/error",
   },
   session: {
@@ -71,7 +93,7 @@ export const authOptions = {
     maxAge: 8 * 60 * 60, // 8 horas
   },
   secret: process.env.NEXTAUTH_SECRET || process.env.JWT_SECRET,
-  debug: false, // Desactivar el modo debug para producción
+  debug: process.env.NODE_ENV === "development",
 };
 
 const handler = NextAuth(authOptions);

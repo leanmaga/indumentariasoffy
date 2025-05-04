@@ -1,14 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { toast } from "react-hot-toast";
 import { useForm as useReactHookForm } from "react-hook-form";
 import { useForm as useFormspree, ValidationError } from "@formspree/react";
-import {
-  PhoneIcon,
-  EnvelopeIcon,
-  MapPinIcon,
-} from "@heroicons/react/24/outline";
 
 export default function ContactPage() {
   // Reemplaza "xjvdrgba" con tu ID de formulario de Formspree
@@ -25,11 +19,11 @@ export default function ContactPage() {
   // Mostrar mensaje de éxito cuando el formulario se envía correctamente
   if (formspreeState.succeeded) {
     return (
-      <div className="bg-gray-50 py-12">
+      <div className="min-h-screen bg-white py-24">
         <div className="container mx-auto px-4">
-          <div className="max-w-4xl mx-auto bg-white rounded-lg shadow-md p-8 text-center">
+          <div className="max-w-md mx-auto text-center">
             <svg
-              className="w-16 h-16 text-green-500 mx-auto mb-4"
+              className="w-16 h-16 text-black mx-auto mb-6"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -38,19 +32,19 @@ export default function ContactPage() {
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                strokeWidth="2"
+                strokeWidth="1.5"
                 d="M5 13l4 4L19 7"
-              ></path>
+              />
             </svg>
-            <h2 className="text-2xl font-bold text-gray-800 mb-2">
-              ¡Gracias por tu mensaje!
+            <h2 className="text-xl font-medium uppercase tracking-wider mb-2 font-drop">
+              Gracias por tu mensaje
             </h2>
-            <p className="text-gray-600 mb-6">
+            <p className="text-gray-600 mb-8 font-drop">
               Nos pondremos en contacto contigo lo antes posible.
             </p>
             <button
               onClick={() => window.location.reload()}
-              className="bg-indigo-600 text-white py-2 px-6 rounded-lg hover:bg-indigo-700 transition font-medium"
+              className="border border-black text-black px-8 py-3 uppercase text-sm tracking-wider font-medium hover:bg-black hover:text-white transition font-drop"
             >
               Enviar otro mensaje
             </button>
@@ -62,139 +56,124 @@ export default function ContactPage() {
 
   const onSubmit = async (data) => {
     setIsSubmitting(true);
-    // El handleFormspreeSubmit se encargará de enviar los datos a Formspree
-    // No necesitas hacer nada más aquí, ya que Formspree maneja el envío
   };
 
   return (
-    <div className="bg-gray-50 py-12">
+    <div className="min-h-screen bg-white py-24">
       <div className="container mx-auto px-4">
-        <h1 className="text-3xl font-bold mb-8 text-center">Contáctanos</h1>
+        <h1 className="text-3xl font-medium uppercase tracking-wider mb-16 text-center font-drop">
+          Contacto
+        </h1>
 
-        <div className="max-w-4xl mx-auto bg-white rounded-lg shadow-md overflow-hidden">
-          <div className="md:flex">
-            <div className="md:w-1/2 bg-indigo-600 text-white p-8">
-              <h2 className="text-2xl font-bold mb-4">
-                Información de Contacto
+        <div className="max-w-6xl mx-auto">
+          <div className="grid md:grid-cols-2 gap-24">
+            {/* Información de Contacto */}
+            <div>
+              <h2 className="text-xl font-medium uppercase tracking-wider mb-8 font-drop">
+                Información
               </h2>
-              <p className="mb-6">
-                Estamos aquí para ayudarte. Contáctanos para cualquier pregunta
-                sobre nuestros productos.
-              </p>
 
-              <div className="space-y-4">
-                <div className="flex items-center">
-                  <MapPinIcon className="h-6 w-6 mr-4" />
-                  <p>Av. Principal 123, Ciudad</p>
+              <div className="space-y-8">
+                <div>
+                  <h3 className="text-sm font-medium uppercase tracking-wider mb-2 font-drop">
+                    Dirección
+                  </h3>
+                  <p className="text-gray-600 font-drop">
+                    Av. Principal 123, Ciudad
+                  </p>
                 </div>
 
-                <div className="flex items-center">
-                  <PhoneIcon className="h-6 w-6 mr-4" />
-                  <p>+1 234 567 890</p>
+                <div>
+                  <h3 className="text-sm font-medium uppercase tracking-wider mb-2 font-drop">
+                    Teléfono
+                  </h3>
+                  <p className="text-gray-600 font-drop">+1 234 567 890</p>
                 </div>
 
-                <div className="flex items-center">
-                  <EnvelopeIcon className="h-6 w-6 mr-4" />
-                  <p>contacto@tiendaonline.com</p>
+                <div>
+                  <h3 className="text-sm font-medium uppercase tracking-wider mb-2 font-drop">
+                    Email
+                  </h3>
+                  <p className="text-gray-600 font-drop">
+                    contacto@tiendaonline.com
+                  </p>
                 </div>
-              </div>
 
-              <div className="mt-8">
-                <h3 className="text-xl font-bold mb-4">Síguenos</h3>
-                <div className="flex space-x-4">
-                  <a
-                    href="#"
-                    className="text-white hover:text-indigo-200 text-xl"
-                  >
-                    <svg
-                      fill="currentColor"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      className="w-6 h-6"
-                      viewBox="0 0 24 24"
+                <div>
+                  <h3 className="text-sm font-medium uppercase tracking-wider mb-4 font-drop">
+                    Síguenos
+                  </h3>
+                  <div className="flex space-x-6">
+                    <a
+                      href="#"
+                      className="text-black hover:text-gray-600 transition"
                     >
-                      <path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z"></path>
-                    </svg>
-                  </a>
-
-                  <a
-                    href="#"
-                    className="text-white hover:text-indigo-200 text-xl"
-                  >
-                    <svg
-                      fill="currentColor"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      className="w-6 h-6"
-                      viewBox="0 0 24 24"
+                      <svg
+                        fill="currentColor"
+                        className="w-5 h-5"
+                        viewBox="0 0 24 24"
+                      >
+                        <path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z" />
+                      </svg>
+                    </a>
+                    <a
+                      href="#"
+                      className="text-black hover:text-gray-600 transition"
                     >
-                      <path d="M23 3a10.9 10.9 0 01-3.14 1.53 4.48 4.48 0 00-7.86 3v1A10.66 10.66 0 013 4s-4 9 5 13a11.64 11.64 0 01-7 2c9 5 20 0 20-11.5a4.5 4.5 0 00-.08-.83A7.72 7.72 0 0023 3z"></path>
-                    </svg>
-                  </a>
-
-                  <a
-                    href="#"
-                    className="text-white hover:text-indigo-200 text-xl"
-                  >
-                    <svg
-                      fill="none"
-                      stroke="currentColor"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      className="w-6 h-6"
-                      viewBox="0 0 24 24"
+                      <svg
+                        fill="currentColor"
+                        className="w-5 h-5"
+                        viewBox="0 0 24 24"
+                      >
+                        <path d="M23 3a10.9 10.9 0 01-3.14 1.53 4.48 4.48 0 00-7.86 3v1A10.66 10.66 0 013 4s-4 9 5 13a11.64 11.64 0 01-7 2c9 5 20 0 20-11.5a4.5 4.5 0 00-.08-.83A7.72 7.72 0 0023 3z" />
+                      </svg>
+                    </a>
+                    <a
+                      href="#"
+                      className="text-black hover:text-gray-600 transition"
                     >
-                      <rect
-                        width="20"
-                        height="20"
-                        x="2"
-                        y="2"
-                        rx="5"
-                        ry="5"
-                      ></rect>
-                      <path d="M16 11.37A4 4 0 1112.63 8 4 4 0 0116 11.37zm1.5-4.87h.01"></path>
-                    </svg>
-                  </a>
-
-                  <a
-                    href="#"
-                    className="text-white hover:text-indigo-200 text-xl"
-                  >
-                    <svg
-                      fill="currentColor"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      className="w-6 h-6"
-                      viewBox="0 0 24 24"
-                    >
-                      <path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"></path>
-                    </svg>
-                  </a>
+                      <svg
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        className="w-5 h-5"
+                        viewBox="0 0 24 24"
+                      >
+                        <rect
+                          width="20"
+                          height="20"
+                          x="2"
+                          y="2"
+                          rx="5"
+                          ry="5"
+                        />
+                        <path d="M16 11.37A4 4 0 1112.63 8 4 4 0 0116 11.37zm1.5-4.87h.01" />
+                      </svg>
+                    </a>
+                  </div>
                 </div>
               </div>
             </div>
 
-            <div className="md:w-1/2 p-8">
-              <h2 className="text-2xl font-bold mb-6 text-gray-800">
-                Envía un Mensaje
+            {/* Formulario */}
+            <div>
+              <h2 className="text-xl font-medium uppercase tracking-wider mb-8 font-drop">
+                Envía un mensaje
               </h2>
 
-              <form onSubmit={handleFormspreeSubmit}>
-                <div className="mb-4">
-                  <label htmlFor="name" className="block text-gray-700 mb-2">
+              <form onSubmit={handleFormspreeSubmit} className="space-y-6">
+                <div>
+                  <label
+                    htmlFor="name"
+                    className="block text-sm font-medium uppercase tracking-wider mb-2 font-drop"
+                  >
                     Nombre
                   </label>
                   <input
                     type="text"
                     id="name"
                     name="name"
-                    className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
-                      errors.name ? "border-red-500" : "border-gray-300"
-                    }`}
+                    className="w-full px-0 py-3 border-0 border-b border-gray-300 focus:outline-none focus:border-black transition font-drop"
                     required
                   />
                   <ValidationError
@@ -204,17 +183,18 @@ export default function ContactPage() {
                   />
                 </div>
 
-                <div className="mb-4">
-                  <label htmlFor="email" className="block text-gray-700 mb-2">
-                    Correo Electrónico
+                <div>
+                  <label
+                    htmlFor="email"
+                    className="block text-sm font-medium uppercase tracking-wider mb-2 font-drop"
+                  >
+                    Email
                   </label>
                   <input
                     type="email"
                     id="email"
                     name="email"
-                    className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
-                      errors.email ? "border-red-500" : "border-gray-300"
-                    }`}
+                    className="w-full px-0 py-3 border-0 border-b border-gray-300 focus:outline-none focus:border-black transition font-drop"
                     required
                   />
                   <ValidationError
@@ -224,19 +204,20 @@ export default function ContactPage() {
                   />
                 </div>
 
-                <div className="mb-4">
-                  <label htmlFor="message" className="block text-gray-700 mb-2">
+                <div>
+                  <label
+                    htmlFor="message"
+                    className="block text-sm font-medium uppercase tracking-wider mb-2 font-drop"
+                  >
                     Mensaje
                   </label>
                   <textarea
                     id="message"
                     name="message"
                     rows="4"
-                    className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
-                      errors.message ? "border-red-500" : "border-gray-300"
-                    }`}
+                    className="w-full px-0 py-3 border-0 border-b border-gray-300 focus:outline-none focus:border-black transition resize-none font-drop"
                     required
-                  ></textarea>
+                  />
                   <ValidationError
                     prefix="Message"
                     field="message"
@@ -246,13 +227,13 @@ export default function ContactPage() {
 
                 <button
                   type="submit"
-                  className="w-full bg-indigo-600 text-white py-2 px-4 rounded-lg hover:bg-indigo-700 transition font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full bg-black hover:bg-white text-white hover:text-black border-2 border-white hover:border-black py-4 px-8 uppercase text-sm tracking-wider font-medium transition disabled:opacity-50 disabled:cursor-not-allowed font-drop mt-8"
                   disabled={formspreeState.submitting}
                 >
                   {formspreeState.submitting ? (
                     <span className="flex items-center justify-center">
                       <svg
-                        className="animate-spin -ml-1 mr-2 h-5 w-5 text-white"
+                        className="animate-spin -ml-1 mr-3 h-4 w-4 text-white"
                         xmlns="http://www.w3.org/2000/svg"
                         fill="none"
                         viewBox="0 0 24 24"
@@ -264,17 +245,17 @@ export default function ContactPage() {
                           r="10"
                           stroke="currentColor"
                           strokeWidth="4"
-                        ></circle>
+                        />
                         <path
                           className="opacity-75"
                           fill="currentColor"
                           d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                        ></path>
+                        />
                       </svg>
                       Enviando...
                     </span>
                   ) : (
-                    "Enviar Mensaje"
+                    "Enviar mensaje"
                   )}
                 </button>
               </form>

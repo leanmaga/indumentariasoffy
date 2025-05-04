@@ -1,3 +1,4 @@
+// models/User.js
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
 
@@ -66,7 +67,16 @@ userSchema.pre("save", async function (next) {
 
 // Method to compare passwords
 userSchema.methods.comparePassword = async function (candidatePassword) {
-  return await bcrypt.compare(candidatePassword, this.password);
+  try {
+    // Verificar que tanto la contraseña candidata como la contraseña almacenada existen
+    if (!candidatePassword || !this.password) {
+      return false;
+    }
+    return await bcrypt.compare(candidatePassword, this.password);
+  } catch (error) {
+    console.error("Error comparing passwords:", error);
+    return false;
+  }
 };
 
 // Prevent model overwrite error in development due to hot reloading

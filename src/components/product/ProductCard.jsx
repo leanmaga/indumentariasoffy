@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useCartStore } from "@/lib/store";
 import { toast } from "react-hot-toast";
+import StarRating from "../ui/StarRating";
 
 const ProductCard = ({ product }) => {
   const addToCart = useCartStore((state) => state.addItem);
@@ -49,97 +50,93 @@ const ProductCard = ({ product }) => {
   };
 
   return (
-    <div className="product-card bg-white rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-all duration-300 h-full flex flex-col">
+    <div className="product-card bg-white h-full flex flex-col group">
       <Link href={`/products/${product._id}`}>
-        <div className="relative h-48 w-full overflow-hidden">
+        <div className="relative aspect-square w-full overflow-hidden bg-gray-100">
           <Image
             src={product.imageUrl}
             alt={product.title}
             fill
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-            className="object-cover hover:scale-105 transition-all duration-300"
+            className="object-cover"
           />
-          {/* Mostrar etiqueta de descuento si hay promoción */}
-          {hasPromotion && (
-            <div className="absolute top-0 right-0 bg-red-500 text-white px-2 py-1 text-xs font-bold">
-              {discountPercentage}% OFF
-            </div>
-          )}
           {/* Mostrar etiqueta de agotado si no hay stock */}
           {product.stock <= 0 && (
-            <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-              <span className="bg-red-600 text-white px-3 py-1 rounded-md font-medium">
-                Agotado
+            <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center">
+              <span className="bg-red-600 text-white px-3 py-1 text-sm font-medium">
+                AGOTADO
               </span>
             </div>
           )}
+          {/* Botón de quick add */}
+          <button
+            onClick={(e) => {
+              e.preventDefault();
+              handleAddToCart();
+            }}
+            className={`absolute bottom-0 left-0 right-0 bg-black text-white py-3 transform translate-y-full transition-transform duration-200 group-hover:translate-y-0 ${
+              product.stock <= 0 ? "opacity-50 cursor-not-allowed" : ""
+            }`}
+            disabled={product.stock <= 0}
+          >
+            {product.variants && product.variants.length > 0
+              ? "SELECCIONAR OPCIONES"
+              : "AÑADIR AL CARRITO"}
+          </button>
         </div>
       </Link>
-      <div className="p-4 flex flex-col flex-grow">
-        <div className="flex justify-between items-start mb-2">
-          <h3 className="font-bold text-lg line-clamp-2">
-            <Link
-              href={`/products/${product._id}`}
-              className="hover:text-indigo-600 transition"
-            >
-              {product.title}
-            </Link>
-          </h3>
-          <span className="bg-indigo-100 text-indigo-800 text-xs px-2 py-1 rounded-full">
-            {product.category.charAt(0).toUpperCase() +
-              product.category.slice(1)}
-          </span>
-        </div>
-        <p className="text-gray-600 text-sm mb-3 line-clamp-3 flex-grow">
-          {product.description}
-        </p>
-        <div className="flex justify-between items-center mt-auto">
-          {/* Precio con formato según haya promoción o no */}
-          <div className="flex flex-col">
-            {hasPromotion ? (
-              <>
-                <span className="font-bold text-lg text-red-600">
-                  ${displayPrice.toFixed(2)}
-                </span>
-                <span className="text-gray-500 text-sm line-through">
-                  ${regularPrice.toFixed(2)}
-                </span>
-              </>
-            ) : (
-              <span className="font-bold text-lg">
-                ${displayPrice.toFixed(2)}
-              </span>
-            )}
-          </div>
 
-          {/* Botón de agregar al carrito (deshabilitado si no hay stock) */}
-          <button
-            onClick={handleAddToCart}
-            disabled={product.stock <= 0}
-            className={`px-3 py-1 rounded-lg flex items-center ${
-              product.stock <= 0
-                ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                : "bg-indigo-600 text-white hover:bg-indigo-700 transition"
-            }`}
+      <div className="p-4 flex flex-col flex-grow">
+        {/* Título del producto */}
+        <h3 className="font-medium text-sm mb-2">
+          <Link
+            href={`/products/${product._id}`}
+            className="hover:text-gray-600 transition"
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-5 w-5 mr-1"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"
-              />
-            </svg>
-            {product.variants && product.variants.length > 0
-              ? "Ver opciones"
-              : "Agregar"}
-          </button>
+            {product.title}
+          </Link>
+        </h3>
+
+        {/* Precio y descuento */}
+        <div className="flex items-center gap-2 mb-2">
+          {hasPromotion ? (
+            <>
+              <span className="font-medium">${displayPrice.toFixed(2)}</span>
+              <span className="text-gray-400 line-through text-sm">
+                ${regularPrice.toFixed(2)}
+              </span>
+              <span className="text-red-600 text-sm">
+                | {discountPercentage}% OFF
+              </span>
+            </>
+          ) : (
+            <span className="font-medium">${displayPrice.toFixed(2)}</span>
+          )}
+        </div>
+
+        {/* Rating con StarRating component */}
+        <div className="mb-2">
+          <StarRating
+            rating={product.rating || 0}
+            numReviews={product.numReviews || 0}
+            size="xs"
+            showCount={true}
+          />
+        </div>
+
+        {/* Stock info */}
+        <div className="mt-auto">
+          {product.stock > 0 && product.stock < 10 && (
+            <span className="text-xs text-red-600">
+              Solo {product.stock} en stock
+            </span>
+          )}
+          {product.stock === 0 && (
+            <span className="text-xs text-gray-500">Agotado</span>
+          )}
+          {product.stock >= 10 && (
+            <span className="text-xs text-green-600">En stock</span>
+          )}
         </div>
       </div>
     </div>
