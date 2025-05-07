@@ -72,8 +72,8 @@ const AdminSidebar = () => {
   };
 
   return (
-    <aside className="w-full md:w-64 bg-white rounded-lg shadow-md p-6 md:sticky md:top-20 h-fit">
-      <h2 className="text-xl font-semibold mb-6 text-gray-800">
+    <aside className="w-full md:w-64 bg-white border border-gray-200 p-6 md:sticky md:top-20 h-fit">
+      <h2 className="text-xl font-semibold mb-6 text-gray-900">
         Administración
       </h2>
       <nav>
@@ -82,11 +82,11 @@ const AdminSidebar = () => {
             <li key={item.href} className="space-y-2">
               <Link
                 href={item.href}
-                className={`flex items-center px-4 py-2 rounded-lg ${
+                className={`flex items-center px-4 py-2 ${
                   isActive(item.href) && !item.submenu
-                    ? "bg-indigo-600 text-white"
-                    : "text-gray-700 hover:bg-indigo-50"
-                } transition`}
+                    ? "bg-black text-white"
+                    : "text-gray-800 hover:border-black hover:border-l-2 pl-3"
+                } transition-all`}
               >
                 <span className="mr-3">{item.icon}</span>
                 <span>{item.title}</span>
@@ -99,11 +99,11 @@ const AdminSidebar = () => {
                     <li key={subItem.href}>
                       <Link
                         href={subItem.href}
-                        className={`flex items-center px-4 py-2 rounded-lg ${
+                        className={`flex items-center px-4 py-2 ${
                           pathname === subItem.href
-                            ? "bg-indigo-100 text-indigo-700"
-                            : "text-gray-600 hover:bg-gray-100"
-                        } transition`}
+                            ? "bg-gray-100 text-black"
+                            : "text-gray-600 hover:bg-gray-50"
+                        } transition-all`}
                       >
                         <span className="mr-3">{subItem.icon}</span>
                         <span>{subItem.title}</span>

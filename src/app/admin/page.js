@@ -143,7 +143,7 @@ export default function AdminDashboard() {
   ) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-black"></div>
       </div>
     );
   }
@@ -152,7 +152,7 @@ export default function AdminDashboard() {
   if (isDataLoading) {
     return (
       <div className="flex items-center justify-center min-h-[300px]">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-black"></div>
       </div>
     );
   }
@@ -162,23 +162,23 @@ export default function AdminDashboard() {
     dashboardData;
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-6">
+    <div className="border border-gray-200 p-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-semibold">Dashboard</h1>
         <button
           onClick={handleLogout}
-          className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition"
+          className="px-4 py-2 bg-black text-white hover:bg-gray-800 transition"
         >
           Cerrar Sesión
         </button>
       </div>
 
       {/* Información del administrador */}
-      <div className="bg-white p-4 rounded-lg border border-gray-200 mb-6">
-        <h2 className="text-lg font-medium text-gray-700 mb-2">
+      <div className="bg-white p-4 border border-gray-200 mb-6">
+        <h2 className="text-lg font-medium text-gray-800 mb-2">
           Admin: {session.user.name}
         </h2>
-        <p className="text-gray-500">{session.user.email}</p>
+        <p className="text-gray-600">{session.user.email}</p>
       </div>
 
       {/* Tarjetas de Estadísticas */}
@@ -191,12 +191,12 @@ export default function AdminDashboard() {
       />
 
       {/* Órdenes Recientes */}
-      <div className="bg-white rounded-lg shadow p-6 mb-8 border border-gray-100">
+      <div className="bg-white border border-gray-200 p-6 mb-8">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-semibold">Pedidos Recientes</h2>
           <Link
             href="/admin/orders"
-            className="text-indigo-600 hover:text-indigo-800 text-sm"
+            className="text-black hover:underline text-sm font-medium"
           >
             Ver todos
           </Link>
@@ -269,7 +269,7 @@ export default function AdminDashboard() {
                             : order.status === "enviado"
                             ? "bg-blue-100 text-blue-800"
                             : order.status === "entregado"
-                            ? "bg-indigo-100 text-indigo-800"
+                            ? "bg-black bg-opacity-10 text-black"
                             : "bg-red-100 text-red-800"
                         }`}
                       >

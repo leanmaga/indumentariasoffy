@@ -4,7 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { getServerSession } from "next-auth/next";
 
 export const metadata = {
-  title: "Panel de Administración | TiendaOnline",
+  title: "Panel de Administración | IndumentariaSoffy",
   description: "Gestiona tu tienda en línea de manera eficiente.",
 };
 
@@ -17,7 +17,7 @@ export default async function AdminLayout({ children }) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-white">
       <div className="container mx-auto px-4 py-8">
         <div className="flex flex-col md:flex-row gap-8">
           <AdminSidebar />
