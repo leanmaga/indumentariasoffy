@@ -150,8 +150,16 @@ export async function POST(request) {
       } catch (mpError) {
         console.error("Error al crear preferencia en MercadoPago:", mpError);
 
-        // No eliminar la orden, solo actualizar su estado
-        order.status = "error_pago";
+        // SOLUCIÓN: Usar "cancelado" en lugar de "error_pago"
+        order.status = "cancelado"; // Estado permitido
+
+        // Almacenar los detalles del error en un campo adicional
+        // Primero, asegúrate de que el campo exista en tu modelo
+        order.paymentDetails = {
+          errorType: "error_pago",
+          errorMessage: mpError.message,
+          errorTimestamp: new Date(),
+        };
         await order.save();
 
         return NextResponse.json(

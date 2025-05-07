@@ -76,6 +76,15 @@ const orderSchema = new mongoose.Schema(
         required: true,
       },
     },
+    // Campo agregado para detalles del pago y/o errores
+    paymentDetails: {
+      type: Object,
+      default: {},
+    },
+    // Si usas idempotencyKey, asegúrate de incluirlo en el modelo
+    idempotencyKey: {
+      type: String,
+    },
   },
   {
     timestamps: true,

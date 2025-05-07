@@ -64,6 +64,24 @@ export default function CheckoutPage() {
     }
   }, [mounted, items, router, orderId]);
 
+  // AÑADE ESTE EFECTO AQUÍ:
+  // Manejar retorno después de intento de pago
+  useEffect(() => {
+    // Verificar si regresa de un intento de pago
+    const lastOrderId = sessionStorage.getItem("lastOrderId");
+    const lastPreferenceId = sessionStorage.getItem("lastPreferenceId");
+    const lastMercadoPagoUrl = sessionStorage.getItem("lastMercadoPagoUrl");
+
+    if (lastOrderId && lastPreferenceId && !orderId && !preferenceId) {
+      console.log("Volviendo del intento de pago, restaurando estado");
+      setOrderId(lastOrderId);
+      setPreferenceId(lastPreferenceId);
+      setMercadoPagoUrl(lastMercadoPagoUrl);
+      orderCreatedRef.current = true;
+    }
+  }, [orderId, preferenceId]);
+
+  // Después continúa con el resto del código...
   if (!mounted || status === "loading" || !session) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -74,11 +92,13 @@ export default function CheckoutPage() {
 
   const total = getTotal();
 
+  // In your checkout page, update the onSubmit function:
+
   const onSubmit = async (data) => {
-    // Evitar duplicados: comprobar si ya se está procesando o si ya se creó una orden
+    // Prevent duplicates: check if already processing or if an order was already created
     if (isSubmitting || orderCreatedRef.current) {
       console.log(
-        "Evitando envío duplicado - isSubmitting:",
+        "Avoiding duplicate submission - isSubmitting:",
         isSubmitting,
         "orderCreated:",
         orderCreatedRef.current
@@ -89,16 +109,16 @@ export default function CheckoutPage() {
     setIsSubmitting(true);
 
     try {
-      // Si ya tenemos un orderId, no crear otro pedido
+      // If we already have an orderId, don't create another order
       if (orderId) {
         console.log(
-          "Ya existe un orderId, no creando pedido duplicado:",
+          "Order ID already exists, not creating duplicate order:",
           orderId
         );
         return;
       }
 
-      // Preparar datos de la orden
+      // Prepare order data
       const orderData = {
         items: items.map((item) => ({
           product: item.id,
@@ -117,16 +137,13 @@ export default function CheckoutPage() {
           city: data.city,
           postalCode: data.postalCode,
         },
-        // Agregar clave de idempotencia para prevenir duplicados
+        // Add idempotency key to prevent duplicates
         idempotencyKey: idempotencyKey.current,
       };
 
-      console.log(
-        "Enviando datos de orden:",
-        JSON.stringify(orderData, null, 2)
-      );
+      console.log("Sending order data:", JSON.stringify(orderData, null, 2));
 
-      // Enviar a la API
+      // Send to API
       const response = await fetch("/api/orders", {
         method: "POST",
         headers: {
@@ -135,44 +152,56 @@ export default function CheckoutPage() {
         body: JSON.stringify(orderData),
       });
 
+      // Add timeout handling
+      const responseTimeout = setTimeout(() => {
+        toast.error(
+          "La solicitud está tardando demasiado. Por favor, inténtalo de nuevo."
+        );
+        setIsSubmitting(false);
+      }, 30000); // 30-second timeout
+
       if (!response.ok) {
+        clearTimeout(responseTimeout);
         const errorData = await response.json();
-        throw new Error(errorData.message || "Error al procesar la orden");
+        throw new Error(errorData.message || "Error processing order");
       }
 
+      clearTimeout(responseTimeout);
       const result = await response.json();
-      console.log("Respuesta de API:", JSON.stringify(result, null, 2));
+      console.log("API response:", JSON.stringify(result, null, 2));
 
-      // Guardar el ID de la orden para prevenir duplicados
+      // Save the order ID to prevent duplicates
       setOrderId(result.orderId);
       orderCreatedRef.current = true;
 
-      // Si el pago es con MercadoPago, guardar el preferenceId
+      // For MercadoPago payments, save the preferenceId
       if (selectedPaymentMethod === "mercadopago" && result.paymentInfo?.id) {
         setPreferenceId(result.paymentInfo.id);
 
-        // Priorizar sandbox en ambiente de desarrollo
+        // Prioritize sandbox_init_point in development environment
         const redirectUrl =
-          result.paymentInfo.sandbox_init_point ||
-          result.paymentInfo.init_point;
+          process.env.NODE_ENV === "development"
+            ? result.paymentInfo.sandbox_init_point
+            : result.paymentInfo.init_point ||
+              result.paymentInfo.sandbox_init_point;
+
         setMercadoPagoUrl(redirectUrl);
 
-        console.log("PreferenceId configurado:", result.paymentInfo.id);
-        console.log("URL de redirección configurada:", redirectUrl);
+        console.log("PreferenceId set:", result.paymentInfo.id);
+        console.log("Redirect URL set:", redirectUrl);
 
-        // Alternativa de respaldo: redirección manual
-        if (!result.paymentInfo.id && redirectUrl) {
-          console.log("Redirigiendo manualmente a MercadoPago...");
-          window.location.href = redirectUrl;
-        }
+        // Store order data in sessionStorage for persistence across redirects
+        sessionStorage.setItem("lastOrderId", result.orderId);
+        sessionStorage.setItem("lastPreferenceId", result.paymentInfo.id);
+        sessionStorage.setItem("lastMercadoPagoUrl", redirectUrl);
       } else {
-        // Para otros métodos (tarjeta), mostrar éxito
-        toast.success("Orden creada correctamente");
+        // For other methods (card), show success
+        toast.success("Order created successfully");
         clearCart();
         router.push("/checkout/success");
       }
     } catch (error) {
-      toast.error(error.message || "Error al procesar el pago");
+      toast.error(error.message || "Error processing payment");
       console.error("Checkout error:", error);
     } finally {
       setIsSubmitting(false);

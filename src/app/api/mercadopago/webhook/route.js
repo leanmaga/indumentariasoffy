@@ -1,71 +1,137 @@
+// /api/mercadopago/webhook/route.js
 import { NextResponse } from "next/server";
 import connectDB from "@/lib/db";
 import Order from "@/models/Order";
 import { getPaymentStatus } from "@/lib/mercadopago";
 
 export async function POST(request) {
-  try {
-    // Obtener los datos de la notificación
-    const data = await request.json();
-    console.log("Webhook de MercadoPago recibido:", data);
+  console.log("MercadoPago webhook received");
 
-    // Verificar si es una notificación de pago
+  try {
+    // Parse notification data
+    let data;
+    try {
+      data = await request.json();
+      console.log("MercadoPago webhook data:", JSON.stringify(data, null, 2));
+    } catch (error) {
+      console.error("Error parsing webhook data:", error);
+      return NextResponse.json(
+        { message: "Invalid JSON payload" },
+        { status: 200 }
+      ); // Always return 200
+    }
+
+    // Verify if it's a payment notification
     if (
       data.action === "payment.created" ||
       data.action === "payment.updated"
     ) {
-      // Obtener el ID del pago
-      const paymentId = data.data.id;
+      // Get payment ID
+      const paymentId = data.data?.id;
 
-      // Obtener detalles del pago desde MercadoPago
-      const paymentInfo = await getPaymentStatus(paymentId);
+      if (!paymentId) {
+        console.error("No payment ID in webhook data");
+        return NextResponse.json({ message: "No payment ID" }, { status: 200 });
+      }
 
-      // Obtener el ID de la orden desde external_reference
-      const externalReference = paymentInfo.external_reference;
+      console.log(
+        `Processing payment notification for payment ID: ${paymentId}`
+      );
 
-      // Actualizar la orden en la base de datos
-      await connectDB();
-
-      const order = await Order.findById(externalReference);
-      if (!order) {
-        console.error(`Orden no encontrada: ${externalReference}`);
+      // Get payment details from MercadoPago
+      let paymentInfo;
+      try {
+        paymentInfo = await getPaymentStatus(paymentId);
+        console.log("Payment info:", JSON.stringify(paymentInfo, null, 2));
+      } catch (error) {
+        console.error(`Error getting payment info for ID ${paymentId}:`, error);
         return NextResponse.json(
-          { message: "Orden no encontrada" },
-          { status: 404 }
+          { message: "Error getting payment info" },
+          { status: 200 }
         );
       }
 
-      // Actualizar el estado según el estado del pago
-      if (paymentInfo.status === "approved") {
-        order.status = "pagado";
-      } else if (paymentInfo.status === "pending") {
-        order.status = "pendiente";
-      } else if (paymentInfo.status === "rejected") {
-        order.status = "cancelado";
+      // Get order ID from external_reference
+      const externalReference = paymentInfo.external_reference;
+
+      if (!externalReference) {
+        console.error("No external reference in payment info");
+        return NextResponse.json(
+          { message: "No external reference" },
+          { status: 200 }
+        );
       }
 
-      // Guardar el ID del pago
-      order.paymentId = paymentId;
-      await order.save();
+      // Update order in database
+      try {
+        await connectDB();
 
-      console.log(
-        `Orden ${externalReference} actualizada a estado: ${order.status}`
-      );
+        const order = await Order.findById(externalReference);
+        if (!order) {
+          console.error(`Order not found: ${externalReference}`);
+          return NextResponse.json(
+            { message: "Order not found" },
+            { status: 200 }
+          );
+        }
+
+        // Update status based on payment status
+        const paymentStatus = paymentInfo.status;
+        console.log(
+          `Payment status for order ${externalReference}: ${paymentStatus}`
+        );
+
+        // Map payment status to order status
+        if (paymentStatus === "approved") {
+          order.status = "pagado";
+        } else if (paymentStatus === "pending") {
+          order.status = "pendiente";
+        } else if (
+          paymentStatus === "rejected" ||
+          paymentStatus === "cancelled"
+        ) {
+          order.status = "cancelado";
+        }
+
+        // Save payment ID
+        order.paymentId = paymentId;
+
+        // Add more details for debugging
+        order.paymentDetails = {
+          status: paymentStatus,
+          method: paymentInfo.payment_method_id,
+          type: paymentInfo.payment_type_id,
+          lastUpdated: new Date(),
+        };
+
+        await order.save();
+        console.log(
+          `Order ${externalReference} updated to status: ${order.status}`
+        );
+      } catch (error) {
+        console.error(`Error updating order ${externalReference}:`, error);
+        return NextResponse.json(
+          { message: `Error updating order: ${error.message}` },
+          { status: 200 }
+        );
+      }
+    } else {
+      console.log(`Ignoring webhook action: ${data.action}`);
     }
 
-    // MercadoPago espera un 200 OK como respuesta
-    return NextResponse.json({ message: "Webhook procesado correctamente" });
+    // MercadoPago expects a 200 OK response
+    return NextResponse.json({ message: "Webhook processed successfully" });
   } catch (error) {
-    console.error("Error al procesar webhook de MercadoPago:", error);
-    // Es importante devolver 200 incluso en caso de error para evitar reenvíos
+    console.error("Error processing MercadoPago webhook:", error);
+    // Important to return 200 even in case of error to avoid resends
     return NextResponse.json(
-      { message: `Error al procesar webhook: ${error.message}` },
+      { message: `Error processing webhook: ${error.message}` },
       { status: 200 }
     );
   }
 }
 
-// MercadoPago también envía solicitudes OPTIONS para CORS
+// MercadoPago also sends OPTIONS requests for CORS
 export async function OPTIONS() {
   return NextResponse.json(
     {},
