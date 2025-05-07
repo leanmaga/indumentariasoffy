@@ -6,13 +6,14 @@ import { useSession, signOut } from "next-auth/react";
 import { usePathname } from "next/navigation";
 import { useCartStore } from "@/lib/store";
 import {
-  ShoppingBagIcon,
+  ShoppingBagIcon, // Mantenemos este para el logo
+  ShoppingCartIcon, // Añadimos este para el carrito
   UserIcon,
   Bars3Icon,
   XMarkIcon,
   ShieldCheckIcon,
 } from "@heroicons/react/24/outline";
-import AuthModal from "@/components/auth/AuthModal"; // Importar el componente modal
+import AuthModal from "@/components/auth/AuthModal";
 
 const Navbar = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -24,7 +25,6 @@ const Navbar = () => {
     0
   );
 
-  // Estado para el modal de autenticación
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authModalView, setAuthModalView] = useState("login");
 
@@ -37,7 +37,6 @@ const Navbar = () => {
     return pathname.startsWith(path);
   };
 
-  // Funciones para abrir modales
   const openLoginModal = () => {
     setAuthModalView("login");
     setIsAuthModalOpen(true);
@@ -48,7 +47,6 @@ const Navbar = () => {
     setIsAuthModalOpen(true);
   };
 
-  // Cerrar el menú mobile al cambiar de ruta
   useEffect(() => {
     setIsMobileMenuOpen(false);
   }, [pathname]);
@@ -62,7 +60,10 @@ const Navbar = () => {
             href="/"
             className="text-xl font-bold flex items-center text-gray-900"
           >
-            <ShoppingBagIcon className="h-5 w-5 mr-2" />
+            <span className="hidden md:inline">
+              <ShoppingBagIcon className="h-5 w-5 mr-2" />{" "}
+              {/* Mantenemos este como estaba */}
+            </span>
             <span className="hidden sm:inline">IndumentariaSoffy</span>
             <span className="sm:hidden">Soffy</span>
           </Link>
@@ -109,7 +110,8 @@ const Navbar = () => {
               </Link>
             )}
           </div>
-          {/* Sección derecha: Búsqueda, Carrito, Usuario */}
+
+          {/* Sección derecha: Carrito, Usuario */}
           <div
             className={`flex items-center space-x-4 ${
               isMobileMenuOpen ? "hidden" : ""
@@ -120,7 +122,8 @@ const Navbar = () => {
                 href="/cart"
                 className="relative p-2 text-gray-700 hover:text-gray-900"
               >
-                <ShoppingBagIcon className="h-5 w-5" />
+                <ShoppingCartIcon className="h-5 w-5" />{" "}
+                {/* Cambiado a ShoppingCartIcon */}
                 {cartItemsCount > 0 && (
                   <span className="absolute -top-1 -right-1 bg-yellow-500 text-black text-xs rounded-full h-5 w-5 flex items-center justify-center font-medium">
                     {cartItemsCount}
@@ -128,19 +131,19 @@ const Navbar = () => {
                 )}
               </Link>
             )}
+
             {/* Botones según el estado de autenticación */}
             {!session ? (
               <div className="flex items-center space-x-2">
-                {/* Aquí cambiamos los Links por botones */}
                 <button
                   onClick={openLoginModal}
-                  className="uppercase text-sm font-medium hover:text-gray-600"
+                  className="uppercase text-sm font-medium hover:text-gray-600 cursor-pointer"
                 >
                   Iniciar Sesión
                 </button>
                 <button
                   onClick={openRegisterModal}
-                  className="bg-black text-white uppercase text-xs px-4 py-2 font-medium hover:bg-gray-800 transition"
+                  className="bg-black text-white uppercase text-xs px-4 py-2 font-medium hover:bg-gray-800 transition cursor-pointer"
                 >
                   Registrarse
                 </button>
@@ -158,7 +161,7 @@ const Navbar = () => {
 
                 <button
                   onClick={() => signOut({ callbackUrl: "/" })}
-                  className="text-sm uppercase font-medium text-gray-700 hover:text-gray-900"
+                  className="text-sm uppercase font-medium text-gray-700 hover:text-gray-900 cursor-pointer"
                 >
                   Cerrar sesión
                 </button>
@@ -170,7 +173,7 @@ const Navbar = () => {
           </div>
 
           <button
-            className="md:hidden text-xl"
+            className="md:hidden text-xl cursor-pointer"
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
           >
             {isMobileMenuOpen ? (
@@ -234,7 +237,8 @@ const Navbar = () => {
                         isActive("/cart") ? "text-yellow-500" : "text-gray-700"
                       }`}
                     >
-                      <ShoppingBagIcon className="h-4 w-4 mr-2" />
+                      <ShoppingCartIcon className="h-4 w-4 mr-2" />{" "}
+                      {/* Cambiado a ShoppingCartIcon */}
                       Mi Carrito
                       {cartItemsCount > 0 && (
                         <span className="ml-2 bg-yellow-500 text-black text-xs rounded-full h-5 w-5 flex items-center justify-center font-medium">
@@ -270,7 +274,7 @@ const Navbar = () => {
                 <div className="py-2">
                   <button
                     onClick={() => signOut({ callbackUrl: "/" })}
-                    className="block w-full py-3 px-4 uppercase text-sm font-medium text-center border border-gray-300 hover:bg-gray-50"
+                    className="block w-full py-3 px-4 uppercase text-sm font-medium text-center border border-gray-300 hover:bg-gray-50 cursor-pointer"
                   >
                     Cerrar Sesión
                   </button>
@@ -278,16 +282,15 @@ const Navbar = () => {
               </>
             ) : (
               <div className="py-2">
-                {/* También cambiamos los Links por botones en el menú móvil */}
                 <button
                   onClick={openLoginModal}
-                  className="block w-full py-3 px-4 uppercase text-sm font-medium text-center border border-gray-300 hover:bg-gray-50"
+                  className="block w-full py-3 px-4 uppercase text-sm font-medium text-center border border-gray-300 hover:bg-gray-50 cursor-pointer"
                 >
                   Iniciar Sesión
                 </button>
                 <button
                   onClick={openRegisterModal}
-                  className="block w-full py-3 px-4 uppercase text-sm font-medium text-center bg-black text-white mt-2 hover:bg-gray-800"
+                  className="block w-full py-3 px-4 uppercase text-sm font-medium text-center bg-black text-white mt-2 hover:bg-gray-800 cursor-pointer"
                 >
                   Registrarse
                 </button>
