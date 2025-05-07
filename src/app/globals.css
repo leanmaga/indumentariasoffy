@@ -65,3 +65,35 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: #555;
 }
+
+/* Añade esto a tu archivo CSS global */
+@layer components {
+  .btn-drop {
+    @apply relative bg-black text-white py-3 font-medium overflow-hidden transition-all duration-300 inline-block;
+  }
+
+  .btn-drop:before {
+    content: "";
+    @apply absolute bottom-0 right-0 w-2 h-2 bg-yellow-500 transition-all duration-500 ease-out;
+    z-index: 1;
+  }
+
+  .btn-drop:hover:before {
+    @apply w-full h-full transform origin-bottom-right;
+  }
+
+  .btn-drop span {
+    @apply relative z-10 transition-colors duration-300;
+  }
+
+  .btn-drop:hover span {
+    @apply text-black;
+  }
+  .btn-drop svg {
+    @apply relative z-10 transition-colors duration-300;
+  }
+
+  .btn-drop:hover svg {
+    @apply text-black;
+  }
+}

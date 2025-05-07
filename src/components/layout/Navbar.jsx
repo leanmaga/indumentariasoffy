@@ -11,8 +11,8 @@ import {
   Bars3Icon,
   XMarkIcon,
   ShieldCheckIcon,
-  SignalIcon,
 } from "@heroicons/react/24/outline";
+import AuthModal from "@/components/auth/AuthModal"; // Importar el componente modal
 
 const Navbar = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -24,6 +24,10 @@ const Navbar = () => {
     0
   );
 
+  // Estado para el modal de autenticación
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [authModalView, setAuthModalView] = useState("login");
+
   const isAdmin = session?.user?.role === "admin";
 
   const isActive = (path) => {
@@ -33,56 +37,66 @@ const Navbar = () => {
     return pathname.startsWith(path);
   };
 
+  // Funciones para abrir modales
+  const openLoginModal = () => {
+    setAuthModalView("login");
+    setIsAuthModalOpen(true);
+  };
+
+  const openRegisterModal = () => {
+    setAuthModalView("register");
+    setIsAuthModalOpen(true);
+  };
+
   // Cerrar el menú mobile al cambiar de ruta
   useEffect(() => {
     setIsMobileMenuOpen(false);
   }, [pathname]);
 
   return (
-    <nav className="bg-white border-b border-gray-200 shadow-sm">
-      <div className="container mx-auto px-4 py-3 flex justify-between items-center">
-        {/* Logo */}
-        <Link
-          href="/"
-          className="text-xl font-bold flex items-center text-gray-900"
-        >
-          <ShoppingBagIcon className="h-5 w-5 mr-2" />
-          <span className="hidden sm:inline">IndumentariaSoffy</span>
-          <span className="sm:hidden">Soffy</span>
-        </Link>
-
-        <div
-          className={`hidden md:flex space-x-6 ${
-            isMobileMenuOpen ? "hidden" : ""
-          }`}
-        >
+    <>
+      <nav className="bg-white border-b border-gray-200 shadow-sm">
+        <div className="container mx-auto px-4 py-3 flex justify-between items-center">
+          {/* Logo */}
           <Link
             href="/"
-            className={`uppercase font-medium text-sm hover:text-gray-600 transition ${
-              isActive("/") ? "border-b-2 border-yellow-500" : ""
+            className="text-xl font-bold flex items-center text-gray-900"
+          >
+            <ShoppingBagIcon className="h-5 w-5 mr-2" />
+            <span className="hidden sm:inline">IndumentariaSoffy</span>
+            <span className="sm:hidden">Soffy</span>
+          </Link>
+
+          <div
+            className={`hidden md:flex space-x-6 ${
+              isMobileMenuOpen ? "hidden" : ""
             }`}
           >
-            Inicio
-          </Link>
-          <Link
-            href="/products"
-            className={`uppercase font-medium text-sm hover:text-gray-600 transition ${
-              isActive("/products") ? "border-b-2 border-yellow-500" : ""
-            }`}
-          >
-            Productos
-          </Link>
-          <Link
-            href="/contact"
-            className={`uppercase font-medium text-sm hover:text-gray-600 transition ${
-              isActive("/contact") ? "border-b-2 border-yellow-500" : ""
-            }`}
-          >
-            Contacto
-          </Link>
-          {/* Añadir enlace de admin si el usuario es administrador */}
-          {/* Admin link si el usuario es administrador */}
-          <SignalIcon>
+            <Link
+              href="/"
+              className={`uppercase font-medium text-sm hover:text-gray-600 transition ${
+                isActive("/") ? "border-b-2 border-yellow-500" : ""
+              }`}
+            >
+              Inicio
+            </Link>
+            <Link
+              href="/products"
+              className={`uppercase font-medium text-sm hover:text-gray-600 transition ${
+                isActive("/products") ? "border-b-2 border-yellow-500" : ""
+              }`}
+            >
+              Productos
+            </Link>
+            <Link
+              href="/contact"
+              className={`uppercase font-medium text-sm hover:text-gray-600 transition ${
+                isActive("/contact") ? "border-b-2 border-yellow-500" : ""
+              }`}
+            >
+              Contacto
+            </Link>
+            {/* Admin link si el usuario es administrador */}
             {isAdmin && (
               <Link
                 href="/admin"
@@ -94,193 +108,202 @@ const Navbar = () => {
                 Admin
               </Link>
             )}
-          </SignalIcon>
-        </div>
-        {/* Sección derecha: Búsqueda, Carrito, Usuario */}
-        <div
-          className={`flex items-center space-x-4 ${
-            isMobileMenuOpen ? "hidden" : ""
-          }`}
-        >
-          {!isAdmin && (
-            <Link
-              href="/cart"
-              className="relative p-2 text-gray-700 hover:text-gray-900"
-            >
-              <ShoppingBagIcon className="h-5 w-5" />
-              {cartItemsCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-yellow-500 text-black text-xs rounded-full h-5 w-5 flex items-center justify-center font-medium">
-                  {cartItemsCount}
-                </span>
-              )}
-            </Link>
-          )}
-          {/* Botones según el estado de autenticación */}
-          {!session ? (
-            <div className="flex items-center space-x-2">
-              <Link
-                href="/auth/signin"
-                className="uppercase text-sm font-medium hover:text-gray-600"
-              >
-                Iniciar Sesión
-              </Link>
-              <Link
-                href="/auth/register"
-                className="bg-black text-white uppercase text-xs px-4 py-2 font-medium hover:bg-gray-800 transition"
-              >
-                Registrarse
-              </Link>
-            </div>
-          ) : (
-            <div className="flex items-center space-x-3">
-              {isAdmin && (
-                <Link
-                  href="/admin/products/add"
-                  className="bg-black text-white px-3 py-1 text-xs uppercase font-medium hover:bg-gray-800 transition flex items-center"
-                >
-                  <span className="mr-1">+</span> Producto
-                </Link>
-              )}
-
-              <button
-                onClick={() => signOut({ callbackUrl: "/" })}
-                className="text-sm uppercase font-medium text-gray-700 hover:text-gray-900"
-              >
-                Cerrar sesión
-              </button>
-              <div className="h-8 w-8 bg-gray-200 rounded-full flex items-center justify-center">
-                <UserIcon className="h-5 w-5 text-gray-600" />
-              </div>
-            </div>
-          )}
-        </div>
-
-        <button
-          className="md:hidden text-xl"
-          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-        >
-          {isMobileMenuOpen ? (
-            <XMarkIcon className="h-6 w-6" />
-          ) : (
-            <Bars3Icon className="h-6 w-6" />
-          )}
-        </button>
-      </div>
-
-      {/* Mobile menu */}
-      <div
-        className={`md:hidden ${
-          isMobileMenuOpen ? "block" : "hidden"
-        } border-t border-gray-200 bg-white`}
-      >
-        <div className="py-2 px-4 divide-y divide-gray-100">
-          <div className="py-2">
-            <Link
-              href="/"
-              className={`block py-2 px-2 uppercase text-sm font-medium ${
-                isActive("/") ? "text-yellow-500" : "text-gray-700"
-              }`}
-            >
-              Inicio
-            </Link>
-            <Link
-              href="/products"
-              className={`block py-2 px-2 uppercase text-sm font-medium ${
-                isActive("/products") ? "text-yellow-500" : "text-gray-700"
-              }`}
-            >
-              Productos
-            </Link>
-            <Link
-              href="/contact"
-              className={`block py-2 px-2 uppercase text-sm font-medium ${
-                isActive("/contact") ? "text-yellow-500" : "text-gray-700"
-              }`}
-            >
-              Contacto
-            </Link>
           </div>
-
-          {session ? (
-            <>
-              <div className="py-2">
-                <Link
-                  href="/profile"
-                  className={`block py-2 px-2 uppercase text-sm font-medium ${
-                    isActive("/profile") ? "text-yellow-500" : "text-gray-700"
-                  }`}
-                >
-                  Mi Perfil
-                </Link>
-
-                {!isAdmin && (
-                  <Link
-                    href="/cart"
-                    className={`block py-2 px-2 uppercase text-sm font-medium flex items-center ${
-                      isActive("/cart") ? "text-yellow-500" : "text-gray-700"
-                    }`}
-                  >
-                    <ShoppingBagIcon className="h-4 w-4 mr-2" />
-                    Mi Carrito
-                    {cartItemsCount > 0 && (
-                      <span className="ml-2 bg-yellow-500 text-black text-xs rounded-full h-5 w-5 flex items-center justify-center font-medium">
-                        {cartItemsCount}
-                      </span>
-                    )}
-                  </Link>
+          {/* Sección derecha: Búsqueda, Carrito, Usuario */}
+          <div
+            className={`flex items-center space-x-4 ${
+              isMobileMenuOpen ? "hidden" : ""
+            }`}
+          >
+            {!isAdmin && (
+              <Link
+                href="/cart"
+                className="relative p-2 text-gray-700 hover:text-gray-900"
+              >
+                <ShoppingBagIcon className="h-5 w-5" />
+                {cartItemsCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-yellow-500 text-black text-xs rounded-full h-5 w-5 flex items-center justify-center font-medium">
+                    {cartItemsCount}
+                  </span>
                 )}
-              </div>
-
-              {isAdmin && (
-                <div className="py-2">
-                  <Link
-                    href="/admin"
-                    className={`block py-2 px-2 uppercase text-sm font-medium flex items-center ${
-                      isActive("/admin") ? "text-yellow-500" : "text-gray-700"
-                    }`}
-                  >
-                    <ShieldCheckIcon className="h-4 w-4 mr-2" />
-                    Administración
-                  </Link>
-                  <Link
-                    href="/admin/products/add"
-                    className="block py-2 px-2 uppercase text-sm font-medium text-black bg-gray-100 mt-2 flex items-center"
-                  >
-                    <span className="mr-2">+</span>
-                    Crear Producto
-                  </Link>
-                </div>
-              )}
-
-              {/* Botón para cerrar sesión */}
-              <div className="py-2">
+              </Link>
+            )}
+            {/* Botones según el estado de autenticación */}
+            {!session ? (
+              <div className="flex items-center space-x-2">
+                {/* Aquí cambiamos los Links por botones */}
                 <button
-                  onClick={() => signOut({ callbackUrl: "/" })}
-                  className="block w-full py-3 px-4 uppercase text-sm font-medium text-center border border-gray-300 hover:bg-gray-50"
+                  onClick={openLoginModal}
+                  className="uppercase text-sm font-medium hover:text-gray-600"
                 >
-                  Cerrar Sesión
+                  Iniciar Sesión
+                </button>
+                <button
+                  onClick={openRegisterModal}
+                  className="bg-black text-white uppercase text-xs px-4 py-2 font-medium hover:bg-gray-800 transition"
+                >
+                  Registrarse
                 </button>
               </div>
-            </>
-          ) : (
+            ) : (
+              <div className="flex items-center space-x-3">
+                {isAdmin && (
+                  <Link
+                    href="/admin/products/add"
+                    className="bg-black text-white px-3 py-1 text-xs uppercase font-medium hover:bg-gray-800 transition flex items-center"
+                  >
+                    <span className="mr-1">+</span> Producto
+                  </Link>
+                )}
+
+                <button
+                  onClick={() => signOut({ callbackUrl: "/" })}
+                  className="text-sm uppercase font-medium text-gray-700 hover:text-gray-900"
+                >
+                  Cerrar sesión
+                </button>
+                <div className="h-8 w-8 bg-gray-200 rounded-full flex items-center justify-center">
+                  <UserIcon className="h-5 w-5 text-gray-600" />
+                </div>
+              </div>
+            )}
+          </div>
+
+          <button
+            className="md:hidden text-xl"
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          >
+            {isMobileMenuOpen ? (
+              <XMarkIcon className="h-6 w-6" />
+            ) : (
+              <Bars3Icon className="h-6 w-6" />
+            )}
+          </button>
+        </div>
+
+        {/* Mobile menu */}
+        <div
+          className={`md:hidden ${
+            isMobileMenuOpen ? "block" : "hidden"
+          } border-t border-gray-200 bg-white`}
+        >
+          <div className="py-2 px-4 divide-y divide-gray-100">
             <div className="py-2">
               <Link
-                href="/auth/signin"
-                className="block py-3 px-4 uppercase text-sm font-medium text-center border border-gray-300 hover:bg-gray-50"
+                href="/"
+                className={`block py-2 px-2 uppercase text-sm font-medium ${
+                  isActive("/") ? "text-yellow-500" : "text-gray-700"
+                }`}
               >
-                Iniciar Sesión
+                Inicio
               </Link>
               <Link
-                href="/auth/register"
-                className="block py-3 px-4 uppercase text-sm font-medium text-center bg-black text-white mt-2 hover:bg-gray-800"
+                href="/products"
+                className={`block py-2 px-2 uppercase text-sm font-medium ${
+                  isActive("/products") ? "text-yellow-500" : "text-gray-700"
+                }`}
               >
-                Registrarse
+                Productos
+              </Link>
+              <Link
+                href="/contact"
+                className={`block py-2 px-2 uppercase text-sm font-medium ${
+                  isActive("/contact") ? "text-yellow-500" : "text-gray-700"
+                }`}
+              >
+                Contacto
               </Link>
             </div>
-          )}
+
+            {session ? (
+              <>
+                <div className="py-2">
+                  <Link
+                    href="/profile"
+                    className={`block py-2 px-2 uppercase text-sm font-medium ${
+                      isActive("/profile") ? "text-yellow-500" : "text-gray-700"
+                    }`}
+                  >
+                    Mi Perfil
+                  </Link>
+
+                  {!isAdmin && (
+                    <Link
+                      href="/cart"
+                      className={`block py-2 px-2 uppercase text-sm font-medium flex items-center ${
+                        isActive("/cart") ? "text-yellow-500" : "text-gray-700"
+                      }`}
+                    >
+                      <ShoppingBagIcon className="h-4 w-4 mr-2" />
+                      Mi Carrito
+                      {cartItemsCount > 0 && (
+                        <span className="ml-2 bg-yellow-500 text-black text-xs rounded-full h-5 w-5 flex items-center justify-center font-medium">
+                          {cartItemsCount}
+                        </span>
+                      )}
+                    </Link>
+                  )}
+                </div>
+
+                {isAdmin && (
+                  <div className="py-2">
+                    <Link
+                      href="/admin"
+                      className={`block py-2 px-2 uppercase text-sm font-medium flex items-center ${
+                        isActive("/admin") ? "text-yellow-500" : "text-gray-700"
+                      }`}
+                    >
+                      <ShieldCheckIcon className="h-4 w-4 mr-2" />
+                      Administración
+                    </Link>
+                    <Link
+                      href="/admin/products/add"
+                      className="block py-2 px-2 uppercase text-sm font-medium text-black bg-gray-100 mt-2 flex items-center"
+                    >
+                      <span className="mr-2">+</span>
+                      Crear Producto
+                    </Link>
+                  </div>
+                )}
+
+                {/* Botón para cerrar sesión */}
+                <div className="py-2">
+                  <button
+                    onClick={() => signOut({ callbackUrl: "/" })}
+                    className="block w-full py-3 px-4 uppercase text-sm font-medium text-center border border-gray-300 hover:bg-gray-50"
+                  >
+                    Cerrar Sesión
+                  </button>
+                </div>
+              </>
+            ) : (
+              <div className="py-2">
+                {/* También cambiamos los Links por botones en el menú móvil */}
+                <button
+                  onClick={openLoginModal}
+                  className="block w-full py-3 px-4 uppercase text-sm font-medium text-center border border-gray-300 hover:bg-gray-50"
+                >
+                  Iniciar Sesión
+                </button>
+                <button
+                  onClick={openRegisterModal}
+                  className="block w-full py-3 px-4 uppercase text-sm font-medium text-center bg-black text-white mt-2 hover:bg-gray-800"
+                >
+                  Registrarse
+                </button>
+              </div>
+            )}
+          </div>
         </div>
-      </div>
-    </nav>
+      </nav>
+
+      {/* Modal de autenticación */}
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        initialView={authModalView}
+      />
+    </>
   );
 };
 

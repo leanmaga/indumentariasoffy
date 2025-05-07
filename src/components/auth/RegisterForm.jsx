@@ -6,11 +6,13 @@ import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { toast } from "react-hot-toast";
 import { signIn } from "next-auth/react";
+import { FaEye, FaEyeSlash } from "react-icons/fa";
 
-const RegisterForm = () => {
+const RegisterForm = ({ switchToLogin, afterRegister }) => {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
-
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const {
     register,
     handleSubmit,
@@ -54,181 +56,244 @@ const RegisterForm = () => {
 
       if (loginResult.error) {
         toast.error("Error al iniciar sesión automáticamente");
+        setIsLoading(false);
         router.push("/auth/login");
       } else {
-        router.push("/");
+        // Cerrar el modal primero, luego redirigir
+        if (typeof afterRegister === "function") {
+          afterRegister();
+
+          // Usamos setTimeout para asegurar que el modal se cierre antes de redirigir
+          setTimeout(() => {
+            router.push("/");
+          }, 100);
+        } else {
+          // Si no estamos en un modal, redirigir directamente
+          router.push("/");
+        }
       }
     } catch (error) {
       toast.error(error.message || "Error al registrar el usuario");
       console.error("Registration error:", error);
-    } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-      <div>
-        <label htmlFor="name" className="block text-gray-700 mb-1">
-          Nombre Completo
-        </label>
-        <input
-          id="name"
-          type="text"
-          className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
-            errors.name ? "border-red-500" : "border-gray-300"
-          }`}
-          {...register("name", {
-            required: "El nombre es requerido",
-            minLength: {
-              value: 2,
-              message: "El nombre debe tener al menos 2 caracteres",
-            },
-          })}
-        />
-        {errors.name && (
-          <p className="mt-1 text-sm text-red-500">{errors.name.message}</p>
-        )}
-      </div>
+    <div className="w-full max-w-md mx-auto p-6">
+      <h2 className="font-sora-bold text-center text-2xl font-semibold mb-6">
+        CREAR CUENTA
+      </h2>
 
-      <div>
-        <label htmlFor="email" className="block text-gray-700 mb-1">
-          Correo Electrónico
-        </label>
-        <input
-          id="email"
-          type="email"
-          className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
-            errors.email ? "border-red-500" : "border-gray-300"
-          }`}
-          {...register("email", {
-            required: "El correo electrónico es requerido",
-            pattern: {
-              value: /^\S+@\S+\.\S+$/,
-              message: "Formato de correo electrónico inválido",
-            },
-          })}
-        />
-        {errors.email && (
-          <p className="mt-1 text-sm text-red-500">{errors.email.message}</p>
-        )}
-      </div>
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+        <div>
+          <label htmlFor="name" className="block text-sm mb-2">
+            Nombre Completo
+          </label>
+          <input
+            id="name"
+            type="text"
+            placeholder="Nombre completo"
+            className={`w-full border border-gray-300 px-3 py-3 text-gray-900 focus:outline-none focus:border-black ${
+              errors.name ? "border-red-500" : ""
+            }`}
+            {...register("name", {
+              required: "El nombre es requerido",
+              minLength: {
+                value: 2,
+                message: "El nombre debe tener al menos 2 caracteres",
+              },
+            })}
+          />
+          {errors.name && (
+            <p className="mt-1 text-sm text-red-500">{errors.name.message}</p>
+          )}
+        </div>
 
-      <div>
-        <label htmlFor="phone" className="block text-gray-700 mb-1">
-          Teléfono
-        </label>
-        <input
-          id="phone"
-          type="tel"
-          className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
-            errors.phone ? "border-red-500" : "border-gray-300"
-          }`}
-          {...register("phone", {
-            required: "El teléfono es requerido",
-            pattern: {
-              value: /^[0-9]{10}$/,
-              message:
-                "Debe ingresar un número de teléfono válido de 10 dígitos",
-            },
-          })}
-        />
-        {errors.phone && (
-          <p className="mt-1 text-sm text-red-500">{errors.phone.message}</p>
-        )}
-      </div>
+        <div>
+          <label htmlFor="email" className="block text-sm mb-2">
+            Email
+          </label>
+          <input
+            id="email"
+            type="email"
+            placeholder="Email"
+            className={`w-full border border-gray-300 px-3 py-3 text-gray-900 focus:outline-none focus:border-black ${
+              errors.email ? "border-red-500" : ""
+            }`}
+            {...register("email", {
+              required: "El correo electrónico es requerido",
+              pattern: {
+                value: /^\S+@\S+\.\S+$/,
+                message: "Formato de correo electrónico inválido",
+              },
+            })}
+          />
+          {errors.email && (
+            <p className="mt-1 text-sm text-red-500">{errors.email.message}</p>
+          )}
+        </div>
 
-      <div>
-        <label htmlFor="password" className="block text-gray-700 mb-1">
-          Contraseña
-        </label>
-        <input
-          id="password"
-          type="password"
-          className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
-            errors.password ? "border-red-500" : "border-gray-300"
-          }`}
-          {...register("password", {
-            required: "La contraseña es requerida",
-            minLength: {
-              value: 6,
-              message: "La contraseña debe tener al menos 6 caracteres",
-            },
-          })}
-        />
-        {errors.password && (
-          <p className="mt-1 text-sm text-red-500">{errors.password.message}</p>
-        )}
-      </div>
+        <div>
+          <label htmlFor="phone" className="block text-sm mb-2">
+            Teléfono
+          </label>
+          <input
+            id="phone"
+            type="tel"
+            placeholder="Teléfono"
+            className={`w-full border border-gray-300 px-3 py-3 text-gray-900 focus:outline-none focus:border-black ${
+              errors.phone ? "border-red-500" : ""
+            }`}
+            {...register("phone", {
+              required: "El teléfono es requerido",
+              pattern: {
+                value: /^\+?[0-9]{10,15}$/,
+                message:
+                  "Debe ingresar un número de teléfono válido (con o sin '+') entre 10 y 15 dígitos",
+              },
+            })}
+          />
+          {errors.phone && (
+            <p className="mt-1 text-sm text-red-500">{errors.phone.message}</p>
+          )}
+        </div>
 
-      <div>
-        <label htmlFor="confirmPassword" className="block text-gray-700 mb-1">
-          Confirmar Contraseña
-        </label>
-        <input
-          id="confirmPassword"
-          type="password"
-          className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
-            errors.confirmPassword ? "border-red-500" : "border-gray-300"
-          }`}
-          {...register("confirmPassword", {
-            required: "Debe confirmar su contraseña",
-            validate: (value) =>
-              value === password || "Las contraseñas no coinciden",
-          })}
-        />
-        {errors.confirmPassword && (
+        <div>
+          <label htmlFor="password" className="block text-sm mb-2">
+            Contraseña
+          </label>
+          <div className="relative">
+            <input
+              id="password"
+              type={showPassword ? "text" : "password"}
+              placeholder="Contraseña"
+              className={`w-full border border-gray-300 px-3 py-3 pr-10 text-gray-900 focus:outline-none focus:border-black ${
+                errors.password ? "border-red-500" : ""
+              }`}
+              {...register("password", {
+                required: "La contraseña es requerida",
+                minLength: {
+                  value: 6,
+                  message: "La contraseña debe tener al menos 6 caracteres",
+                },
+              })}
+            />
+            <button
+              type="button"
+              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+              onClick={() => setShowPassword(!showPassword)}
+            >
+              {showPassword ? <FaEyeSlash size={18} /> : <FaEye size={18} />}
+            </button>
+          </div>
+          {errors.password && (
+            <p className="mt-1 text-sm text-red-500">
+              {errors.password.message}
+            </p>
+          )}
+        </div>
+
+        <div>
+          <label htmlFor="confirmPassword" className="block text-sm mb-2">
+            Confirmar Contraseña
+          </label>
+          <div className="relative">
+            <input
+              id="confirmPassword"
+              type={showConfirmPassword ? "text" : "password"}
+              placeholder="Confirmar contraseña"
+              className={`w-full border border-gray-300 px-3 py-3 pr-10 text-gray-900 focus:outline-none focus:border-black ${
+                errors.confirmPassword ? "border-red-500" : ""
+              }`}
+              {...register("confirmPassword", {
+                required: "Debe confirmar su contraseña",
+                validate: (value) =>
+                  value === password || "Las contraseñas no coinciden",
+              })}
+            />
+            <button
+              type="button"
+              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+            >
+              {showConfirmPassword ? (
+                <FaEyeSlash size={18} />
+              ) : (
+                <FaEye size={18} />
+              )}
+            </button>
+          </div>
+          {errors.confirmPassword && (
+            <p className="mt-1 text-sm text-red-500">
+              {errors.confirmPassword.message}
+            </p>
+          )}
+        </div>
+
+        <div className="flex items-center">
+          <input
+            id="acceptTerms"
+            type="checkbox"
+            className={`h-4 w-4 text-black focus:ring-black border-gray-300 rounded ${
+              errors.acceptTerms ? "border-red-500" : ""
+            }`}
+            {...register("acceptTerms", {
+              required: "Debe aceptar los términos y condiciones",
+            })}
+          />
+          <label
+            htmlFor="acceptTerms"
+            className="ml-2 block text-sm text-gray-700"
+          >
+            Acepto los{" "}
+            <Link href="/terms" className="text-black hover:underline">
+              Términos y Condiciones
+            </Link>
+          </label>
+        </div>
+        {errors.acceptTerms && (
           <p className="mt-1 text-sm text-red-500">
-            {errors.confirmPassword.message}
+            {errors.acceptTerms.message}
           </p>
         )}
-      </div>
 
-      <div className="flex items-center">
-        <input
-          id="acceptTerms"
-          type="checkbox"
-          className={`h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded ${
-            errors.acceptTerms ? "border-red-500" : ""
-          }`}
-          {...register("acceptTerms", {
-            required: "Debe aceptar los términos y condiciones",
-          })}
-        />
-        <label
-          htmlFor="acceptTerms"
-          className="ml-2 block text-sm text-gray-700"
-        >
-          Acepto los{" "}
-          <Link href="/terms" className="text-indigo-600 hover:text-indigo-800">
-            Términos y Condiciones
-          </Link>
-        </label>
-      </div>
-      {errors.acceptTerms && (
-        <p className="mt-1 text-sm text-red-500">
-          {errors.acceptTerms.message}
+        <button type="submit" disabled={isLoading} className="w-full btn-drop">
+          <span>{isLoading ? "Registrando..." : "Registrarse"}</span>
+        </button>
+      </form>
+
+      <div className="mt-6 text-center">
+        <div className="relative py-3">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-gray-300"></div>
+          </div>
+          <div className="relative flex justify-center">
+            <span className="px-4 bg-white text-sm text-gray-500">O</span>
+          </div>
+        </div>
+
+        <p className="mt-4 text-sm">
+          ¿Ya tienes cuenta?{" "}
+          {switchToLogin ? (
+            <button
+              type="button"
+              onClick={switchToLogin}
+              className="font-medium text-black hover:underline"
+            >
+              Inicia Sesión
+            </button>
+          ) : (
+            <Link
+              href="/auth/login"
+              className="font-medium text-black hover:underline"
+            >
+              Inicia Sesión
+            </Link>
+          )}
         </p>
-      )}
-
-      <button
-        type="submit"
-        className="w-full bg-indigo-600 text-white py-2 px-4 rounded-lg hover:bg-indigo-700 transition font-medium disabled:opacity-50"
-        disabled={isLoading}
-      >
-        {isLoading ? "Registrando..." : "Registrarse"}
-      </button>
-
-      <p className="text-center text-gray-600">
-        ¿Ya tienes cuenta?{" "}
-        <Link
-          href="/auth/login"
-          className="text-indigo-600 hover:text-indigo-800 font-medium"
-        >
-          Inicia Sesión
-        </Link>
-      </p>
-    </form>
+      </div>
+    </div>
   );
 };
 

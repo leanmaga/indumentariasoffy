@@ -23,43 +23,43 @@ function CategoryFilterContent() {
   };
 
   return (
-    <div className="flex flex-wrap justify-center mb-8 gap-2">
+    <div className="flex flex-wrap justify-center mb-8 gap-3">
       <button
-        className={`px-4 py-2 rounded-full ${
+        className={`px-5 py-2 rounded-full border transition-colors text-sm ${
           currentCategory === "all"
-            ? "bg-indigo-600 text-white"
-            : "bg-gray-200 hover:bg-gray-300 text-gray-700"
-        } transition`}
+            ? "border-black bg-black text-white"
+            : "border-gray-300 hover:border-black text-black"
+        }`}
         onClick={() => handleCategoryChange("all")}
       >
         Todos
       </button>
       <button
-        className={`px-4 py-2 rounded-full ${
+        className={`px-5 py-2 rounded-full border transition-colors text-sm ${
           currentCategory === "ropa"
-            ? "bg-indigo-600 text-white"
-            : "bg-gray-200 hover:bg-gray-300 text-gray-700"
-        } transition`}
+            ? "border-black bg-black text-white"
+            : "border-gray-300 hover:border-black text-black"
+        }`}
         onClick={() => handleCategoryChange("ropa")}
       >
         Ropa
       </button>
       <button
-        className={`px-4 py-2 rounded-full ${
+        className={`px-5 py-2 rounded-full border transition-colors text-sm ${
           currentCategory === "electronica"
-            ? "bg-indigo-600 text-white"
-            : "bg-gray-200 hover:bg-gray-300 text-gray-700"
-        } transition`}
+            ? "border-black bg-black text-white"
+            : "border-gray-300 hover:border-black text-black"
+        }`}
         onClick={() => handleCategoryChange("electronica")}
       >
         Electrónica
       </button>
       <button
-        className={`px-4 py-2 rounded-full ${
+        className={`px-5 py-2 rounded-full border transition-colors text-sm ${
           currentCategory === "hogar"
-            ? "bg-indigo-600 text-white"
-            : "bg-gray-200 hover:bg-gray-300 text-gray-700"
-        } transition`}
+            ? "border-black bg-black text-white"
+            : "border-gray-300 hover:border-black text-black"
+        }`}
         onClick={() => handleCategoryChange("hogar")}
       >
         Hogar
@@ -73,7 +73,7 @@ const CategoryFilter = () => {
   return (
     <Suspense
       fallback={
-        <div className="flex justify-center mb-8 gap-2 opacity-50">
+        <div className="flex justify-center mb-8 gap-3 opacity-50">
           Cargando categorías...
         </div>
       }

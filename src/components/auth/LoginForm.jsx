@@ -6,13 +6,14 @@ import { signIn } from "next-auth/react";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { toast } from "react-hot-toast";
+import { FaEye, FaEyeSlash } from "react-icons/fa";
 
-// Componente interno que usa useSearchParams
-function LoginFormContent({ type = "user" }) {
+function LoginFormContent({ type = "user", switchToRegister, afterLogin }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirect = searchParams.get("redirect") || "/";
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const {
     register,
@@ -33,113 +34,163 @@ function LoginFormContent({ type = "user" }) {
 
       if (result.error) {
         toast.error("Credenciales incorrectas");
+        setIsLoading(false);
       } else {
         toast.success(
           `Inicio de sesión exitoso como ${
             type === "admin" ? "administrador" : "usuario"
           }`
         );
-        router.push(type === "admin" ? "/admin" : redirect);
+
+        // Cerrar el modal primero, luego redirigir después de un breve retraso
+        if (typeof afterLogin === "function") {
+          afterLogin();
+
+          // Usamos setTimeout para asegurar que el modal se cierre antes de redirigir
+          setTimeout(() => {
+            router.push(type === "admin" ? "/admin" : "/");
+          }, 100);
+        } else {
+          // Si no estamos en un modal, redirigir directamente
+          router.push(type === "admin" ? "/admin" : "/");
+        }
       }
     } catch (error) {
       toast.error("Error al iniciar sesión");
       console.error("Login error:", error);
-    } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-      <div>
-        <label htmlFor="email" className="block text-gray-700 mb-1">
-          Correo Electrónico
-        </label>
-        <input
-          id="email"
-          type="email"
-          className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
-            errors.email ? "border-red-500" : "border-gray-300"
-          }`}
-          {...register("email", {
-            required: "El correo electrónico es requerido",
-            pattern: {
-              value: /^\S+@\S+\.\S+$/,
-              message: "Formato de correo electrónico inválido",
-            },
-          })}
-        />
-        {errors.email && (
-          <p className="mt-1 text-sm text-red-500">{errors.email.message}</p>
-        )}
-      </div>
+    <div className="w-full max-w-md mx-auto p-6">
+      <h2 className="font-sora-bold text-center text-2xl font-semibold mb-6">
+        INICIAR SESIÓN
+      </h2>
 
-      <div>
-        <label htmlFor="password" className="block text-gray-700 mb-1">
-          Contraseña
-        </label>
-        <input
-          id="password"
-          type="password"
-          className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
-            errors.password ? "border-red-500" : "border-gray-300"
-          }`}
-          {...register("password", {
-            required: "La contraseña es requerida",
-            minLength: {
-              value: 6,
-              message: "La contraseña debe tener al menos 6 caracteres",
-            },
-          })}
-        />
-        {errors.password && (
-          <p className="mt-1 text-sm text-red-500">{errors.password.message}</p>
-        )}
-      </div>
-
-      <div className="flex items-center justify-between">
-        <div className="flex items-center">
-          <input
-            id="remember-me"
-            type="checkbox"
-            className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-          />
-          <label
-            htmlFor="remember-me"
-            className="ml-2 block text-sm text-gray-700"
-          >
-            Recordarme
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+        <div>
+          <label htmlFor="email" className="block text-sm mb-2">
+            Email
           </label>
+          <input
+            id="email"
+            type="email"
+            placeholder="Email"
+            className={`w-full border border-gray-300 px-3 py-3 text-gray-900 focus:outline-none focus:border-black ${
+              errors.email ? "border-red-500" : ""
+            }`}
+            {...register("email", {
+              required: "El correo electrónico es requerido",
+              pattern: {
+                value: /^\S+@\S+\.\S+$/,
+                message: "Formato de correo electrónico inválido",
+              },
+            })}
+          />
+          {errors.email && (
+            <p className="mt-1 text-sm text-red-500">{errors.email.message}</p>
+          )}
         </div>
-        <a href="#" className="text-sm text-indigo-600 hover:text-indigo-800">
-          ¿Olvidaste tu contraseña?
-        </a>
-      </div>
 
-      <button
-        type="submit"
-        className="w-full bg-indigo-600 text-white py-2 px-4 rounded-lg hover:bg-indigo-700 transition font-medium disabled:opacity-50"
-        disabled={isLoading}
-      >
-        {isLoading ? "Iniciando sesión..." : "Iniciar Sesión"}
-      </button>
+        <div>
+          <label htmlFor="password" className="block text-sm mb-2">
+            Contraseña
+          </label>
+          <div className="relative">
+            <input
+              id="password"
+              type={showPassword ? "text" : "password"}
+              placeholder="Contraseña"
+              className={`w-full border border-gray-300 px-3 py-3 pr-10 text-gray-900 focus:outline-none focus:border-black ${
+                errors.password ? "border-red-500" : ""
+              }`}
+              {...register("password", {
+                required: "La contraseña es requerida",
+                minLength: {
+                  value: 6,
+                  message: "La contraseña debe tener al menos 6 caracteres",
+                },
+              })}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+            >
+              {showPassword ? <FaEyeSlash size={18} /> : <FaEye size={18} />}
+            </button>
+          </div>
+          {errors.password && (
+            <p className="mt-1 text-sm text-red-500">
+              {errors.password.message}
+            </p>
+          )}
+        </div>
 
-      {type === "user" && (
-        <p className="text-center text-gray-600">
-          ¿No tienes cuenta?{" "}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center">
+            <input
+              id="remember-me"
+              type="checkbox"
+              className="h-4 w-4 text-black focus:ring-black border-gray-300 rounded"
+            />
+            <label
+              htmlFor="remember-me"
+              className="ml-2 block text-sm text-gray-700"
+            >
+              Recordarme
+            </label>
+          </div>
           <Link
-            href="/auth/register"
-            className="text-indigo-600 hover:text-indigo-800 font-medium"
+            href="/auth/reset-password"
+            className="text-sm font-medium text-black hover:underline"
           >
-            Regístrate
+            ¿Olvidaste tu contraseña?
           </Link>
-        </p>
-      )}
-    </form>
+        </div>
+
+        <button type="submit" disabled={isLoading} className="w-full btn-drop">
+          <span>{isLoading ? "Iniciando sesión..." : "Iniciar Sesión"}</span>
+        </button>
+      </form>
+
+      <div className="mt-6 text-center">
+        <div className="relative py-3">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-gray-300"></div>
+          </div>
+          <div className="relative flex justify-center">
+            <span className="px-4 bg-white text-sm text-gray-500">O</span>
+          </div>
+        </div>
+
+        {type === "user" && (
+          <p className="mt-4 text-sm">
+            ¿No tienes cuenta?{" "}
+            {switchToRegister ? (
+              <button
+                type="button"
+                onClick={switchToRegister}
+                className="font-medium text-black hover:underline"
+              >
+                Regístrate
+              </button>
+            ) : (
+              <Link
+                href="/auth/register"
+                className="font-medium text-black hover:underline"
+              >
+                Regístrate
+              </Link>
+            )}
+          </p>
+        )}
+      </div>
+    </div>
   );
 }
 
-// Componente principal con Suspense
 const LoginForm = (props) => {
   return (
     <Suspense fallback={<div className="p-4 text-center">Cargando...</div>}>
