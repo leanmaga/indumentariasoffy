@@ -6,8 +6,8 @@ import { useSession, signOut } from "next-auth/react";
 import { usePathname } from "next/navigation";
 import { useCartStore } from "@/lib/store";
 import {
-  ShoppingBagIcon, // Mantenemos este para el logo
-  ShoppingCartIcon, // Añadimos este para el carrito
+  ShoppingBagIcon,
+  ShoppingCartIcon,
   UserIcon,
   Bars3Icon,
   XMarkIcon,
@@ -19,7 +19,11 @@ const Navbar = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { data: session } = useSession();
   const pathname = usePathname();
+
+  // Solo Zustand
   const cartItems = useCartStore((state) => state.items);
+  const clearCart = useCartStore((state) => state.clearCart);
+
   const cartItemsCount = cartItems.reduce(
     (acc, item) => acc + item.quantity,
     0
@@ -29,6 +33,17 @@ const Navbar = () => {
   const [authModalView, setAuthModalView] = useState("login");
 
   const isAdmin = session?.user?.role === "admin";
+
+  const handleSignOut = () => {
+    // Limpiar Zustand store
+    clearCart();
+
+    // Limpiar directamente localStorage para asegurarse
+    localStorage.removeItem("cart-storage");
+
+    // Cerrar sesión
+    signOut({ callbackUrl: "/" });
+  };
 
   const isActive = (path) => {
     if (path === "/") {
@@ -61,8 +76,7 @@ const Navbar = () => {
             className="text-xl font-bold flex items-center text-gray-900"
           >
             <span className="hidden md:inline">
-              <ShoppingBagIcon className="h-5 w-5 mr-2" />{" "}
-              {/* Mantenemos este como estaba */}
+              <ShoppingBagIcon className="h-5 w-5 mr-2" />
             </span>
             <span className="hidden sm:inline">IndumentariaSoffy</span>
             <span className="sm:hidden">Soffy</span>
@@ -122,8 +136,7 @@ const Navbar = () => {
                 href="/cart"
                 className="relative p-2 text-gray-700 hover:text-gray-900"
               >
-                <ShoppingCartIcon className="h-5 w-5" />{" "}
-                {/* Cambiado a ShoppingCartIcon */}
+                <ShoppingCartIcon className="h-5 w-5" />
                 {cartItemsCount > 0 && (
                   <span className="absolute -top-1 -right-1 bg-yellow-500 text-black text-xs rounded-full h-5 w-5 flex items-center justify-center font-medium">
                     {cartItemsCount}
@@ -160,7 +173,7 @@ const Navbar = () => {
                 )}
 
                 <button
-                  onClick={() => signOut({ callbackUrl: "/" })}
+                  onClick={handleSignOut} // Usar la nueva función aquí
                   className="text-sm uppercase font-medium text-gray-700 hover:text-gray-900 cursor-pointer"
                 >
                   Cerrar sesión
@@ -237,8 +250,7 @@ const Navbar = () => {
                         isActive("/cart") ? "text-yellow-500" : "text-gray-700"
                       }`}
                     >
-                      <ShoppingCartIcon className="h-4 w-4 mr-2" />{" "}
-                      {/* Cambiado a ShoppingCartIcon */}
+                      <ShoppingCartIcon className="h-4 w-4 mr-2" />
                       Mi Carrito
                       {cartItemsCount > 0 && (
                         <span className="ml-2 bg-yellow-500 text-black text-xs rounded-full h-5 w-5 flex items-center justify-center font-medium">
@@ -273,7 +285,7 @@ const Navbar = () => {
                 {/* Botón para cerrar sesión */}
                 <div className="py-2">
                   <button
-                    onClick={() => signOut({ callbackUrl: "/" })}
+                    onClick={handleSignOut} // Usar la nueva función aquí también
                     className="block w-full py-3 px-4 uppercase text-sm font-medium text-center border border-gray-300 hover:bg-gray-50 cursor-pointer"
                   >
                     Cerrar Sesión
