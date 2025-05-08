@@ -39,7 +39,7 @@ export default function Home() {
 
             {/* Subtítulo */}
             <p className="text-xl md:text-2xl font-medium mb-8 tracking-wider uppercase">
-              Calidad garantizada.
+              Todo lo que buscas en un solo lugar.
             </p>
 
             {/* CTA Button */}
