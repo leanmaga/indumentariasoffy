@@ -76,7 +76,7 @@ const Footer = () => {
               </li>
               <li>
                 <Link
-                  href="/newsletter"
+                  href="#"
                   className="text-sm text-gray-300 hover:text-white transition font-drop underline"
                 >
                   Suscribirse

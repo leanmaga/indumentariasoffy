@@ -6,13 +6,18 @@ import { useSession } from "next-auth/react";
 import toast from "react-hot-toast";
 import { XCircleIcon, PlusCircleIcon } from "@heroicons/react/24/outline";
 import Image from "next/image";
+import MultipleImageUploader from "@/components/admin/MultipleImageUploader";
 
 export default function AddProductPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [imageFile, setImageFile] = useState(null);
-  const [imagePreview, setImagePreview] = useState(null);
+
+  // Estados para imágenes múltiples
+  const [mainImageFile, setMainImageFile] = useState(null);
+  const [mainImagePreview, setMainImagePreview] = useState(null);
+  const [additionalImages, setAdditionalImages] = useState([]);
+
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -212,6 +217,20 @@ export default function AddProductPage() {
     }));
   };
 
+  // Funciones para manejar las imágenes múltiples
+  const handleMainImageChange = (file, preview) => {
+    setMainImageFile(file);
+    setMainImagePreview(preview);
+  };
+
+  const handleAddImage = (file, preview, color) => {
+    setAdditionalImages([...additionalImages, { file, preview, color }]);
+  };
+
+  const handleRemoveImage = (index) => {
+    setAdditionalImages(additionalImages.filter((_, i) => i !== index));
+  };
+
   // Manejar cambio en el stock de una variante
   const handleVariantStockChange = (index, newStock) => {
     const updatedVariants = [...formData.variants];
@@ -284,18 +303,6 @@ export default function AddProductPage() {
     }
   };
 
-  const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setImageFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
   // Actualiza esta parte en tu handleSubmit (reemplaza el código existente)
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -309,10 +316,10 @@ export default function AddProductPage() {
         !formData.cost ||
         !formData.profitMargin ||
         !formData.category ||
-        !imageFile
+        !mainImageFile
       ) {
         throw new Error(
-          "Por favor complete todos los campos requeridos e incluya una imagen"
+          "Por favor complete todos los campos requeridos e incluya una imagen principal"
         );
       }
 
@@ -365,24 +372,50 @@ export default function AddProductPage() {
         }
       }
 
-      // Subir la imagen utilizando nuestra API
-      const imageData = new FormData();
-      imageData.append("file", imageFile);
+      // Subir la imagen principal
+      const mainImageData = new FormData();
+      mainImageData.append("file", mainImageFile);
 
-      const imageUploadResponse = await fetch("/api/upload", {
+      const mainImageUploadResponse = await fetch("/api/upload", {
         method: "POST",
-        body: imageData,
+        body: mainImageData,
       });
 
-      if (!imageUploadResponse.ok) {
-        const errorData = await imageUploadResponse.json();
-        throw new Error(errorData.error || "Error al subir la imagen");
+      if (!mainImageUploadResponse.ok) {
+        const errorData = await mainImageUploadResponse.json();
+        throw new Error(
+          errorData.error || "Error al subir la imagen principal"
+        );
       }
 
-      const imageResult = await imageUploadResponse.json();
-      const imageUrl = imageResult.imageUrl;
+      const mainImageResult = await mainImageUploadResponse.json();
+      const mainImageUrl = mainImageResult.imageUrl;
 
-      // Preparar los datos del producto - CAMBIOS IMPORTANTES AQUÍ
+      // Subir imágenes adicionales
+      const additionalImagesData = [];
+
+      for (const img of additionalImages) {
+        const imageData = new FormData();
+        imageData.append("file", img.file);
+
+        const imageUploadResponse = await fetch("/api/upload", {
+          method: "POST",
+          body: imageData,
+        });
+
+        if (!imageUploadResponse.ok) {
+          const errorData = await imageUploadResponse.json();
+          throw new Error(errorData.error || "Error al subir imagen adicional");
+        }
+
+        const imageResult = await imageUploadResponse.json();
+        additionalImagesData.push({
+          imageUrl: imageResult.imageUrl,
+          color: img.color || "",
+        });
+      }
+
+      // Preparar los datos del producto
       const productData = {
         title: formData.title.trim(),
         description: formData.description.trim(),
@@ -394,7 +427,8 @@ export default function AddProductPage() {
         profitMargin: parseFloat(formData.profitMargin),
         category: formData.category,
         featured: formData.featured,
-        imageUrl,
+        imageUrl: mainImageUrl,
+        additionalImages: additionalImagesData,
         // Campos de indumentaria
         gender: formData.gender,
         material: formData.material,
@@ -421,9 +455,6 @@ export default function AddProductPage() {
         // Para productos sin variantes
         productData.stock = parseInt(formData.stock) || 0;
       }
-
-      // Para depuración - ver qué se está enviando
-      console.log("Datos enviados a la API:", productData);
 
       // Crear el producto
       const productResponse = await fetch("/api/products", {
@@ -455,7 +486,6 @@ export default function AddProductPage() {
       setIsSubmitting(false);
     }
   };
-
   // Si está cargando o no está autenticado, mostrar estado apropiado
   if (status === "loading") {
     return (
@@ -1067,34 +1097,19 @@ export default function AddProductPage() {
           </div>
         )}
 
-        {/* Imagen */}
+        {/* Reemplazo de la sección de imagen con el componente MultipleImageUploader */}
         <div>
-          <label className="block text-sm font-medium text-gray-700">
-            Imagen del producto *
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Imágenes del producto
           </label>
-          <div className="mt-1 flex items-center">
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleImageChange}
-              className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
-              required
-            />
-          </div>
-          {imagePreview && (
-            <div className="mt-2">
-              <div className="relative w-40 h-40">
-                <Image
-                  src={imagePreview}
-                  alt={formData.title || "Preview imagen"}
-                  fill
-                  sizes="160px"
-                  className="object-cover rounded-md"
-                  unoptimized
-                />
-              </div>
-            </div>
-          )}
+          <MultipleImageUploader
+            mainImage={mainImagePreview}
+            additionalImages={additionalImages}
+            onMainImageChange={handleMainImageChange}
+            onAddImage={handleAddImage}
+            onRemoveImage={handleRemoveImage}
+            colors={formData.colors}
+          />
         </div>
 
         {/* Destacado */}

@@ -59,7 +59,7 @@ export default function Home() {
               <div className="bg-indigo-100 w-20 h-20 mx-auto rounded-full flex items-center justify-center mb-4">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  className="h-10 w-10 text-indigo-600"
+                  className="h-10 w-10 text-black"
                   viewBox="0 0 20 20"
                   fill="currentColor"
                 >
@@ -76,7 +76,7 @@ export default function Home() {
               </p>
               <Link
                 href="/products?category=ropa"
-                className="mt-4 inline-block text-indigo-600 hover:text-indigo-800 font-medium"
+                className="mt-4 inline-block  font-medium"
               >
                 Ver productos
               </Link>
@@ -86,7 +86,7 @@ export default function Home() {
               <div className="bg-purple-100 w-20 h-20 mx-auto rounded-full flex items-center justify-center mb-4">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  className="h-10 w-10 text-purple-600"
+                  className="h-10 w-10 text-black"
                   viewBox="0 0 20 20"
                   fill="currentColor"
                 >
@@ -103,7 +103,7 @@ export default function Home() {
               <p className="text-gray-600">Tecnología de última generación.</p>
               <Link
                 href="/products?category=electronica"
-                className="mt-4 inline-block text-purple-600 hover:text-purple-800 font-medium"
+                className="mt-4 inline-block text-black hover:text-gray-400 font-medium"
               >
                 Ver productos
               </Link>
@@ -113,7 +113,7 @@ export default function Home() {
               <div className="bg-pink-100 w-20 h-20 mx-auto rounded-full flex items-center justify-center mb-4">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  className="h-10 w-10 text-pink-600"
+                  className="h-10 w-10 text-black"
                   viewBox="0 0 20 20"
                   fill="currentColor"
                 >
@@ -128,7 +128,7 @@ export default function Home() {
               </p>
               <Link
                 href="/products?category=hogar"
-                className="mt-4 inline-block text-pink-600 hover:text-pink-800 font-medium"
+                className="mt-4 inline-block text-black hover:text-gray-400 font-medium"
               >
                 Ver productos
               </Link>

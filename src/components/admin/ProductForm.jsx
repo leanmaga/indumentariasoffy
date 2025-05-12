@@ -2,16 +2,28 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
 import { toast } from "react-hot-toast";
 import { useForm } from "react-hook-form";
-import { CameraIcon, ArrowLeftIcon } from "@heroicons/react/24/outline";
+import { ArrowLeftIcon } from "@heroicons/react/24/outline";
+import MultipleImageUploader from "./MultipleImageUploader";
 
 const ProductForm = ({ product = null }) => {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [imagePreview, setImagePreview] = useState(product?.imageUrl || "");
-  const [imageFile, setImageFile] = useState(null);
+  const [autoCalculateMargin, setAutoCalculateMargin] = useState(true);
+
+  // Estados para manejar las imágenes
+  const [mainImageFile, setMainImageFile] = useState(null);
+  const [mainImagePreview, setMainImagePreview] = useState(
+    product?.imageUrl || ""
+  );
+  const [additionalImages, setAdditionalImages] = useState(
+    product?.additionalImages?.map((img) => ({
+      imageUrl: img.imageUrl,
+      color: img.color,
+      preview: img.imageUrl,
+    })) || []
+  );
 
   const {
     register,
@@ -23,50 +35,58 @@ const ProductForm = ({ product = null }) => {
     defaultValues: {
       title: product?.title || "",
       description: product?.description || "",
-      price: product?.price || "",
+      // Campos financieros actualizados
+      salePrice:
+        product?.salePrice?.toString() || product?.price?.toString() || "",
+      promoPrice: product?.promoPrice?.toString() || "0",
+      cost: product?.cost?.toString() || "",
+      profitMargin: product?.profitMargin?.toString() || "",
+      stock: product?.stock?.toString() || "",
       category: product?.category || "",
-      inStock: product?.inStock !== undefined ? product.inStock : true,
       featured: product?.featured || false,
+      // Campos para indumentaria si aplican
+      gender: product?.gender || "",
+      material: product?.material || "",
+      style: product?.style || "",
+      season: product?.season || "",
+      // Campos para variantes
+      sizes: product?.sizes || [],
+      colors: product?.colors || [],
+      variants: product?.variants || [],
     },
   });
 
   // Observar los cambios en el formulario
+  const watchSalePrice = watch("salePrice");
+  const watchCost = watch("cost");
   const watchCategory = watch("category");
+  const watchColors = watch("colors"); // Para pasar al selector de imágenes
 
-  // Convertir archivo a Base64
-  const convertFileToBase64 = (file) => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => resolve(reader.result);
-      reader.onerror = (error) => reject(error);
-    });
+  // Calcular margen automáticamente cuando cambian precio o costo
+  useEffect(() => {
+    if (autoCalculateMargin && watchSalePrice && watchCost) {
+      const salePrice = parseFloat(watchSalePrice);
+      const cost = parseFloat(watchCost);
+
+      if (salePrice > 0 && cost > 0) {
+        const margin = ((salePrice - cost) / salePrice) * 100;
+        setValue("profitMargin", Math.max(0, Math.min(100, margin)).toFixed(2));
+      }
+    }
+  }, [watchSalePrice, watchCost, autoCalculateMargin, setValue]);
+
+  // Funciones para manejar imágenes
+  const handleMainImageChange = (file, preview) => {
+    setMainImageFile(file);
+    setMainImagePreview(preview);
   };
 
-  // Manejar la carga de imágenes
-  const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
+  const handleAddImage = (file, preview, color) => {
+    setAdditionalImages([...additionalImages, { file, preview, color }]);
+  };
 
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error("La imagen debe ser menor a 5MB");
-      return;
-    }
-
-    const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
-    if (!allowedTypes.includes(file.type)) {
-      toast.error("El archivo debe ser una imagen (JPG, PNG o WebP)");
-      return;
-    }
-
-    setImageFile(file);
-
-    // Crear vista previa
-    const reader = new FileReader();
-    reader.onload = () => {
-      setImagePreview(reader.result);
-    };
-    reader.readAsDataURL(file);
+  const handleRemoveImage = (index) => {
+    setAdditionalImages(additionalImages.filter((_, i) => i !== index));
   };
 
   // Enviar el formulario
@@ -74,9 +94,9 @@ const ProductForm = ({ product = null }) => {
     setLoading(true);
 
     try {
-      // Verificar si se necesita cargar imagen
-      if (!imagePreview && !product) {
-        toast.error("Debes subir una imagen del producto");
+      // Validar imagen principal
+      if (!mainImagePreview && !product) {
+        toast.error("Debes subir una imagen principal del producto");
         setLoading(false);
         return;
       }
@@ -85,17 +105,86 @@ const ProductForm = ({ product = null }) => {
       const productData = {
         title: data.title,
         description: data.description,
-        price: data.price,
+        // Datos financieros
+        salePrice: parseFloat(data.salePrice),
+        promoPrice: parseFloat(data.promoPrice) || 0,
+        cost: parseFloat(data.cost),
+        profitMargin: parseFloat(data.profitMargin),
+        stock: parseInt(data.stock) || 0,
         category: data.category,
-        inStock: data.inStock,
         featured: data.featured,
+        // Campos adicionales
+        gender: data.gender || "",
+        material: data.material || "",
+        style: data.style || "",
+        season: data.season || "",
       };
 
-      // Añadir imagen en base64 si hay una nueva
-      if (imageFile) {
-        const imageBase64 = await convertFileToBase64(imageFile);
-        productData.image = imageBase64;
+      // Subir imagen principal si es nueva
+      if (mainImageFile) {
+        const imageData = new FormData();
+        imageData.append("file", mainImageFile);
+
+        const imageUploadResponse = await fetch("/api/upload", {
+          method: "POST",
+          body: imageData,
+        });
+
+        if (!imageUploadResponse.ok) {
+          const errorData = await imageUploadResponse.json();
+          throw new Error(
+            errorData.error || "Error al subir la imagen principal"
+          );
+        }
+
+        const imageResult = await imageUploadResponse.json();
+        productData.imageUrl = imageResult.imageUrl;
+      } else if (product?.imageUrl) {
+        productData.imageUrl = product.imageUrl;
       }
+
+      // Subir imágenes adicionales
+      const newAdditionalImages = [];
+
+      // Conservar imágenes adicionales existentes sin archivo
+      if (additionalImages) {
+        additionalImages.forEach((img) => {
+          if (img.imageUrl && !img.file) {
+            newAdditionalImages.push({
+              imageUrl: img.imageUrl,
+              color: img.color || "",
+            });
+          }
+        });
+      }
+
+      // Subir nuevas imágenes adicionales con archivo
+      for (const img of additionalImages) {
+        if (img.file) {
+          const imageData = new FormData();
+          imageData.append("file", img.file);
+
+          const imageUploadResponse = await fetch("/api/upload", {
+            method: "POST",
+            body: imageData,
+          });
+
+          if (!imageUploadResponse.ok) {
+            const errorData = await imageUploadResponse.json();
+            throw new Error(
+              errorData.error || "Error al subir imagen adicional"
+            );
+          }
+
+          const imageResult = await imageUploadResponse.json();
+          newAdditionalImages.push({
+            imageUrl: imageResult.imageUrl,
+            color: img.color || "",
+          });
+        }
+      }
+
+      productData.additionalImages = newAdditionalImages;
 
       // Determinar si es crear o actualizar
       const url = product ? `/api/products/${product._id}` : "/api/products";
@@ -196,40 +285,217 @@ const ProductForm = ({ product = null }) => {
               )}
             </div>
 
-            <div>
-              <label
-                htmlFor="price"
-                className="block text-sm font-medium text-gray-700 mb-1"
-              >
-                Precio*
-              </label>
-              <div className="relative">
-                <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500">
-                  $
-                </span>
-                <input
-                  id="price"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  className={`w-full pl-7 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
-                    errors.price ? "border-red-500" : "border-gray-300"
-                  }`}
-                  {...register("price", {
-                    required: "El precio es requerido",
-                    min: {
-                      value: 0,
-                      message: "El precio debe ser mayor a 0",
-                    },
-                    valueAsNumber: true,
-                  })}
-                />
+            {/* Sección de precios */}
+            <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+              <h3 className="text-lg font-medium text-blue-800 mb-3">
+                Información financiera
+              </h3>
+              <div className="space-y-4">
+                <div>
+                  <label
+                    htmlFor="cost"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
+                    Costo (ARS)*
+                  </label>
+                  <div className="relative">
+                    <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500">
+                      $
+                    </span>
+                    <input
+                      id="cost"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      className={`w-full pl-7 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+                        errors.cost ? "border-red-500" : "border-gray-300"
+                      }`}
+                      {...register("cost", {
+                        required: "El costo es requerido",
+                        min: {
+                          value: 0,
+                          message: "El costo debe ser mayor o igual a 0",
+                        },
+                      })}
+                    />
+                  </div>
+                  <p className="mt-1 text-xs text-gray-500">
+                    Costo interno del producto (no visible para clientes)
+                  </p>
+                  {errors.cost && (
+                    <p className="mt-1 text-sm text-red-500">
+                      {errors.cost.message}
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="salePrice"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
+                    Precio de venta (ARS)*
+                  </label>
+                  <div className="relative">
+                    <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500">
+                      $
+                    </span>
+                    <input
+                      id="salePrice"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      className={`w-full pl-7 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+                        errors.salePrice ? "border-red-500" : "border-gray-300"
+                      }`}
+                      {...register("salePrice", {
+                        required: "El precio de venta es requerido",
+                        min: {
+                          value: 0,
+                          message: "El precio debe ser mayor a 0",
+                        },
+                      })}
+                    />
+                  </div>
+                  <p className="mt-1 text-xs text-gray-500">
+                    Precio regular mostrado en la tienda
+                  </p>
+                  {errors.salePrice && (
+                    <p className="mt-1 text-sm text-red-500">
+                      {errors.salePrice.message}
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="promoPrice"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
+                    Precio promocional (ARS)
+                  </label>
+                  <div className="relative">
+                    <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500">
+                      $
+                    </span>
+                    <input
+                      id="promoPrice"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      className={`w-full pl-7 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+                        errors.promoPrice ? "border-red-500" : "border-gray-300"
+                      }`}
+                      {...register("promoPrice", {
+                        min: {
+                          value: 0,
+                          message:
+                            "El precio promocional no puede ser negativo",
+                        },
+                      })}
+                    />
+                  </div>
+                  <p className="mt-1 text-xs text-gray-500">
+                    Precio de oferta (dejar en 0 si no aplica)
+                  </p>
+                  {errors.promoPrice && (
+                    <p className="mt-1 text-sm text-red-500">
+                      {errors.promoPrice.message}
+                    </p>
+                  )}
+                </div>
+
+                {/* Margen de ganancia */}
+                <div>
+                  <div className="flex justify-between">
+                    <label
+                      htmlFor="profitMargin"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
+                      Margen de ganancia (%)*
+                    </label>
+                    <div className="flex items-center">
+                      <input
+                        type="checkbox"
+                        id="autoCalculate"
+                        checked={autoCalculateMargin}
+                        onChange={() =>
+                          setAutoCalculateMargin(!autoCalculateMargin)
+                        }
+                        className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                      />
+                      <label
+                        htmlFor="autoCalculate"
+                        className="ml-2 text-xs text-gray-600"
+                      >
+                        Calcular automáticamente
+                      </label>
+                    </div>
+                  </div>
+                  <input
+                    type="number"
+                    id="profitMargin"
+                    step="0.01"
+                    min="0"
+                    max="100"
+                    disabled={autoCalculateMargin}
+                    className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+                      errors.profitMargin ? "border-red-500" : "border-gray-300"
+                    } ${autoCalculateMargin ? "bg-gray-100" : ""}`}
+                    {...register("profitMargin", {
+                      required: "El margen de ganancia es requerido",
+                      min: {
+                        value: 0,
+                        message: "El margen debe ser mayor o igual a 0",
+                      },
+                      max: {
+                        value: 100,
+                        message: "El margen no puede exceder el 100%",
+                      },
+                    })}
+                  />
+                  <p className="mt-1 text-xs text-gray-500">
+                    {autoCalculateMargin
+                      ? "Calculado como: (precio venta - costo) / precio venta * 100"
+                      : "Ingrese el margen manualmente (0-100%)"}
+                  </p>
+                  {errors.profitMargin && (
+                    <p className="mt-1 text-sm text-red-500">
+                      {errors.profitMargin.message}
+                    </p>
+                  )}
+                </div>
+
+                {/* Stock */}
+                <div>
+                  <label
+                    htmlFor="stock"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
+                    Stock*
+                  </label>
+                  <input
+                    type="number"
+                    id="stock"
+                    min="0"
+                    className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+                      errors.stock ? "border-red-500" : "border-gray-300"
+                    }`}
+                    {...register("stock", {
+                      required: "El stock es requerido",
+                      min: {
+                        value: 0,
+                        message: "El stock no puede ser negativo",
+                      },
+                    })}
+                  />
+                  {errors.stock && (
+                    <p className="mt-1 text-sm text-red-500">
+                      {errors.stock.message}
+                    </p>
+                  )}
+                </div>
               </div>
-              {errors.price && (
-                <p className="mt-1 text-sm text-red-500">
-                  {errors.price.message}
-                </p>
-              )}
             </div>
           </div>
 
@@ -252,9 +518,16 @@ const ProductForm = ({ product = null }) => {
                 })}
               >
                 <option value="">Selecciona una categoría</option>
-                <option value="ropa">Ropa</option>
+                <option value="ropa">Ropa (General)</option>
+                <option value="camisetas">Camisetas</option>
+                <option value="pantalones">Pantalones</option>
+                <option value="abrigos">Abrigos</option>
+                <option value="calzado">Calzado</option>
+                <option value="accesorios">Accesorios</option>
                 <option value="electronica">Electrónica</option>
                 <option value="hogar">Hogar</option>
+                <option value="deporte">Deporte</option>
+                <option value="otros">Otros</option>
               </select>
               {errors.category && (
                 <p className="mt-1 text-sm text-red-500">
@@ -263,76 +536,72 @@ const ProductForm = ({ product = null }) => {
               )}
             </div>
 
-            <div>
-              <span className="block text-sm font-medium text-gray-700 mb-3">
-                Imagen del Producto*
-              </span>
+            {/* Gestor de múltiples imágenes */}
+            <MultipleImageUploader
+              mainImage={mainImagePreview}
+              additionalImages={additionalImages}
+              onMainImageChange={handleMainImageChange}
+              onAddImage={handleAddImage}
+              onRemoveImage={handleRemoveImage}
+              colors={watchColors || []}
+            />
 
-              <div
-                className="border-2 border-dashed rounded-lg p-4 text-center cursor-pointer hover:bg-gray-50 transition"
-                onClick={() => document.getElementById("image").click()}
-              >
-                {imagePreview ? (
-                  <div className="relative h-40 mx-auto">
-                    <Image
-                      src={imagePreview}
-                      alt="Vista previa"
-                      width={200}
-                      height={200}
-                      className="object-contain"
+            {/* Sección de campos adicionales según categoría */}
+            {[
+              "ropa",
+              "camisetas",
+              "pantalones",
+              "abrigos",
+              "calzado",
+              "accesorios",
+            ].includes(watchCategory) && (
+              <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                <h3 className="text-lg font-medium text-gray-800 mb-3">
+                  Detalles adicionales
+                </h3>
+                <div className="space-y-4">
+                  <div>
+                    <label
+                      htmlFor="gender"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
+                      Género
+                    </label>
+                    <select
+                      id="gender"
+                      className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 border-gray-300"
+                      {...register("gender")}
+                    >
+                      <option value="">Seleccionar</option>
+                      <option value="hombre">Hombre</option>
+                      <option value="mujer">Mujer</option>
+                      <option value="unisex">Unisex</option>
+                      <option value="niños">Niños</option>
+                      <option value="niñas">Niñas</option>
+                      <option value="bebés">Bebés</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor="material"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
+                      Material
+                    </label>
+                    <input
+                      type="text"
+                      id="material"
+                      className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 border-gray-300"
+                      placeholder="Ej: Algodón, Poliéster, Lana..."
+                      {...register("material")}
                     />
                   </div>
-                ) : (
-                  <div className="py-8">
-                    <CameraIcon className="h-12 w-12 text-gray-400 mx-auto mb-2" />
-                    <p className="text-sm text-gray-500">
-                      Haz clic para seleccionar una imagen
-                    </p>
-                    <p className="text-xs text-gray-400 mt-1">
-                      JPG, PNG, WebP - Máx. 5MB
-                    </p>
-                  </div>
-                )}
-
-                <input
-                  id="image"
-                  type="file"
-                  accept="image/jpeg, image/png, image/webp"
-                  className="hidden"
-                  onChange={handleImageChange}
-                />
+                </div>
               </div>
+            )}
 
-              {imagePreview && (
-                <button
-                  type="button"
-                  className="mt-2 text-sm text-red-600 hover:text-red-800"
-                  onClick={() => {
-                    setImagePreview("");
-                    setImageFile(null);
-                  }}
-                >
-                  Eliminar imagen
-                </button>
-              )}
-            </div>
-
-            <div className="flex space-x-6">
-              <div className="flex items-center">
-                <input
-                  id="inStock"
-                  type="checkbox"
-                  className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-                  {...register("inStock")}
-                />
-                <label
-                  htmlFor="inStock"
-                  className="ml-2 block text-sm text-gray-700"
-                >
-                  En Stock
-                </label>
-              </div>
-
+            <div className="flex flex-col space-y-4">
               <div className="flex items-center">
                 <input
                   id="featured"
@@ -344,7 +613,7 @@ const ProductForm = ({ product = null }) => {
                   htmlFor="featured"
                   className="ml-2 block text-sm text-gray-700"
                 >
-                  Destacado
+                  Producto destacado (aparecerá en la página principal)
                 </label>
               </div>
             </div>

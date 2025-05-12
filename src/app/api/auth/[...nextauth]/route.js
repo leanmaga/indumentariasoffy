@@ -17,7 +17,6 @@ export const authOptions = {
         try {
           // Validar que se proporcionaron credenciales
           if (!credentials?.email || !credentials?.password) {
-            console.log("Credenciales faltantes");
             throw new Error("Por favor proporciona email y contraseña");
           }
 
@@ -29,24 +28,16 @@ export const authOptions = {
           );
 
           if (!user) {
-            console.log("Usuario no encontrado:", credentials.email);
             throw new Error("Credenciales incorrectas");
           }
 
           // Verificar que el usuario tiene contraseña
           if (!user.password) {
-            console.log("Usuario sin contraseña:", user.email);
             throw new Error("Usuario no tiene contraseña configurada");
           }
 
-          console.log("Intentando comparar contraseña para:", user.email);
-          console.log("Contraseña hasheada existe:", !!user.password);
-
           // Comparar contraseña
           const isValid = await user.comparePassword(credentials.password);
-
-          console.log("Resultado de comparación:", isValid);
-
           if (!isValid) {
             throw new Error("Credenciales incorrectas");
           }

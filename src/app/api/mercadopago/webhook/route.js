@@ -5,14 +5,11 @@ import Order from "@/models/Order";
 import { getPaymentStatus } from "@/lib/mercadopago";
 
 export async function POST(request) {
-  console.log("MercadoPago webhook received");
-
   try {
     // Parse notification data
     let data;
     try {
       data = await request.json();
-      console.log("MercadoPago webhook data:", JSON.stringify(data, null, 2));
     } catch (error) {
       console.error("Error parsing webhook data:", error);
       return NextResponse.json(
@@ -34,15 +31,10 @@ export async function POST(request) {
         return NextResponse.json({ message: "No payment ID" }, { status: 200 });
       }
 
-      console.log(
-        `Processing payment notification for payment ID: ${paymentId}`
-      );
-
       // Get payment details from MercadoPago
       let paymentInfo;
       try {
         paymentInfo = await getPaymentStatus(paymentId);
-        console.log("Payment info:", JSON.stringify(paymentInfo, null, 2));
       } catch (error) {
         console.error(`Error getting payment info for ID ${paymentId}:`, error);
         return NextResponse.json(
@@ -74,12 +66,8 @@ export async function POST(request) {
             { status: 200 }
           );
         }
-
         // Update status based on payment status
         const paymentStatus = paymentInfo.status;
-        console.log(
-          `Payment status for order ${externalReference}: ${paymentStatus}`
-        );
 
         // Map payment status to order status
         if (paymentStatus === "approved") {
@@ -105,9 +93,6 @@ export async function POST(request) {
         };
 
         await order.save();
-        console.log(
-          `Order ${externalReference} updated to status: ${order.status}`
-        );
       } catch (error) {
         console.error(`Error updating order ${externalReference}:`, error);
         return NextResponse.json(

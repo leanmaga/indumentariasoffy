@@ -93,100 +93,12 @@ export default function AddToCartButton({ product }) {
 
   return (
     <div className="space-y-4">
-      {/* Selector de variantes (si aplica) */}
-      {hasVariants && (
-        <div className="space-y-4">
-          {/* Selector de tallas */}
-          {product.sizes && product.sizes.length > 0 && (
-            <div>
-              <h3 className="text-sm font-medium text-gray-700 mb-2">Talle</h3>
-              <div className="flex flex-wrap gap-2">
-                {product.sizes.map((size) => {
-                  // Verificar si hay variantes disponibles con este talle
-                  const variantsWithSize = product.variants.filter(
-                    (v) => v.size === size
-                  );
-                  const hasSizeInStock = variantsWithSize.some(
-                    (v) => v.stock > 0
-                  );
-
-                  return (
-                    <button
-                      key={size}
-                      type="button"
-                      onClick={() => {
-                        // Seleccionar primera variante disponible con este talle
-                        const variant =
-                          variantsWithSize.find((v) => v.stock > 0) ||
-                          variantsWithSize[0];
-                        handleVariantSelect(variant);
-                      }}
-                      disabled={!hasSizeInStock}
-                      className={`px-3 py-1 border rounded-md text-sm 
-                        ${
-                          !hasSizeInStock
-                            ? "border-gray-200 text-gray-300 cursor-not-allowed"
-                            : selectedVariant && selectedVariant.size === size
-                            ? "border-indigo-500 text-indigo-500"
-                            : "border-gray-300 hover:border-indigo-500 hover:text-indigo-500"
-                        }`}
-                    >
-                      {size}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* Selector de colores */}
-          {product.colors && product.colors.length > 0 && (
-            <div>
-              <h3 className="text-sm font-medium text-gray-700 mb-2">Color</h3>
-              <div className="flex flex-wrap gap-2">
-                {product.colors.map((color) => {
-                  // Verificar si hay variantes disponibles con este color
-                  const variantsWithColor = product.variants.filter(
-                    (v) => v.color === color
-                  );
-                  const hasColorInStock = variantsWithColor.some(
-                    (v) => v.stock > 0
-                  );
-
-                  return (
-                    <button
-                      key={color}
-                      type="button"
-                      onClick={() => {
-                        // Seleccionar primera variante disponible con este color
-                        const variant =
-                          variantsWithColor.find((v) => v.stock > 0) ||
-                          variantsWithColor[0];
-                        handleVariantSelect(variant);
-                      }}
-                      disabled={!hasColorInStock}
-                      className={`px-3 py-1 border rounded-md text-sm 
-                        ${
-                          !hasColorInStock
-                            ? "border-gray-200 text-gray-300 cursor-not-allowed"
-                            : selectedVariant && selectedVariant.color === color
-                            ? "border-indigo-500 text-indigo-500"
-                            : "border-gray-300 hover:border-indigo-500 hover:text-indigo-500"
-                        }`}
-                    >
-                      {color}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
       {/* Selector de cantidad */}
-      <div className="flex items-center space-x-3">
-        <label htmlFor="quantity" className="text-sm font-medium text-gray-700">
+      <div className="flex items-center mb-4">
+        <label
+          htmlFor="quantity"
+          className="text-sm font-medium text-gray-700 mr-4"
+        >
           Cantidad:
         </label>
         <div className="flex border border-gray-300 rounded-md">
@@ -198,7 +110,7 @@ export default function AddToCartButton({ product }) {
           >
             -
           </button>
-          <span className="px-3 py-1 border-x border-gray-300 min-w-[40px] text-center">
+          <span className="px-4 py-1 border-x border-gray-300 min-w-[40px] text-center">
             {quantity}
           </span>
           <button
@@ -218,47 +130,20 @@ export default function AddToCartButton({ product }) {
         </div>
       </div>
 
-      {/* Información de stock */}
-      {hasVariants ? (
-        selectedVariant && (
-          <div className="text-sm text-gray-600">
-            Stock disponible: {selectedVariant.stock} unidades
-          </div>
-        )
-      ) : (
-        <div className="text-sm text-gray-600">
-          Stock disponible: {product.stock} unidades
-        </div>
-      )}
-
-      {/* Botón de agregar al carrito */}
+      {/* Botón de agregar al carrito - Estilo drop.com */}
       <button
         type="button"
         onClick={handleAddToCart}
         disabled={isAdding || !hasStock || (hasVariants && !selectedVariant)}
-        className={`w-full flex items-center justify-center px-6 py-3 border border-transparent rounded-md 
+        className={`w-full py-4 font-semibold text-center rounded transition
           ${
             isAdding
               ? "bg-green-600 text-white"
               : !hasStock || (hasVariants && !selectedVariant)
-              ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-              : "bg-indigo-600 text-white hover:bg-indigo-700"
-          } transition-colors duration-200 font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500`}
+              ? "bg-gray-200 text-gray-500 cursor-not-allowed"
+              : "bg-black text-white hover:bg-gray-900"
+          } uppercase tracking-wider`}
       >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          className="h-5 w-5 mr-2"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"
-          />
-        </svg>
         {isAdding
           ? "Agregando..."
           : !hasStock
@@ -267,6 +152,44 @@ export default function AddToCartButton({ product }) {
           ? "Selecciona una variante"
           : "Agregar al carrito"}
       </button>
+
+      {/* Info de envío - Estilo drop.com */}
+      <div className="mt-4 pt-4 border-t border-gray-100">
+        <div className="flex items-center space-x-2 text-sm text-gray-600 mb-2">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="h-4 w-4"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M5 13l4 4L19 7"
+            />
+          </svg>
+          <span>Envío gratis en pedidos superiores a $5000</span>
+        </div>
+        <div className="flex items-center space-x-2 text-sm text-gray-600">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="h-4 w-4"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+            />
+          </svg>
+          <span>30 días de garantía en todos los productos</span>
+        </div>
+      </div>
     </div>
   );
 }

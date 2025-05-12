@@ -35,12 +35,6 @@ export async function GET(request) {
       .sort({ createdAt: -1 }) // Ordenar por fecha de creación (más reciente primero)
       .lean(); // Para mejor rendimiento
 
-    // Agregar logs para depuración
-    console.log(
-      `Órdenes encontradas para ${session.user.email}:`,
-      orders.length
-    );
-
     // Importante: devolver un array en lugar de un objeto con una propiedad orders
     return NextResponse.json(orders);
   } catch (error) {

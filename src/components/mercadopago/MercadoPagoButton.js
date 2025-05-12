@@ -22,7 +22,6 @@ const MercadoPagoButton = ({
       script.crossOrigin = "anonymous"; // Add cross-origin attribute
 
       script.onload = () => {
-        console.log("MercadoPago SDK loaded successfully");
         setIsSDKLoaded(true);
       };
 
@@ -50,14 +49,6 @@ const MercadoPagoButton = ({
       containerRef.current
     ) {
       try {
-        // Log environment information
-        console.log("Environment:", process.env.NODE_ENV);
-        console.log(
-          "Public Key:",
-          process.env.NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY
-        );
-        console.log("Preference ID:", preferenceId);
-
         // Clear previous container content
         if (containerRef.current) {
           containerRef.current.innerHTML = "";
@@ -88,7 +79,6 @@ const MercadoPagoButton = ({
           },
         });
 
-        console.log("MercadoPago button rendered successfully");
         setButtonRendered(true);
       } catch (err) {
         console.error("Error rendering MercadoPago button:", err);
@@ -100,7 +90,6 @@ const MercadoPagoButton = ({
   // Handle manual redirect as a fallback
   const handleManualRedirect = () => {
     if (fallbackUrl) {
-      console.log("Redirecting manually to:", fallbackUrl);
       window.location.href = fallbackUrl;
     } else {
       setError("No hay URL de redirección disponible");

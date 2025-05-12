@@ -39,10 +39,6 @@ export async function POST(request) {
 
       // Si ya existe, devolver la información de esa orden
       if (existingOrder) {
-        console.log(
-          `Orden duplicada detectada con clave ${orderData.idempotencyKey}. Devolviendo orden existente ${existingOrder._id}`
-        );
-
         // Si la orden existente ya tiene información de pago de MercadoPago, devolverla
         if (orderData.paymentMethod === "mercadopago") {
           // Obtener la información de pago existente si ya fue creada antes
@@ -81,39 +77,36 @@ export async function POST(request) {
       status: "pendiente",
     });
 
-    if (similarOrder) {
-      console.log(
-        `Orden similar reciente encontrada: ${similarOrder._id}. Posible duplicado.`
-      );
+    // if (similarOrder) {
 
-      // Opción 1: Considerar esto como un duplicado y devolver la orden existente
-      // Aquí podrías habilitar esto para prevenir completamente los duplicados
-      /*
-      if (orderData.paymentMethod === "mercadopago") {
-        const preferenceResponse = await createPaymentPreference(similarOrder);
-        
-        return NextResponse.json({
-          message: "Orden existente recuperada",
-          orderId: similarOrder._id,
-          paymentInfo: {
-            id: preferenceResponse.id,
-            init_point: preferenceResponse.init_point,
-            sandbox_init_point: preferenceResponse.sandbox_init_point,
-          },
-        });
-      }
-      
-      return NextResponse.json({
-        message: "Orden existente recuperada",
-        orderId: similarOrder._id,
-      });
-      */
+    //   // Opción 1: Considerar esto como un duplicado y devolver la orden existente
+    //   // Aquí podrías habilitar esto para prevenir completamente los duplicados
+    //   /*
+    //   if (orderData.paymentMethod === "mercadopago") {
+    //     const preferenceResponse = await createPaymentPreference(similarOrder);
 
-      // Opción 2: Registrar pero continuar (por si el usuario realmente quiere hacer otro pedido igual)
-      console.log(
-        "Continuando con la creación de la orden a pesar de la similitud"
-      );
-    }
+    //     return NextResponse.json({
+    //       message: "Orden existente recuperada",
+    //       orderId: similarOrder._id,
+    //       paymentInfo: {
+    //         id: preferenceResponse.id,
+    //         init_point: preferenceResponse.init_point,
+    //         sandbox_init_point: preferenceResponse.sandbox_init_point,
+    //       },
+    //     });
+    //   }
+
+    //   return NextResponse.json({
+    //     message: "Orden existente recuperada",
+    //     orderId: similarOrder._id,
+    //   });
+    //   */
+
+    //   // Opción 2: Registrar pero continuar (por si el usuario realmente quiere hacer otro pedido igual)
+    //   console.log(
+    //     "Continuando con la creación de la orden a pesar de la similitud"
+    //   );
+    // }
 
     // Crear la orden en la base de datos
     const order = new Order({
@@ -223,9 +216,6 @@ export async function GET(request) {
 
     // Contar el total para paginación
     const total = await Order.countDocuments(query);
-
-    // Agregar logs para depuración
-    console.log(`Órdenes recuperadas para admin: ${orders.length}`);
 
     // Retornar las órdenes
     return NextResponse.json(orders);

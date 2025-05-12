@@ -158,8 +158,8 @@ const ProductReviews = ({ productId }) => {
             Inicia sesión para dejar una reseña
           </p>
           <Link
-            href="/auth/login"
-            className="inline-block bg-indigo-600 text-white py-2 px-6 rounded-lg hover:bg-indigo-700 transition"
+            className="btn-drop bg-black group inline-flex items-center border-2 border-white hover:border-black text-white px-8 py-4 font-medium uppercase tracking-wider  hover:text-black transition-all duration-300"
+            href="/products"
           >
             Iniciar sesión
           </Link>

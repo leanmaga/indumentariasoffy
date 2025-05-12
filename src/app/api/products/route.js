@@ -1,123 +1,80 @@
-// src/app/api/products/route.js
+// app/api/products/[id]/route.js
 import { NextResponse } from "next/server";
 import connectDB from "@/lib/db";
 import Product from "@/models/Product";
 import { authOptions } from "@/lib/auth";
 import { getServerSession } from "next-auth/next";
 
-// GET para obtener todos los productos
-export async function GET(request) {
+// GET para obtener un producto específico por ID
+export async function GET(request, { params }) {
   try {
-    const { searchParams } = new URL(request.url);
-    const category = searchParams.get("category");
-    const featured = searchParams.get("featured") === "true";
-    const limit = parseInt(searchParams.get("limit") || "100");
-    const page = parseInt(searchParams.get("page") || "1");
-    const sort = searchParams.get("sort") || "createdAt";
-    const order = searchParams.get("order") === "asc" ? 1 : -1;
-    const gender = searchParams.get("gender");
+    const { id } = params;
 
     await connectDB();
 
-    // Construir la consulta basada en los parámetros de búsqueda
-    let query = {};
+    const product = await Product.findById(id);
 
-    if (category && category !== "all") {
-      query.category = category;
+    if (!product) {
+      return NextResponse.json(
+        { message: "Producto no encontrado" },
+        { status: 404 }
+      );
     }
 
-    if (searchParams.has("featured")) {
-      query.featured = featured;
-    }
-
-    if (gender) {
-      query.gender = gender;
-    }
-
-    // Ejecutar la consulta con paginación y ordenación
-    const products = await Product.find(query)
-      .sort({ [sort]: order })
-      .skip((page - 1) * limit)
-      .limit(limit);
-
-    const total = await Product.countDocuments(query);
-
-    return NextResponse.json({
-      products,
-      pagination: {
-        total,
-        page,
-        pages: Math.ceil(total / limit),
-      },
-    });
+    return NextResponse.json(product);
   } catch (error) {
-    console.error("Error al obtener productos:", error);
+    console.error("Error al obtener producto:", error);
     return NextResponse.json(
-      { message: "Error al obtener productos" },
+      { message: "Error al obtener producto" },
       { status: 500 }
     );
   }
 }
 
-// POST para crear un nuevo producto
-export async function POST(request) {
+// PUT para actualizar un producto
+export async function PUT(request, { params }) {
   try {
     const session = await getServerSession(authOptions);
 
-    // Verificar autenticación y rol de admin
+    // Verificar autenticación y permisos
     if (!session || session.user.role !== "admin") {
-      return NextResponse.json({ message: "No autorizado" }, { status: 401 });
+      return NextResponse.json({ message: "No autorizado" }, { status: 403 });
     }
 
+    const { id } = params;
     const data = await request.json();
-
-    console.log("Datos recibidos en API:", data);
-
-    // Validar campos requeridos según el nuevo modelo
-    if (
-      !data.title ||
-      data.salePrice === undefined ||
-      data.cost === undefined ||
-      data.profitMargin === undefined ||
-      !data.category ||
-      !data.imageUrl
-    ) {
-      // Listar los campos que faltan para mejor depuración
-      const missingFields = [];
-      if (!data.title) missingFields.push("title");
-      if (data.salePrice === undefined) missingFields.push("salePrice");
-      if (data.cost === undefined) missingFields.push("cost");
-      if (data.profitMargin === undefined) missingFields.push("profitMargin");
-      if (!data.category) missingFields.push("category");
-      if (!data.imageUrl) missingFields.push("imageUrl");
-
-      console.error("Faltan campos requeridos:", missingFields);
-
-      return NextResponse.json(
-        {
-          message: "Faltan campos requeridos",
-          details: `Campos faltantes: ${missingFields.join(", ")}`,
-        },
-        { status: 400 }
-      );
-    }
 
     await connectDB();
 
-    // Preparar los datos del producto según el nuevo modelo
-    let productData = {
+    // Verificar si el producto existe
+    const existingProduct = await Product.findById(id);
+    if (!existingProduct) {
+      return NextResponse.json(
+        { message: "Producto no encontrado" },
+        { status: 404 }
+      );
+    }
+
+    // Preparar datos del producto para actualizar
+    const productData = {
       title: data.title,
       description: data.description || "",
-      // Campos financieros actualizados
+      // Campos financieros
       salePrice: parseFloat(data.salePrice),
       promoPrice: parseFloat(data.promoPrice || 0),
       cost: parseFloat(data.cost),
       profitMargin: parseFloat(data.profitMargin),
-      stock: data.stock || 0,
+      stock: parseInt(data.stock) || 0,
       category: data.category,
-      imageUrl: data.imageUrl,
       featured: data.featured || false,
+      // IMPORTANTE: Incluir additionalImages
+      additionalImages: data.additionalImages || [],
     };
+
+    // Añadir imageUrl solo si se proporciona
+    if (data.imageUrl) {
+      productData.imageUrl = data.imageUrl;
+    }
 
     // Campos comunes para productos de indumentaria
     const clothingCategories = [
@@ -128,13 +85,10 @@ export async function POST(request) {
       "accesorios",
     ];
     if (clothingCategories.includes(data.category)) {
-      productData = {
-        ...productData,
-        gender: data.gender || "",
-        material: data.material || "",
-        style: data.style || "",
-        season: data.season || "",
-      };
+      productData.gender = data.gender || "";
+      productData.material = data.material || "";
+      productData.style = data.style || "";
+      productData.season = data.season || "";
     }
 
     // Campos para productos con variantes
@@ -146,14 +100,11 @@ export async function POST(request) {
       Array.isArray(data.colors) &&
       data.colors.length > 0
     ) {
-      productData = {
-        ...productData,
-        sizes: data.sizes,
-        colors: data.colors,
-        variants: data.variants || [],
-      };
+      productData.sizes = data.sizes;
+      productData.colors = data.colors;
+      productData.variants = data.variants || [];
 
-      // Calcular el stock total basado en las variantes
+      // Calcular stock total basado en las variantes
       if (Array.isArray(data.variants) && data.variants.length > 0) {
         productData.stock = data.variants.reduce(
           (total, variant) => total + (variant.stock || 0),
@@ -164,35 +115,65 @@ export async function POST(request) {
 
     // Campos específicos para pantalones
     if (data.category === "pantalones") {
-      productData = {
-        ...productData,
-        waistType: data.waistType || "",
-        fit: data.fit || "",
-      };
+      productData.waistType = data.waistType || "";
+      productData.fit = data.fit || "";
     }
 
     // Campos específicos para calzado
     if (data.category === "calzado") {
-      productData = {
-        ...productData,
-        heelHeight: data.heelHeight || 0,
-        soleType: data.soleType || "",
-      };
+      productData.heelHeight = data.heelHeight || 0;
+      productData.soleType = data.soleType || "";
     }
 
-    // Crear el producto
-    const product = new Product(productData);
-
-    await product.save();
-
-    return NextResponse.json(
-      { message: "Producto creado con éxito", product },
-      { status: 201 }
+    // Actualizar el producto con findByIdAndUpdate
+    const updatedProduct = await Product.findByIdAndUpdate(
+      id,
+      productData,
+      { new: true } // Devuelve el documento actualizado
     );
+
+    return NextResponse.json({
+      message: "Producto actualizado correctamente",
+      product: updatedProduct,
+    });
   } catch (error) {
-    console.error("Error al crear producto:", error);
+    console.error("Error al actualizar producto:", error);
     return NextResponse.json(
-      { message: "Error al crear producto: " + error.message },
+      { message: "Error al actualizar producto: " + error.message },
+      { status: 500 }
+    );
+  }
+}
+
+// DELETE para eliminar un producto (si lo necesitas)
+export async function DELETE(request, { params }) {
+  try {
+    const session = await getServerSession(authOptions);
+
+    // Verificar autenticación y rol de admin
+    if (!session || session.user.role !== "admin") {
+      return NextResponse.json({ message: "No autorizado" }, { status: 401 });
+    }
+
+    const { id } = params;
+
+    await connectDB();
+
+    // Buscar y eliminar el producto
+    const product = await Product.findByIdAndDelete(id);
+
+    if (!product) {
+      return NextResponse.json(
+        { message: "Producto no encontrado" },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({ message: "Producto eliminado con éxito" });
+  } catch (error) {
+    console.error("Error al eliminar producto:", error);
+    return NextResponse.json(
+      { message: "Error al eliminar producto" },
       { status: 500 }
     );
   }

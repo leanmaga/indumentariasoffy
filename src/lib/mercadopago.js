@@ -50,8 +50,6 @@ export const createPaymentPreference = async (orderData) => {
       pending: `${baseUrl}/checkout/pending?orderId=${orderData._id}`,
     };
 
-    console.log("URLs de retorno configuradas:", backUrls);
-
     // Crear preferencia con formato correcto para v2
     const preferenceData = {
       items: items,
@@ -81,15 +79,8 @@ export const createPaymentPreference = async (orderData) => {
       binary_mode: false, // Permitir estado "pendiente"
     };
 
-    console.log(
-      "Creando preferencia MercadoPago:",
-      JSON.stringify(preferenceData, null, 2)
-    );
-
     const preference = new Preference(client);
     const response = await preference.create({ body: preferenceData });
-
-    console.log("Preferencia creada:", JSON.stringify(response, null, 2));
 
     return response;
   } catch (error) {

@@ -73,7 +73,6 @@ export default function CheckoutPage() {
     const lastMercadoPagoUrl = sessionStorage.getItem("lastMercadoPagoUrl");
 
     if (lastOrderId && lastPreferenceId && !orderId && !preferenceId) {
-      console.log("Volviendo del intento de pago, restaurando estado");
       setOrderId(lastOrderId);
       setPreferenceId(lastPreferenceId);
       setMercadoPagoUrl(lastMercadoPagoUrl);
@@ -94,12 +93,6 @@ export default function CheckoutPage() {
   const onSubmit = async (data) => {
     // Código de onSubmit sin cambios
     if (isSubmitting || orderCreatedRef.current) {
-      console.log(
-        "Avoiding duplicate submission - isSubmitting:",
-        isSubmitting,
-        "orderCreated:",
-        orderCreatedRef.current
-      );
       return;
     }
 
@@ -107,10 +100,6 @@ export default function CheckoutPage() {
 
     try {
       if (orderId) {
-        console.log(
-          "Order ID already exists, not creating duplicate order:",
-          orderId
-        );
         return;
       }
 

@@ -1,36 +1,57 @@
 // app/api/auth/me/route.js
 import { cookies } from "next/headers";
 import jwt from "jsonwebtoken";
-import connectDB from "@/lib/db"; // Cambiado de @/lib/mongoose a @/lib/db
+import connectDB from "@/lib/db";
 import User from "@/models/User";
 
 export async function GET() {
   try {
-    // Obtener token de la cookie - await cookies() primero
-    const cookieStore = await cookies();
+    // Obtener token de la cookie - AQUÍ ES DONDE FALTA EL AWAIT
+    const cookieStore = await cookies(); // <- AÑADIR AWAIT AQUÍ
     const token = cookieStore.get("auth_token")?.value;
 
     if (!token) {
-      return Response.json({ message: "No autenticado" }, { status: 401 });
+      return Response.json(
+        {
+          success: false,
+          isAuthenticated: false,
+          message: "No autenticado",
+        },
+        { status: 200 }
+      );
     }
 
-    // Verificar token
+    // El resto de tu código sigue igual...
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    // Buscar usuario
     await connectDB();
     const user = await User.findById(decoded.userId).select("-password");
 
     if (!user) {
       return Response.json(
-        { message: "Usuario no encontrado" },
-        { status: 401 }
+        {
+          success: false,
+          isAuthenticated: false,
+          message: "Usuario no encontrado",
+        },
+        { status: 200 }
       );
     }
 
-    return Response.json({ user });
+    return Response.json({
+      success: true,
+      isAuthenticated: true,
+      user,
+    });
   } catch (error) {
     console.error("Error en /api/auth/me:", error);
-    return Response.json({ message: "Token inválido" }, { status: 401 });
+    return Response.json(
+      {
+        success: false,
+        isAuthenticated: false,
+        message: "Token inválido",
+      },
+      { status: 200 }
+    );
   }
 }

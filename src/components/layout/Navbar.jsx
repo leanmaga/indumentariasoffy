@@ -156,7 +156,7 @@ const Navbar = () => {
                 </button>
                 <button
                   onClick={openRegisterModal}
-                  className="bg-black text-white uppercase text-xs px-4 py-2 font-medium hover:bg-gray-800 transition cursor-pointer"
+                  className="bg-black text-white hover:text-black hover:bg-white uppercase text-xs px-4 py-2 font-medium hover:border-b-black transition cursor-pointer"
                 >
                   Registrarse
                 </button>

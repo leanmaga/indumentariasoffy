@@ -129,3 +129,28 @@ export async function getAllUsers() {
     return [];
   }
 }
+
+// Obtener productos relacionados por categoría y excluyendo el producto actual
+export async function getRelatedProducts(
+  category,
+  currentProductId,
+  limit = 3
+) {
+  await connectDB();
+
+  try {
+    // Buscar productos de la misma categoría, excluyendo el actual
+    const relatedProducts = await Product.find({
+      category: category,
+      _id: { $ne: currentProductId },
+      stock: { $gt: 0 }, // Solo productos con stock
+    })
+      .sort({ featured: -1 }) // Priorizar productos destacados
+      .limit(limit);
+
+    return JSON.parse(JSON.stringify(relatedProducts));
+  } catch (error) {
+    console.error("Error al obtener productos relacionados:", error);
+    return [];
+  }
+}

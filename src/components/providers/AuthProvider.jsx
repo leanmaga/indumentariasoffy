@@ -2,12 +2,12 @@
 
 import { createContext, useContext, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import toast from "react-hot-toast"; // Asumiendo que ya utilizas react-hot-toast
+import toast from "react-hot-toast";
 
 // Crear contexto
 const AuthContext = createContext();
 
-export default function AuthProvider({ children }) {
+export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
@@ -17,9 +17,9 @@ export default function AuthProvider({ children }) {
     const loadUserFromServer = async () => {
       try {
         const res = await fetch("/api/auth/me");
+        const data = await res.json();
 
-        if (res.ok) {
-          const data = await res.json();
+        if (data.isAuthenticated && data.user) {
           setUser(data.user);
         } else {
           setUser(null);
@@ -88,12 +88,33 @@ export default function AuthProvider({ children }) {
     }
   };
 
+  // Función para refrescar datos del usuario
+  const refreshUser = async () => {
+    try {
+      const res = await fetch("/api/auth/me");
+      const data = await res.json();
+
+      if (data.isAuthenticated && data.user) {
+        setUser(data.user);
+        return true;
+      } else {
+        setUser(null);
+        return false;
+      }
+    } catch (error) {
+      console.error("Error al refrescar usuario:", error);
+      setUser(null);
+      return false;
+    }
+  };
+
   // Valor del contexto
   const value = {
     user,
     loading,
     login,
     logout,
+    refreshUser,
     isAuthenticated: !!user,
     isAdmin: user?.role === "admin",
   };
@@ -109,3 +130,5 @@ export function useAuth() {
   }
   return context;
 }
+
+// This is a named export, remove any default export that might cause confusion
