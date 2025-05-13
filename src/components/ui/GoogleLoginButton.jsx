@@ -24,25 +24,12 @@ export default function GoogleLoginButton() {
   const handleGoogleLogin = async () => {
     setIsLoading(true);
     try {
-      // Usar diferentes opciones para móviles y desktop
-      if (isMobile) {
-        // Configuración optimizada para móviles
-        await signIn("google", {
-          callbackUrl: "/",
-          // Estos parámetros ayudan con la compatibilidad móvil
-          prompt: "select_account",
-          // Evitar redirecciones que pueden fallar en algunos navegadores móviles
-          redirect: true,
-        });
-      } else {
-        // Configuración estándar para desktop
-        await signIn("google", {
-          callbackUrl: "/",
-        });
-      }
+      await signIn("google", {
+        callbackUrl: "/", // Redirige al home tras login
+        prompt: "select_account", // Siempre muestra selector de cuentas
+      });
     } catch (error) {
       console.error("Error al iniciar sesión con Google:", error);
-      // Para depuración en dispositivos móviles
       if (isMobile) {
         alert("Error al iniciar sesión: " + (error.message || "Desconocido"));
       }

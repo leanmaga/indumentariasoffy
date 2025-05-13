@@ -94,20 +94,19 @@ const RegisterForm = ({ switchToLogin, afterRegister }) => {
     }
   };
 
-  // Función para registrarse con Google
   const handleGoogleRegister = async () => {
     try {
       setIsGoogleLoading(true);
 
-      // Iniciar sesión con Google y redirigir al destino especificado
       await signIn("google", {
-        callbackUrl: redirectTo,
+        callbackUrl: redirectTo ?? "/", // fallback por si redirectTo está undefined
+        prompt: "select_account", // muestra selector de cuenta siempre
       });
 
-      // No necesitamos setIsGoogleLoading(false) aquí porque hay redirección
+      // No es necesario setIsGoogleLoading(false) aquí porque habrá redirección
     } catch (error) {
-      toast.error("Error al conectar con Google");
       console.error("Google registration error:", error);
+      toast.error("Error al conectar con Google");
       setIsGoogleLoading(false);
     }
   };

@@ -90,15 +90,16 @@ function LoginFormContent({ type = "user", switchToRegister, afterLogin }) {
   const handleGoogleSignIn = async () => {
     try {
       setIsGoogleLoading(true);
-      // Simplifico la función para usar redirección directa
-      // ya que manejar el redirect: false con OAuth puede ser problemático
+
       await signIn("google", {
-        callbackUrl: type === "admin" ? "/admin" : redirect,
+        callbackUrl: type === "admin" ? "/admin" : redirect ?? "/",
+        prompt: "select_account", // Siempre muestra el selector de cuenta
       });
-      // No necesitamos setIsGoogleLoading(false) porque redirige
+
+      // No se necesita setIsGoogleLoading(false) aquí por la redirección
     } catch (error) {
-      toast.error("Error al conectar con Google");
       console.error("Google sign in error:", error);
+      toast.error("Error al conectar con Google");
       setIsGoogleLoading(false);
     }
   };
