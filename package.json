@@ -9,6 +9,8 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@auth/core": "^0.34.2",
+    "@auth/mongodb-adapter": "^3.9.1",
     "@formspree/react": "^3.0.0",
     "@heroicons/react": "^2.0.18",
     "bcryptjs": "^2.4.3",

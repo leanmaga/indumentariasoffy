@@ -1,18 +1,24 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { toast } from "react-hot-toast";
 import { signIn } from "next-auth/react";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
+import { FcGoogle } from "react-icons/fc"; // Importar icono de Google
 
 const RegisterForm = ({ switchToLogin, afterRegister }) => {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectTo = searchParams.get("redirect") || "/";
+
   const [isLoading, setIsLoading] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
   const {
     register,
     handleSubmit,
@@ -21,6 +27,15 @@ const RegisterForm = ({ switchToLogin, afterRegister }) => {
   } = useForm();
 
   const password = watch("password", "");
+
+  // Verificar si viene del checkout para mostrar mensaje informativo
+  useEffect(() => {
+    if (redirectTo.includes("/checkout")) {
+      toast.info("Completa el registro para continuar con tu compra", {
+        duration: 5000,
+      });
+    }
+  }, [redirectTo]);
 
   const onSubmit = async (data) => {
     setIsLoading(true);
@@ -65,11 +80,11 @@ const RegisterForm = ({ switchToLogin, afterRegister }) => {
 
           // Usamos setTimeout para asegurar que el modal se cierre antes de redirigir
           setTimeout(() => {
-            router.push("/");
+            router.push(redirectTo);
           }, 100);
         } else {
           // Si no estamos en un modal, redirigir directamente
-          router.push("/");
+          router.push(redirectTo);
         }
       }
     } catch (error) {
@@ -79,13 +94,42 @@ const RegisterForm = ({ switchToLogin, afterRegister }) => {
     }
   };
 
+  // Función para registrarse con Google
+  const handleGoogleRegister = async () => {
+    try {
+      setIsGoogleLoading(true);
+
+      // Iniciar sesión con Google y redirigir al destino especificado
+      await signIn("google", {
+        callbackUrl: redirectTo,
+      });
+
+      // No necesitamos setIsGoogleLoading(false) aquí porque hay redirección
+    } catch (error) {
+      toast.error("Error al conectar con Google");
+      console.error("Google registration error:", error);
+      setIsGoogleLoading(false);
+    }
+  };
+
   return (
     <div className="w-full max-w-md mx-auto p-6">
       <h2 className="font-sora-bold text-center text-2xl font-semibold mb-6">
         CREAR CUENTA
       </h2>
 
+      {/* Mensaje informativo para usuarios que vienen de checkout */}
+      {redirectTo.includes("/checkout") && (
+        <div className="mb-6 bg-blue-50 p-4 rounded-md">
+          <p className="text-sm text-blue-800">
+            Completa el registro para continuar con tu compra. Todos los campos
+            son necesarios para el envío de tu pedido.
+          </p>
+        </div>
+      )}
+
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+        {/* Campos del formulario sin cambios */}
         <div>
           <label htmlFor="name" className="block text-sm mb-2">
             Nombre Completo
@@ -273,6 +317,19 @@ const RegisterForm = ({ switchToLogin, afterRegister }) => {
           </div>
         </div>
 
+        {/* Botón de registro con Google */}
+        <button
+          type="button"
+          onClick={handleGoogleRegister}
+          disabled={isGoogleLoading}
+          className="mt-3 w-full flex justify-center items-center space-x-2 border border-gray-300 py-3 px-4 text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 rounded-sm"
+        >
+          <FcGoogle size={20} />
+          <span className="ml-2">
+            {isGoogleLoading ? "Conectando..." : "Registrarse con Google"}
+          </span>
+        </button>
+
         <p className="mt-4 text-sm">
           ¿Ya tienes cuenta?{" "}
           {switchToLogin ? (
@@ -285,7 +342,11 @@ const RegisterForm = ({ switchToLogin, afterRegister }) => {
             </button>
           ) : (
             <Link
-              href="/auth/login"
+              href={`/auth/login${
+                redirectTo !== "/"
+                  ? `?redirect=${encodeURIComponent(redirectTo)}`
+                  : ""
+              }`}
               className="font-medium text-black hover:underline"
             >
               Inicia Sesión

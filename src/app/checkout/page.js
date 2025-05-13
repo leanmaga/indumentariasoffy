@@ -41,12 +41,27 @@ export default function CheckoutPage() {
     setMounted(true);
   }, []);
 
-  // Autofill with user data if logged in
+  // Añadir después de cargar los datos del usuario
   useEffect(() => {
     if (session?.user) {
       setValue("name", session.user.name || "");
       setValue("email", session.user.email || "");
       setValue("phone", session.user.phone || "");
+
+      // Si el usuario se acaba de registrar con Google y no tiene teléfono
+      if (session.user.needsPhoneUpdate && !session.user.phone) {
+        toast.info(
+          "Por favor, ingresa tu número de teléfono para completar tu perfil y continuar con la compra",
+          { duration: 6000 }
+        );
+        // Hacer focus en el campo de teléfono
+        setTimeout(() => {
+          const phoneInput = document.getElementById("phone");
+          if (phoneInput) {
+            phoneInput.focus();
+          }
+        }, 500);
+      }
     }
   }, [session, setValue]);
 

@@ -1,18 +1,22 @@
 "use client";
 
-import { useState, Suspense } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { toast } from "react-hot-toast";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
+import { FcGoogle } from "react-icons/fc";
 
 function LoginFormContent({ type = "user", switchToRegister, afterLogin }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirect = searchParams.get("redirect") || "/";
+  const error = searchParams.get("error"); // Para capturar errores de NextAuth
+
   const [isLoading, setIsLoading] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
   const {
@@ -20,6 +24,31 @@ function LoginFormContent({ type = "user", switchToRegister, afterLogin }) {
     handleSubmit,
     formState: { errors },
   } = useForm();
+
+  // Manejo de errores de NextAuth
+  useEffect(() => {
+    if (error) {
+      switch (error) {
+        case "OAuthAccountNotLinked":
+          toast.error(
+            "Esta cuenta ya existe con otro método de inicio de sesión. Se ha vinculado automáticamente, por favor intenta nuevamente."
+          );
+          break;
+        case "Callback":
+          toast.error(
+            "Hubo un problema al comunicarse con Google. Por favor, intenta de nuevo."
+          );
+          break;
+        case "AccessDenied":
+          toast.error("Acceso denegado. Por favor, intenta con otro método.");
+          break;
+        default:
+          toast.error(
+            "Error al iniciar sesión. Por favor, intenta nuevamente."
+          );
+      }
+    }
+  }, [error]);
 
   const onSubmit = async (data) => {
     setIsLoading(true);
@@ -42,16 +71,12 @@ function LoginFormContent({ type = "user", switchToRegister, afterLogin }) {
           }`
         );
 
-        // Cerrar el modal primero, luego redirigir después de un breve retraso
         if (typeof afterLogin === "function") {
           afterLogin();
-
-          // Usamos setTimeout para asegurar que el modal se cierre antes de redirigir
           setTimeout(() => {
             router.push(type === "admin" ? "/admin" : "/");
           }, 100);
         } else {
-          // Si no estamos en un modal, redirigir directamente
           router.push(type === "admin" ? "/admin" : "/");
         }
       }
@@ -59,6 +84,22 @@ function LoginFormContent({ type = "user", switchToRegister, afterLogin }) {
       toast.error("Error al iniciar sesión");
       console.error("Login error:", error);
       setIsLoading(false);
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    try {
+      setIsGoogleLoading(true);
+      // Simplifico la función para usar redirección directa
+      // ya que manejar el redirect: false con OAuth puede ser problemático
+      await signIn("google", {
+        callbackUrl: type === "admin" ? "/admin" : redirect,
+      });
+      // No necesitamos setIsGoogleLoading(false) porque redirige
+    } catch (error) {
+      toast.error("Error al conectar con Google");
+      console.error("Google sign in error:", error);
+      setIsGoogleLoading(false);
     }
   };
 
@@ -164,6 +205,19 @@ function LoginFormContent({ type = "user", switchToRegister, afterLogin }) {
             <span className="px-4 bg-white text-sm text-gray-500">O</span>
           </div>
         </div>
+
+        {/* Botón de inicio de sesión con Google */}
+        <button
+          type="button"
+          onClick={handleGoogleSignIn}
+          disabled={isGoogleLoading}
+          className="mt-3 w-full flex justify-center items-center space-x-2 border border-gray-300 py-3 px-4 text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 rounded-sm"
+        >
+          <FcGoogle size={20} />
+          <span className="ml-2">
+            {isGoogleLoading ? "Conectando..." : "Continuar con Google"}
+          </span>
+        </button>
 
         {type === "user" && (
           <p className="mt-4 text-sm">
