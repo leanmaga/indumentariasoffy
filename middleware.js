@@ -11,7 +11,7 @@ export async function middleware(request) {
   const { pathname } = request.nextUrl;
 
   // Si es una petición a la API, añadir headers CORS
-  if (pathname.startsWith("/api")) {
+  if (pathname.startsWith("/api/auth")) {
     const response = NextResponse.next();
     response.headers.append("Access-Control-Allow-Credentials", "true");
     response.headers.append("Access-Control-Allow-Origin", "*");

@@ -153,27 +153,29 @@ export const authOptions = {
   },
   cookies: {
     sessionToken: {
-      name: `${
-        process.env.NODE_ENV === "production" ? "__Secure-" : ""
-      }next-auth.session-token`,
+      name: `next-auth.session-token`,
       options: {
         httpOnly: true,
-        sameSite: "lax",
+        sameSite: "none", // Cambiado de 'lax' a 'none' para mejor compatibilidad móvil
         path: "/",
-        secure: process.env.NODE_ENV === "production",
+        secure: true, // Siempre true para 'sameSite: none'
       },
     },
-  },
-  cookies: {
-    sessionToken: {
-      name: `${
-        process.env.NODE_ENV === "production" ? "__Secure-" : ""
-      }next-auth.session-token`,
+    callbackUrl: {
+      name: `next-auth.callback-url`,
+      options: {
+        sameSite: "none",
+        path: "/",
+        secure: true,
+      },
+    },
+    csrfToken: {
+      name: `next-auth.csrf-token`,
       options: {
         httpOnly: true,
-        sameSite: "lax",
+        sameSite: "none",
         path: "/",
-        secure: process.env.NODE_ENV === "production",
+        secure: true,
       },
     },
   },
