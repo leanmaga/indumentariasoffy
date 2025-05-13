@@ -2,17 +2,50 @@
 "use client";
 
 import { signIn } from "next-auth/react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function GoogleLoginButton() {
   const [isLoading, setIsLoading] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Detectar si es dispositivo móvil
+  useEffect(() => {
+    const checkIfMobile = () => {
+      const userAgent =
+        typeof window.navigator === "undefined" ? "" : navigator.userAgent;
+      const mobileRegex =
+        /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i;
+      return mobileRegex.test(userAgent);
+    };
+
+    setIsMobile(checkIfMobile());
+  }, []);
 
   const handleGoogleLogin = async () => {
     setIsLoading(true);
     try {
-      await signIn("google", { callbackUrl: "/" });
+      // Usar diferentes opciones para móviles y desktop
+      if (isMobile) {
+        // Configuración optimizada para móviles
+        await signIn("google", {
+          callbackUrl: "/",
+          // Estos parámetros ayudan con la compatibilidad móvil
+          prompt: "select_account",
+          // Evitar redirecciones que pueden fallar en algunos navegadores móviles
+          redirect: true,
+        });
+      } else {
+        // Configuración estándar para desktop
+        await signIn("google", {
+          callbackUrl: "/",
+        });
+      }
     } catch (error) {
       console.error("Error al iniciar sesión con Google:", error);
+      // Para depuración en dispositivos móviles
+      if (isMobile) {
+        alert("Error al iniciar sesión: " + (error.message || "Desconocido"));
+      }
     } finally {
       setIsLoading(false);
     }
