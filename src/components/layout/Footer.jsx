@@ -117,10 +117,13 @@ const Footer = () => {
               Síguenos
             </h4>
             <div className="flex space-x-4">
-              <a href="#" className="text-gray-300 hover:text-white transition">
+              <a
+                href="#"
+                className="text-gray-300 hover:text-white transition "
+              >
                 <svg
                   fill="currentColor"
-                  className="w-5 h-5"
+                  className="w-5 h-5 "
                   viewBox="0 0 24 24"
                 >
                   <path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z" />
@@ -142,7 +145,7 @@ const Footer = () => {
                   fill="none"
                   stroke="currentColor"
                   strokeWidth="2"
-                  className="w-5 h-5"
+                  className="w-5 h-5 "
                   viewBox="0 0 24 24"
                 >
                   <rect width="20" height="20" x="2" y="2" rx="5" ry="5" />

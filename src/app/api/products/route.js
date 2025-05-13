@@ -5,27 +5,47 @@ import Product from "@/models/Product";
 import { authOptions } from "@/lib/auth";
 import { getServerSession } from "next-auth/next";
 
-// GET para obtener un producto específico por ID
-export async function GET(request, { params }) {
+export async function GET(request) {
   try {
-    const { id } = params;
+    // Get query parameters
+    const { searchParams } = new URL(request.url);
+    const page = parseInt(searchParams.get("page")) || 1;
+    const limit = parseInt(searchParams.get("limit")) || 10;
+    const category = searchParams.get("category");
+    const skip = (page - 1) * limit;
 
     await connectDB();
 
-    const product = await Product.findById(id);
+    // Construir query base
+    let query = {};
 
-    if (!product) {
-      return NextResponse.json(
-        { message: "Producto no encontrado" },
-        { status: 404 }
-      );
+    // Añadir filtro de categoría si está presente y no es "all"
+    if (category && category !== "all") {
+      query.category = category;
     }
 
-    return NextResponse.json(product);
+    // Get total count with filters
+    const total = await Product.countDocuments(query);
+
+    // Get products with pagination and filters
+    const products = await Product.find(query)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    return NextResponse.json({
+      products,
+      pagination: {
+        total,
+        page,
+        limit,
+        pages: Math.ceil(total / limit),
+      },
+    });
   } catch (error) {
-    console.error("Error al obtener producto:", error);
+    console.error("Error al obtener productos:", error);
     return NextResponse.json(
-      { message: "Error al obtener producto" },
+      { message: "Error al obtener productos" },
       { status: 500 }
     );
   }

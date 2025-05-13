@@ -157,7 +157,6 @@ export default function AdminDashboard() {
     );
   }
 
-  // Desestructurar datos para mejor legibilidad
   const { products, orders, users, totalSales, pendingOrders, recentOrders } =
     dashboardData;
 
@@ -167,7 +166,7 @@ export default function AdminDashboard() {
         <h1 className="text-2xl font-semibold">Dashboard</h1>
         <button
           onClick={handleLogout}
-          className="px-4 py-2 bg-black text-white hover:bg-gray-800 transition"
+          className="px-4 py-2 bg-indigo-500 text-white hover:bg-indigo-600 transition"
         >
           Cerrar Sesión
         </button>

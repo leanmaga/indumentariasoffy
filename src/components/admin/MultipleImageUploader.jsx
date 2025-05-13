@@ -64,7 +64,6 @@ export default function MultipleImageUploader({
         >
           {mainImage ? (
             <div className="relative w-full h-40">
-              {/* Using img instead of Next.js Image to avoid issues in the admin panel */}
               <img
                 src={mainImage}
                 alt="Imagen principal"

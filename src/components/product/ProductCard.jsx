@@ -74,7 +74,7 @@ const ProductCard = ({ product }) => {
               e.preventDefault();
               handleAddToCart();
             }}
-            className={`absolute bottom-0 left-0 right-0 bg-black text-white py-3 transform translate-y-full transition-transform duration-200 group-hover:translate-y-0 ${
+            className={`absolute bottom-0 left-0 right-0 bg-indigo-500 text-white py-3 transform translate-y-full transition-transform duration-200 group-hover:translate-y-0 ${
               product.stock <= 0 ? "opacity-50 cursor-not-allowed" : ""
             }`}
             disabled={product.stock <= 0}

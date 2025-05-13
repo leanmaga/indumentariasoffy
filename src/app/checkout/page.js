@@ -124,8 +124,6 @@ export default function CheckoutPage() {
         idempotencyKey: idempotencyKey.current,
       };
 
-      console.log("Sending order data:", JSON.stringify(orderData, null, 2));
-
       const response = await fetch("/api/orders", {
         method: "POST",
         headers: {
@@ -149,7 +147,6 @@ export default function CheckoutPage() {
 
       clearTimeout(responseTimeout);
       const result = await response.json();
-      console.log("API response:", JSON.stringify(result, null, 2));
 
       setOrderId(result.orderId);
       orderCreatedRef.current = true;
@@ -164,9 +161,6 @@ export default function CheckoutPage() {
               result.paymentInfo.sandbox_init_point;
 
         setMercadoPagoUrl(redirectUrl);
-
-        console.log("PreferenceId set:", result.paymentInfo.id);
-        console.log("Redirect URL set:", redirectUrl);
 
         sessionStorage.setItem("lastOrderId", result.orderId);
         sessionStorage.setItem("lastPreferenceId", result.paymentInfo.id);

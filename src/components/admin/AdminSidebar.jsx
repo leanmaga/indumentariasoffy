@@ -48,11 +48,11 @@ const AdminSidebar = () => {
       icon: <UserGroupIcon className="h-5 w-5" />,
       href: "/admin/users",
     },
-    {
-      title: "Estadísticas",
-      icon: <ChartBarIcon className="h-5 w-5" />,
-      href: "/admin/stats",
-    },
+    // {
+    //   title: "Estadísticas",
+    //   icon: <ChartBarIcon className="h-5 w-5" />,
+    //   href: "/admin/stats",
+    // },
   ];
 
   // Función para verificar si un enlace está activo
@@ -84,8 +84,8 @@ const AdminSidebar = () => {
                 href={item.href}
                 className={`flex items-center px-4 py-2 ${
                   isActive(item.href) && !item.submenu
-                    ? "bg-black text-white"
-                    : "text-gray-800 hover:border-black hover:border-l-2 pl-3"
+                    ? "bg-indigo-500 text-white"
+                    : "text-gray-800 hover:border-indigo-500 hover:border-l-2 pl-3"
                 } transition-all`}
               >
                 <span className="mr-3">{item.icon}</span>

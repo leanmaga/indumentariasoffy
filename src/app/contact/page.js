@@ -227,7 +227,7 @@ export default function ContactPage() {
 
                 <button
                   type="submit"
-                  className="w-full bg-black hover:bg-white text-white hover:text-black border-2 border-white hover:border-black py-4 px-8 uppercase text-sm tracking-wider font-medium transition disabled:opacity-50 disabled:cursor-not-allowed font-drop mt-8"
+                  className="w-full bg-indigo-500 hover:bg-white text-white hover:text-black border-2 border-white hover:border-black py-4 px-8 uppercase text-sm tracking-wider font-medium transition disabled:opacity-50 disabled:cursor-not-allowed font-drop mt-8"
                   disabled={formspreeState.submitting}
                 >
                   {formspreeState.submitting ? (

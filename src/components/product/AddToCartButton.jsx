@@ -141,7 +141,7 @@ export default function AddToCartButton({ product }) {
               ? "bg-green-600 text-white"
               : !hasStock || (hasVariants && !selectedVariant)
               ? "bg-gray-200 text-gray-500 cursor-not-allowed"
-              : "bg-black text-white hover:bg-gray-900"
+              : "bg-indigo-500 text-white hover:bg-indigo-600"
           } uppercase tracking-wider`}
       >
         {isAdding

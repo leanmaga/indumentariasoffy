@@ -6,7 +6,6 @@ import { useSession, signOut } from "next-auth/react";
 import { usePathname } from "next/navigation";
 import { useCartStore } from "@/lib/store";
 import {
-  ShoppingBagIcon,
   ShoppingCartIcon,
   UserIcon,
   Bars3Icon,
@@ -14,6 +13,7 @@ import {
   ShieldCheckIcon,
 } from "@heroicons/react/24/outline";
 import AuthModal from "@/components/auth/AuthModal";
+import Image from "next/image";
 
 const Navbar = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -75,11 +75,19 @@ const Navbar = () => {
             href="/"
             className="text-xl font-bold flex items-center text-gray-900"
           >
-            <span className="hidden md:inline">
-              <ShoppingBagIcon className="h-5 w-5 mr-2" />
+            <span>
+              {/* <ShoppingBagIcon className="h-5 w-5 mr-2" /> */}
+              <Image
+                src="/images/logo.jpeg"
+                alt="Hero background"
+                width={75}
+                height={75}
+                className="object-cover"
+                priority
+              />
             </span>
-            <span className="hidden sm:inline">IndumentariaSoffy</span>
-            <span className="sm:hidden">Soffy</span>
+            {/*<span className="hidden sm:inline">IndumentariaSoffy</span>
+            <span className="sm:hidden">Soffy</span>*/}
           </Link>
 
           <div
@@ -90,7 +98,7 @@ const Navbar = () => {
             <Link
               href="/"
               className={`uppercase font-medium text-sm hover:text-gray-600 transition ${
-                isActive("/") ? "border-b-2 border-yellow-500" : ""
+                isActive("/") ? "border-b-2 border-indigo-500" : ""
               }`}
             >
               Inicio
@@ -98,7 +106,7 @@ const Navbar = () => {
             <Link
               href="/products"
               className={`uppercase font-medium text-sm hover:text-gray-600 transition ${
-                isActive("/products") ? "border-b-2 border-yellow-500" : ""
+                isActive("/products") ? "border-b-2 border-indigo-500" : ""
               }`}
             >
               Productos
@@ -106,7 +114,7 @@ const Navbar = () => {
             <Link
               href="/contact"
               className={`uppercase font-medium text-sm hover:text-gray-600 transition ${
-                isActive("/contact") ? "border-b-2 border-yellow-500" : ""
+                isActive("/contact") ? "border-b-2 border-indigo-500" : ""
               }`}
             >
               Contacto
@@ -116,7 +124,7 @@ const Navbar = () => {
               <Link
                 href="/admin"
                 className={`uppercase font-medium text-sm hover:text-gray-600 transition flex items-center ${
-                  isActive("/admin") ? "border-b-2 border-yellow-500" : ""
+                  isActive("/admin") ? "border-b-2 border-indigo-500" : ""
                 }`}
               >
                 <ShieldCheckIcon className="h-4 w-4 mr-1" />
@@ -156,7 +164,7 @@ const Navbar = () => {
                 </button>
                 <button
                   onClick={openRegisterModal}
-                  className="bg-black text-white hover:text-black hover:bg-white uppercase text-xs px-4 py-2 font-medium hover:border-b-black transition cursor-pointer"
+                  className="bg-indigo-500 text-white hover:text-black hover:bg-white uppercase text-xs px-4 py-2 font-medium hover:border-b-black transition cursor-pointer"
                 >
                   Registrarse
                 </button>
@@ -166,20 +174,20 @@ const Navbar = () => {
                 {isAdmin && (
                   <Link
                     href="/admin/products/add"
-                    className="bg-black text-white px-3 py-1 text-xs uppercase font-medium hover:bg-gray-800 transition flex items-center"
+                    className="bg-indigo-500 text-white px-3 py-1 text-xs uppercase font-medium hover:bg-gray-800 transition flex items-center"
                   >
                     <span className="mr-1">+</span> Producto
                   </Link>
                 )}
 
                 <button
-                  onClick={handleSignOut} // Usar la nueva función aquí
+                  onClick={handleSignOut}
                   className="text-sm uppercase font-medium text-gray-700 hover:text-gray-900 cursor-pointer"
                 >
                   Cerrar sesión
                 </button>
-                <div className="h-8 w-8 bg-gray-200 rounded-full flex items-center justify-center">
-                  <UserIcon className="h-5 w-5 text-gray-600" />
+                <div className="h-8 w-8 bg-indigo-500 rounded-full flex items-center justify-center">
+                  <UserIcon className="h-5 w-5 text-white" />
                 </div>
               </div>
             )}
@@ -208,7 +216,7 @@ const Navbar = () => {
               <Link
                 href="/"
                 className={`block py-2 px-2 uppercase text-sm font-medium ${
-                  isActive("/") ? "text-yellow-500" : "text-gray-700"
+                  isActive("/") ? "text-indigo-500" : "text-gray-700"
                 }`}
               >
                 Inicio
@@ -216,7 +224,7 @@ const Navbar = () => {
               <Link
                 href="/products"
                 className={`block py-2 px-2 uppercase text-sm font-medium ${
-                  isActive("/products") ? "text-yellow-500" : "text-gray-700"
+                  isActive("/products") ? "text-indigo-500" : "text-gray-700"
                 }`}
               >
                 Productos
@@ -224,7 +232,7 @@ const Navbar = () => {
               <Link
                 href="/contact"
                 className={`block py-2 px-2 uppercase text-sm font-medium ${
-                  isActive("/contact") ? "text-yellow-500" : "text-gray-700"
+                  isActive("/contact") ? "text-indigo-500" : "text-gray-700"
                 }`}
               >
                 Contacto
@@ -237,7 +245,7 @@ const Navbar = () => {
                   <Link
                     href="/profile"
                     className={`block py-2 px-2 uppercase text-sm font-medium ${
-                      isActive("/profile") ? "text-yellow-500" : "text-gray-700"
+                      isActive("/profile") ? "text-indigo-500" : "text-gray-700"
                     }`}
                   >
                     Mi Perfil
@@ -302,7 +310,7 @@ const Navbar = () => {
                 </button>
                 <button
                   onClick={openRegisterModal}
-                  className="block w-full py-3 px-4 uppercase text-sm font-medium text-center bg-black text-white mt-2 hover:bg-gray-800 cursor-pointer"
+                  className="block w-full py-3 px-4 uppercase text-sm font-medium text-center bg-indigo-500 text-white mt-2 hover:bg-gray-800 cursor-pointer"
                 >
                   Registrarse
                 </button>

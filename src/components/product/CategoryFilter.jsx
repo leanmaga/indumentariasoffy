@@ -27,7 +27,7 @@ function CategoryFilterContent() {
       <button
         className={`px-5 py-2 rounded-full border transition-colors text-sm ${
           currentCategory === "all"
-            ? "border-black bg-black text-white"
+            ? "border-indigo-500 bg-indigo-500 text-white"
             : "border-gray-300 hover:border-black text-black"
         }`}
         onClick={() => handleCategoryChange("all")}
@@ -37,7 +37,7 @@ function CategoryFilterContent() {
       <button
         className={`px-5 py-2 rounded-full border transition-colors text-sm ${
           currentCategory === "ropa"
-            ? "border-black bg-black text-white"
+            ? "border-indigo-500 bg-indigo-500 text-white"
             : "border-gray-300 hover:border-black text-black"
         }`}
         onClick={() => handleCategoryChange("ropa")}
@@ -47,7 +47,7 @@ function CategoryFilterContent() {
       <button
         className={`px-5 py-2 rounded-full border transition-colors text-sm ${
           currentCategory === "electronica"
-            ? "border-black bg-black text-white"
+            ? "border-indigo-500 bg-indigo-500 text-white"
             : "border-gray-300 hover:border-black text-black"
         }`}
         onClick={() => handleCategoryChange("electronica")}
@@ -57,7 +57,7 @@ function CategoryFilterContent() {
       <button
         className={`px-5 py-2 rounded-full border transition-colors text-sm ${
           currentCategory === "hogar"
-            ? "border-black bg-black text-white"
+            ? "border-indigo-500 bg-indigo-500 text-white"
             : "border-gray-300 hover:border-black text-black"
         }`}
         onClick={() => handleCategoryChange("hogar")}

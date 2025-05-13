@@ -59,7 +59,7 @@ export default function Home() {
               <div className="bg-indigo-100 w-20 h-20 mx-auto rounded-full flex items-center justify-center mb-4">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  className="h-10 w-10 text-black"
+                  className="h-10 w-10 text-indigo-500"
                   viewBox="0 0 20 20"
                   fill="currentColor"
                 >
@@ -76,7 +76,7 @@ export default function Home() {
               </p>
               <Link
                 href="/products?category=ropa"
-                className="mt-4 inline-block  font-medium"
+                className="mt-4 inline-block  font-medium text-indigo-500"
               >
                 Ver productos
               </Link>
@@ -86,7 +86,7 @@ export default function Home() {
               <div className="bg-purple-100 w-20 h-20 mx-auto rounded-full flex items-center justify-center mb-4">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  className="h-10 w-10 text-black"
+                  className="h-10 w-10 text-indigo-500"
                   viewBox="0 0 20 20"
                   fill="currentColor"
                 >
@@ -103,7 +103,7 @@ export default function Home() {
               <p className="text-gray-600">Tecnología de última generación.</p>
               <Link
                 href="/products?category=electronica"
-                className="mt-4 inline-block text-black hover:text-gray-400 font-medium"
+                className="mt-4 inline-block text-indigo-500 hover:text-gray-400 font-medium"
               >
                 Ver productos
               </Link>
@@ -113,7 +113,7 @@ export default function Home() {
               <div className="bg-pink-100 w-20 h-20 mx-auto rounded-full flex items-center justify-center mb-4">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  className="h-10 w-10 text-black"
+                  className="h-10 w-10 text-indigo-500"
                   viewBox="0 0 20 20"
                   fill="currentColor"
                 >
@@ -128,7 +128,7 @@ export default function Home() {
               </p>
               <Link
                 href="/products?category=hogar"
-                className="mt-4 inline-block text-black hover:text-gray-400 font-medium"
+                className="mt-4 inline-block text-indigo-500 hover:text-gray-400 font-medium"
               >
                 Ver productos
               </Link>
@@ -158,7 +158,7 @@ export default function Home() {
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="flex flex-col items-center text-center">
-              <div className="bg-black p-4 rounded-full mb-4">
+              <div className="bg-indigo-500 p-4 rounded-full mb-4">
                 <ShoppingBagIcon className="h-8 w-8 text-white" />
               </div>
               <h3 className="font-sora-regular uppercase text-xl font-semibold mb-2">
@@ -171,7 +171,7 @@ export default function Home() {
             </div>
 
             <div className="flex flex-col items-center text-center">
-              <div className="bg-black p-4 rounded-full mb-4">
+              <div className="bg-indigo-500 p-4 rounded-full mb-4">
                 <TruckIcon className="h-8 w-8 text-white" />
               </div>
               <h3 className="font-sora-regular uppercase text-xl font-semibold mb-2">
@@ -184,7 +184,7 @@ export default function Home() {
             </div>
 
             <div className="flex flex-col items-center text-center">
-              <div className="bg-black p-4 rounded-full mb-4">
+              <div className="bg-indigo-500 p-4 rounded-full mb-4">
                 <CreditCardIcon className="h-8 w-8 text-white" />
               </div>
               <h3 className="font-sora-regular uppercase text-xl font-semibold mb-2">
