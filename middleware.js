@@ -10,6 +10,22 @@ const protectedRoutes = ["/dashboard", "/profile", "/checkout"];
 export async function middleware(request) {
   const { pathname } = request.nextUrl;
 
+  // Si es una petición a la API, añadir headers CORS
+  if (pathname.startsWith("/api")) {
+    const response = NextResponse.next();
+    response.headers.append("Access-Control-Allow-Credentials", "true");
+    response.headers.append("Access-Control-Allow-Origin", "*");
+    response.headers.append(
+      "Access-Control-Allow-Methods",
+      "GET,DELETE,PATCH,POST,PUT"
+    );
+    response.headers.append(
+      "Access-Control-Allow-Headers",
+      "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version"
+    );
+    return response;
+  }
+
   // Verificar si es una ruta administrativa o protegida
   const isAdminRoute = adminRoutes.some((route) => pathname.startsWith(route));
   const isProtectedRoute = protectedRoutes.some((route) =>
@@ -47,6 +63,7 @@ export async function middleware(request) {
 // Configurar en qué rutas se activa el middleware
 export const config = {
   matcher: [
+    "/api/:path*",
     "/admin/:path*",
     "/dashboard/:path*",
     "/profile/:path*",

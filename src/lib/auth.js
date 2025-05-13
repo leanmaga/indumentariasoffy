@@ -62,13 +62,11 @@ export const authOptions = {
       },
     }),
   ],
-
   pages: {
     signIn: "/auth/login",
     signOut: "/auth/logout",
     error: "/auth/error",
   },
-
   callbacks: {
     async signIn({ user, account, profile }) {
       if (account.provider === "credentials") {
@@ -151,6 +149,32 @@ export const authOptions = {
         session.user.googleAuth = token.googleAuth || false;
       }
       return session;
+    },
+  },
+  cookies: {
+    sessionToken: {
+      name: `${
+        process.env.NODE_ENV === "production" ? "__Secure-" : ""
+      }next-auth.session-token`,
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: process.env.NODE_ENV === "production",
+      },
+    },
+  },
+  cookies: {
+    sessionToken: {
+      name: `${
+        process.env.NODE_ENV === "production" ? "__Secure-" : ""
+      }next-auth.session-token`,
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: process.env.NODE_ENV === "production",
+      },
     },
   },
 
