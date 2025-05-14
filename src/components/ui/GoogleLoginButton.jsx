@@ -1,36 +1,28 @@
 "use client";
 
 import { useState } from "react";
+import { signIn } from "next-auth/react";
 import { FcGoogle } from "react-icons/fc";
 import { toast } from "react-hot-toast";
-import { handleGoogleSignIn } from "@/helpers/googleAuthHelpers";
 
 export default function GoogleLoginButton({ callbackUrl = "/" }) {
   const [isLoading, setIsLoading] = useState(false);
 
   const handleGoogleLogin = async () => {
+    console.log("Iniciando login con Google, callbackUrl:", callbackUrl);
     setIsLoading(true);
+
     try {
-      // Usamos nuestro helper para manejar el inicio de sesión
-      const result = await handleGoogleSignIn({
+      // Enfoque directo para el login con Google
+      await signIn("google", {
         callbackUrl,
-        onError: (error) => {
-          toast.error(
-            `Error al iniciar sesión: ${error.message || "Desconocido"}`
-          );
-        },
+        redirect: true, // Crucial: dejar que NextAuth maneje la redirección
       });
 
-      // Si hay un error, nuestro helper ya lo maneja
-      if (result?.error) {
-        setIsLoading(false);
-      }
-
-      // Si el helper devuelve true, significa que ya se encargó de la redirección
-      // en móviles, así que no necesitamos hacer nada más
+      // Con redirect:true, nunca llegará aquí porque la página se recargará
     } catch (error) {
-      console.error("Error inesperado:", error);
-      toast.error("Error inesperado al conectar con Google");
+      console.error("Error en GoogleLoginButton:", error);
+      toast.error("Error al conectar con Google");
       setIsLoading(false);
     }
   };

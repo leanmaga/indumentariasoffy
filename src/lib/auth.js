@@ -4,15 +4,15 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
 import connectDB from "./db";
 import User from "@/models/User";
-import { fixGoogleAuthConfig } from "@/helpers/googleAuthHelpers";
 
-// Configuración base de autenticación
-const baseAuthOptions = {
+// Determinar entorno para configuración condicional
+const isProduction = process.env.NODE_ENV === "production";
+
+export const authOptions = {
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-      // Configuración óptima para dispositivos móviles
       authorization: {
         params: {
           prompt: "consent",
@@ -161,26 +161,26 @@ const baseAuthOptions = {
       name: `next-auth.session-token`,
       options: {
         httpOnly: true,
-        sameSite: "none", // Cambiado de "lax" a "none" para soportar mejor los redirects en móviles
+        sameSite: isProduction ? "none" : "lax", // En desarrollo usar "lax"
         path: "/",
-        secure: true, // Siempre true para sameSite: "none"
+        secure: isProduction, // En desarrollo no forzar HTTPS
       },
     },
     callbackUrl: {
       name: `next-auth.callback-url`,
       options: {
-        sameSite: "none", // Cambiado de "lax" a "none"
+        sameSite: isProduction ? "none" : "lax",
         path: "/",
-        secure: true, // Siempre true para sameSite: "none"
+        secure: isProduction,
       },
     },
     csrfToken: {
       name: `next-auth.csrf-token`,
       options: {
         httpOnly: true,
-        sameSite: "none", // Cambiado de "lax" a "none"
+        sameSite: isProduction ? "none" : "lax",
         path: "/",
-        secure: true, // Siempre true para sameSite: "none"
+        secure: isProduction,
       },
     },
   },
@@ -191,10 +191,7 @@ const baseAuthOptions = {
   },
 
   secret: process.env.NEXTAUTH_SECRET,
-  debug: process.env.NODE_ENV === "development",
+  debug: true, // Habilitar modo debug para ver errores
 };
-
-// Aplicamos el helper para mejorar el soporte en dispositivos móviles
-export const authOptions = fixGoogleAuthConfig(baseAuthOptions);
 
 export default authOptions;
