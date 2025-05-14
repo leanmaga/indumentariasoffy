@@ -98,14 +98,20 @@ const RegisterForm = ({ switchToLogin, afterRegister }) => {
     try {
       setIsGoogleLoading(true);
 
-      await signIn("google", {
-        callbackUrl: redirectTo ?? "/", // fallback por si redirectTo está undefined
-        prompt: "select_account", // muestra selector de cuenta siempre
-      });
+      // Agrega un parámetro que indique si es móvil
+      const isMobileDevice =
+        /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+          navigator.userAgent
+        );
 
-      // No es necesario setIsGoogleLoading(false) aquí porque habrá redirección
+      await signIn("google", {
+        callbackUrl: type === "admin" ? "/admin" : redirect ?? "/",
+        prompt: "select_account",
+        // Agrega esta opción para dispositivos móviles
+        redirect: isMobileDevice ? true : false,
+      });
     } catch (error) {
-      console.error("Google registration error:", error);
+      console.error("Google sign in error:", error);
       toast.error("Error al conectar con Google");
       setIsGoogleLoading(false);
     }

@@ -25,13 +25,13 @@ function LoginFormContent({ type = "user", switchToRegister, afterLogin }) {
     formState: { errors },
   } = useForm();
 
-  // Manejo de errores de NextAuth
   useEffect(() => {
+    // Limpiar el parámetro de error de la URL después de procesarlo
     if (error) {
       switch (error) {
         case "OAuthAccountNotLinked":
           toast.error(
-            "Esta cuenta ya existe con otro método de inicio de sesión. Se ha vinculado automáticamente, por favor intenta nuevamente."
+            "Esta cuenta ya existe con otro método de inicio de sesión."
           );
           break;
         case "Callback":
@@ -39,14 +39,13 @@ function LoginFormContent({ type = "user", switchToRegister, afterLogin }) {
             "Hubo un problema al comunicarse con Google. Por favor, intenta de nuevo."
           );
           break;
-        case "AccessDenied":
-          toast.error("Acceso denegado. Por favor, intenta con otro método.");
-          break;
-        default:
-          toast.error(
-            "Error al iniciar sesión. Por favor, intenta nuevamente."
-          );
+        // Resto de casos...
       }
+
+      // Limpiar el parámetro de error de la URL para evitar mensajes repetidos
+      const newUrl = new URL(window.location.href);
+      newUrl.searchParams.delete("error");
+      window.history.replaceState({}, document.title, newUrl.toString());
     }
   }, [error]);
 
@@ -91,12 +90,18 @@ function LoginFormContent({ type = "user", switchToRegister, afterLogin }) {
     try {
       setIsGoogleLoading(true);
 
+      // Agrega un parámetro que indique si es móvil
+      const isMobileDevice =
+        /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+          navigator.userAgent
+        );
+
       await signIn("google", {
         callbackUrl: type === "admin" ? "/admin" : redirect ?? "/",
-        prompt: "select_account", // Siempre muestra el selector de cuenta
+        prompt: "select_account",
+        // Agrega esta opción para dispositivos móviles
+        redirect: isMobileDevice ? true : false,
       });
-
-      // No se necesita setIsGoogleLoading(false) aquí por la redirección
     } catch (error) {
       console.error("Google sign in error:", error);
       toast.error("Error al conectar con Google");
