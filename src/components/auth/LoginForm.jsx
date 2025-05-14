@@ -7,7 +7,7 @@ import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { toast } from "react-hot-toast";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
-import { FcGoogle } from "react-icons/fc";
+import GoogleLoginButton from "../ui/GoogleLoginButton";
 
 function LoginFormContent({ type = "user", switchToRegister, afterLogin }) {
   const router = useRouter();
@@ -16,7 +16,6 @@ function LoginFormContent({ type = "user", switchToRegister, afterLogin }) {
   const error = searchParams.get("error"); // Para capturar errores de NextAuth
 
   const [isLoading, setIsLoading] = useState(false);
-  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
   const {
@@ -73,39 +72,16 @@ function LoginFormContent({ type = "user", switchToRegister, afterLogin }) {
         if (typeof afterLogin === "function") {
           afterLogin();
           setTimeout(() => {
-            router.push(type === "admin" ? "/admin" : "/");
+            router.push(type === "admin" ? "/admin" : redirect);
           }, 100);
         } else {
-          router.push(type === "admin" ? "/admin" : "/");
+          router.push(type === "admin" ? "/admin" : redirect);
         }
       }
     } catch (error) {
       toast.error("Error al iniciar sesión");
       console.error("Login error:", error);
       setIsLoading(false);
-    }
-  };
-
-  const handleGoogleSignIn = async () => {
-    try {
-      setIsGoogleLoading(true);
-
-      // Agrega un parámetro que indique si es móvil
-      const isMobileDevice =
-        /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
-          navigator.userAgent
-        );
-
-      await signIn("google", {
-        callbackUrl: type === "admin" ? "/admin" : redirect ?? "/",
-        prompt: "select_account",
-        // Agrega esta opción para dispositivos móviles
-        redirect: isMobileDevice ? true : false,
-      });
-    } catch (error) {
-      console.error("Google sign in error:", error);
-      toast.error("Error al conectar con Google");
-      setIsGoogleLoading(false);
     }
   };
 
@@ -212,18 +188,10 @@ function LoginFormContent({ type = "user", switchToRegister, afterLogin }) {
           </div>
         </div>
 
-        {/* Botón de inicio de sesión con Google */}
-        <button
-          type="button"
-          onClick={handleGoogleSignIn}
-          disabled={isGoogleLoading}
-          className="mt-3 w-full flex justify-center items-center space-x-2 border border-gray-300 py-3 px-4 text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 rounded-sm"
-        >
-          <FcGoogle size={20} />
-          <span className="ml-2">
-            {isGoogleLoading ? "Conectando..." : "Continuar con Google"}
-          </span>
-        </button>
+        {/* Botón de inicio de sesión con Google - Reemplazado con el nuevo componente */}
+        <GoogleLoginButton
+          callbackUrl={type === "admin" ? "/admin" : redirect}
+        />
 
         {type === "user" && (
           <p className="mt-4 text-sm">
@@ -238,7 +206,11 @@ function LoginFormContent({ type = "user", switchToRegister, afterLogin }) {
               </button>
             ) : (
               <Link
-                href="/auth/register"
+                href={`/auth/register${
+                  redirect !== "/"
+                    ? `?redirect=${encodeURIComponent(redirect)}`
+                    : ""
+                }`}
                 className="font-medium text-black hover:underline"
               >
                 Regístrate

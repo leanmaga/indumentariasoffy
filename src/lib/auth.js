@@ -2,19 +2,24 @@
 import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
-// Removemos el adaptador de MongoDB que está causando problemas
-// import { MongoDBAdapter } from "@auth/mongodb-adapter";
 import connectDB from "./db";
 import User from "@/models/User";
+import { fixGoogleAuthConfig } from "@/helpers/googleAuthHelpers";
 
-export const authOptions = {
-  // Eliminamos el adaptador que está causando el error
-  // adapter: MongoDBAdapter(...),
-
+// Configuración base de autenticación
+const baseAuthOptions = {
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      // Configuración óptima para dispositivos móviles
+      authorization: {
+        params: {
+          prompt: "consent",
+          access_type: "offline",
+          response_type: "code",
+        },
+      },
       profile(profile) {
         return {
           id: profile.sub,
@@ -156,26 +161,26 @@ export const authOptions = {
       name: `next-auth.session-token`,
       options: {
         httpOnly: true,
-        sameSite: "none", // Cambiado de 'lax' a 'none' para mejor compatibilidad móvil
+        sameSite: "none", // Cambiado de "lax" a "none" para soportar mejor los redirects en móviles
         path: "/",
-        secure: true, // Siempre true para 'sameSite: none'
+        secure: true, // Siempre true para sameSite: "none"
       },
     },
     callbackUrl: {
       name: `next-auth.callback-url`,
       options: {
-        sameSite: "none",
+        sameSite: "none", // Cambiado de "lax" a "none"
         path: "/",
-        secure: true,
+        secure: true, // Siempre true para sameSite: "none"
       },
     },
     csrfToken: {
       name: `next-auth.csrf-token`,
       options: {
         httpOnly: true,
-        sameSite: "none",
+        sameSite: "none", // Cambiado de "lax" a "none"
         path: "/",
-        secure: true,
+        secure: true, // Siempre true para sameSite: "none"
       },
     },
   },
@@ -188,5 +193,8 @@ export const authOptions = {
   secret: process.env.NEXTAUTH_SECRET,
   debug: process.env.NODE_ENV === "development",
 };
+
+// Aplicamos el helper para mejorar el soporte en dispositivos móviles
+export const authOptions = fixGoogleAuthConfig(baseAuthOptions);
 
 export default authOptions;

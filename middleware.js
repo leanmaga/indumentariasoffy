@@ -1,5 +1,7 @@
+// middleware.js
 import { NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
+import { allowGoogleAuthRedirects } from "@/helpers/googleAuthHelpers";
 
 // Rutas que requieren autenticación de administrador
 const adminRoutes = ["/admin"];
@@ -7,25 +9,30 @@ const adminRoutes = ["/admin"];
 // Rutas que requieren cualquier autenticación
 const protectedRoutes = ["/dashboard", "/profile", "/checkout"];
 
+// Rutas de autenticación que deben ignorarse para no interferir con OAuth
+const authRoutes = [
+  "/api/auth/callback",
+  "/api/auth/signin",
+  "/api/auth/signout",
+  "/api/auth/session",
+];
+
 export async function middleware(request) {
   const { pathname } = request.nextUrl;
 
-  // Si es una petición a la API, añadir headers CORS
-  if (pathname.startsWith("/api/auth")) {
-    const response = NextResponse.next();
-    response.headers.append("Access-Control-Allow-Credentials", "true");
-    response.headers.append("Access-Control-Allow-Origin", "*");
-    response.headers.append(
-      "Access-Control-Allow-Methods",
-      "GET,DELETE,PATCH,POST,PUT"
-    );
-    response.headers.append(
-      "Access-Control-Allow-Headers",
-      "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version"
-    );
-    return response;
+  // Verificar si es una ruta de autenticación - PERMITIR SIEMPRE
+  const isAuthRoute = authRoutes.some((route) => pathname.startsWith(route));
+  if (isAuthRoute) {
+    return NextResponse.next();
   }
 
+  // Si es una petición a la API de autenticación, aplicar los headers CORS especiales
+  if (pathname.startsWith("/api/auth")) {
+    // Usamos nuestro helper para añadir los headers CORS adecuados
+    return allowGoogleAuthRedirects(request, NextResponse.next());
+  }
+
+  // El resto del middleware permanece igual...
   // Verificar si es una ruta administrativa o protegida
   const isAdminRoute = adminRoutes.some((route) => pathname.startsWith(route));
   const isProtectedRoute = protectedRoutes.some((route) =>
@@ -45,8 +52,8 @@ export async function middleware(request) {
 
   // Si no hay token, redirigir al login
   if (!token) {
-    const signInUrl = new URL("/auth/signin", request.url);
-    signInUrl.searchParams.set("callbackUrl", pathname);
+    const signInUrl = new URL("/auth/login", request.url);
+    signInUrl.searchParams.set("redirect", pathname);
     return NextResponse.redirect(signInUrl);
   }
 
