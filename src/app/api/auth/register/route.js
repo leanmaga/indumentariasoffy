@@ -1,3 +1,5 @@
+import { NextResponse } from "next/server";
+import bcrypt from "bcryptjs";
 import connectDB from "@/lib/db";
 import User from "@/models/User";
 
@@ -5,61 +7,77 @@ export async function POST(request) {
   try {
     const { name, email, password, phone } = await request.json();
 
-    // Validar datos
+    // Validaciones básicas
     if (!name || !email || !password || !phone) {
-      return Response.json(
+      return NextResponse.json(
         { message: "Todos los campos son requeridos" },
         { status: 400 }
       );
     }
 
-    // Validar formato de correo electrónico
-    const emailRegex = /^\S+@\S+\.\S+$/;
-    if (!emailRegex.test(email)) {
-      return Response.json(
-        { message: "Formato de correo electrónico inválido" },
-        { status: 400 }
-      );
-    }
-
-    // Validar longitud de contraseña
-    if (password.length < 6) {
-      return Response.json(
-        { message: "La contraseña debe tener al menos 6 caracteres" },
-        { status: 400 }
-      );
-    }
-
-    // Conectar a la base de datos
     await connectDB();
 
-    // Verificar si el correo ya está registrado
+    // Verificar si el usuario ya existe
     const existingUser = await User.findOne({ email });
+
     if (existingUser) {
-      return Response.json(
-        { message: "El correo electrónico ya está registrado" },
-        { status: 409 }
-      );
+      // Si el usuario existe con Google Auth pero sin contraseña
+      if (existingUser.googleAuth && !existingUser.password) {
+        // Hashear la contraseña
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(password, salt);
+
+        // Actualizar el usuario con la contraseña y teléfono
+        await User.findByIdAndUpdate(existingUser._id, {
+          $set: {
+            password: hashedPassword,
+            phone: phone,
+          },
+        });
+
+        return NextResponse.json({
+          message: "Información actualizada correctamente",
+          user: {
+            id: existingUser._id,
+            name: existingUser.name,
+            email: existingUser.email,
+          },
+        });
+      } else {
+        // Usuario ya existe con credenciales completas
+        return NextResponse.json(
+          { message: "El usuario ya existe" },
+          { status: 400 }
+        );
+      }
     }
 
+    // Hashear la contraseña
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
     // Crear nuevo usuario
-    const newUser = new User({
+    const newUser = await User.create({
       name,
       email,
-      password,
+      password: hashedPassword,
       phone,
+      role: "user",
     });
 
-    // Guardar usuario en la base de datos
-    await newUser.save();
-
-    // Enviar respuesta exitosa
-    return Response.json(
-      { message: "Usuario registrado con éxito" },
-      { status: 201 }
-    );
+    return NextResponse.json({
+      message: "Usuario registrado correctamente",
+      user: {
+        id: newUser._id,
+        name: newUser.name,
+        email: newUser.email,
+      },
+    });
   } catch (error) {
-    console.error("Error al registrar usuario:", error);
-    return Response.json({ message: "Error del servidor" }, { status: 500 });
+    console.error("Error en registro:", error);
+    return NextResponse.json(
+      { message: "Error al registrar el usuario" },
+      { status: 500 }
+    );
   }
 }

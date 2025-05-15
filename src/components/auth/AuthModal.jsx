@@ -23,18 +23,26 @@ const AuthModal = ({ isOpen, onClose, initialView = "login" }) => {
     setView("register");
   };
 
+  // Función para manejar el cierre después de acciones exitosas
+  const handleSuccess = () => {
+    // Retrasar levemente el cierre para permitir que la redirección ocurra primero
+    setTimeout(() => {
+      onClose();
+    }, 100);
+  };
+
   return (
     <Modal isOpen={isOpen} onClose={onClose} redirectOnClose={true}>
       {view === "login" ? (
         <LoginForm
-          type="user"
           switchToRegister={handleSwitchToRegister}
-          afterLogin={onClose} // Pasar la función de cierre
+          afterLogin={handleSuccess} // Usar la nueva función
+          callbackUrl="/" // Puedes personalizar la redirección después del login
         />
       ) : (
         <RegisterForm
           switchToLogin={handleSwitchToLogin}
-          afterRegister={onClose} // Pasar la función de cierre
+          afterRegister={handleSuccess} // Usar la nueva función
         />
       )}
     </Modal>

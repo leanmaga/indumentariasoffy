@@ -71,8 +71,28 @@ export const authOptions = {
     signIn: "/auth/login",
     signOut: "/auth/logout",
     error: "/auth/error",
+    // Añadidas para mejor experiencia
+    verifyRequest: "/auth/verify-request",
+    newUser: "/auth/new-user",
   },
   callbacks: {
+    // NUEVO: callback de redirección crucial para dispositivos móviles
+    async redirect({ url, baseUrl }) {
+      console.log("Redirect callback:", { url, baseUrl });
+
+      // Siempre permitir URLs absolutas con nuestro dominio
+      if (
+        url.startsWith(baseUrl) ||
+        url.startsWith("/") ||
+        url.includes("indumentariasoffy.vercel.app")
+      ) {
+        return url;
+      }
+
+      // Por defecto, redirigir a la página principal
+      return baseUrl;
+    },
+
     async signIn({ user, account, profile }) {
       if (account.provider === "credentials") {
         return true;
@@ -141,6 +161,8 @@ export const authOptions = {
 
         if (account?.provider === "google") {
           token.googleAuth = true;
+          // Asegúrate de que la bandera de actualización de teléfono se pase al token
+          token.needsPhoneUpdate = user.needsPhoneUpdate || false;
         }
       }
       return token;
@@ -152,6 +174,8 @@ export const authOptions = {
         session.user.role = token.role;
         session.user.phone = token.phone || "";
         session.user.googleAuth = token.googleAuth || false;
+        // Asegúrate de que la bandera se pase a la sesión
+        session.user.needsPhoneUpdate = token.needsPhoneUpdate || false;
       }
       return session;
     },
@@ -190,8 +214,10 @@ export const authOptions = {
     maxAge: 8 * 60 * 60, // 8 horas
   },
 
+  // Asegúrate de que estas opciones estén presentes
+  useSecureCookies: process.env.NODE_ENV === "production",
   secret: process.env.NEXTAUTH_SECRET,
-  debug: true, // Habilitar modo debug para ver errores
+  debug: process.env.NODE_ENV === "development", // Cambiado a "development" para que no esté siempre en modo debug
 };
 
 export default authOptions;

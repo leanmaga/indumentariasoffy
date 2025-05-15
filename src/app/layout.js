@@ -1,6 +1,5 @@
-// app/layout.js
+// app/layout.js (ACTUALIZADO)
 import { Inter } from "next/font/google";
-import { Toaster } from "react-hot-toast";
 import "./globals.css";
 import "./fonts.css";
 import Navbar from "@/components/layout/Navbar";
@@ -21,7 +20,6 @@ export default function RootLayout({ children }) {
         className={`${inter.className} min-h-screen flex flex-col bg-gray-50`}
       >
         <Providers>
-          <Toaster position="top-center" />
           <Navbar />
           <main className="flex-grow">{children}</main>
           <Footer />

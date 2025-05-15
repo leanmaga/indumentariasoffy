@@ -6,9 +6,10 @@ import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { toast } from "react-hot-toast";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
+import { signIn } from "next-auth/react";
 import GoogleLoginButton from "../ui/GoogleLoginButton";
 
-const RegisterForm = ({ switchToLogin, afterRegister }) => {
+export default function RegisterForm({ switchToLogin, afterRegister }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get("redirect") || "/";
@@ -94,7 +95,7 @@ const RegisterForm = ({ switchToLogin, afterRegister }) => {
 
   return (
     <div className="w-full max-w-md mx-auto p-6">
-      <h2 className="font-sora-bold text-center text-2xl font-semibold mb-6">
+      <h2 className="font-bold text-center text-2xl font-semibold mb-6">
         CREAR CUENTA
       </h2>
 
@@ -109,7 +110,6 @@ const RegisterForm = ({ switchToLogin, afterRegister }) => {
       )}
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-        {/* Campos del formulario sin cambios */}
         <div>
           <label htmlFor="name" className="block text-sm mb-2">
             Nombre Completo
@@ -297,7 +297,7 @@ const RegisterForm = ({ switchToLogin, afterRegister }) => {
           </div>
         </div>
 
-        {/* Botón de registro con Google - Reemplazado con el nuevo componente */}
+        {/* Botón de Google mejorado */}
         <GoogleLoginButton callbackUrl={redirectTo} />
 
         <p className="mt-4 text-sm">
@@ -326,6 +326,4 @@ const RegisterForm = ({ switchToLogin, afterRegister }) => {
       </div>
     </div>
   );
-};
-
-export default RegisterForm;
+}

@@ -26,13 +26,16 @@ const Modal = ({
     };
   }, [isOpen]);
 
-  // Función para manejar el cierre y redirección
   const handleClose = () => {
-    onClose(); // Cerrar el modal
+    // Primero cerrar el modal para evitar interferencias con posibles redirecciones
+    onClose();
 
-    // Redirigir al home si redirectOnClose es true
+    // Luego usar un pequeño timeout antes de redirigir para asegurar
+    // que cualquier animación de cierre termine primero
     if (redirectOnClose) {
-      router.push("/");
+      setTimeout(() => {
+        router.push("/");
+      }, 50);
     }
   };
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
 import Link from "next/link";
@@ -9,11 +9,15 @@ import { toast } from "react-hot-toast";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 import GoogleLoginButton from "../ui/GoogleLoginButton";
 
-function LoginFormContent({ type = "user", switchToRegister, afterLogin }) {
+export default function LoginForm({
+  type = "user",
+  switchToRegister,
+  afterLogin,
+}) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirect = searchParams.get("redirect") || "/";
-  const error = searchParams.get("error"); // Para capturar errores de NextAuth
+  const error = searchParams.get("error");
 
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -25,7 +29,6 @@ function LoginFormContent({ type = "user", switchToRegister, afterLogin }) {
   } = useForm();
 
   useEffect(() => {
-    // Limpiar el parámetro de error de la URL después de procesarlo
     if (error) {
       switch (error) {
         case "OAuthAccountNotLinked":
@@ -38,10 +41,12 @@ function LoginFormContent({ type = "user", switchToRegister, afterLogin }) {
             "Hubo un problema al comunicarse con Google. Por favor, intenta de nuevo."
           );
           break;
-        // Resto de casos...
+        default:
+          toast.error("Error de autenticación: " + error);
+          break;
       }
 
-      // Limpiar el parámetro de error de la URL para evitar mensajes repetidos
+      // Limpiar el parámetro de error de la URL
       const newUrl = new URL(window.location.href);
       newUrl.searchParams.delete("error");
       window.history.replaceState({}, document.title, newUrl.toString());
@@ -56,26 +61,21 @@ function LoginFormContent({ type = "user", switchToRegister, afterLogin }) {
         redirect: false,
         email: data.email,
         password: data.password,
-        role: type,
       });
 
       if (result.error) {
         toast.error("Credenciales incorrectas");
         setIsLoading(false);
       } else {
-        toast.success(
-          `Inicio de sesión exitoso como ${
-            type === "admin" ? "administrador" : "usuario"
-          }`
-        );
+        toast.success("Inicio de sesión exitoso");
 
         if (typeof afterLogin === "function") {
           afterLogin();
           setTimeout(() => {
-            router.push(type === "admin" ? "/admin" : redirect);
+            router.push(redirect);
           }, 100);
         } else {
-          router.push(type === "admin" ? "/admin" : redirect);
+          router.push(redirect);
         }
       }
     } catch (error) {
@@ -87,7 +87,7 @@ function LoginFormContent({ type = "user", switchToRegister, afterLogin }) {
 
   return (
     <div className="w-full max-w-md mx-auto p-6">
-      <h2 className="font-sora-bold text-center text-2xl font-semibold mb-6">
+      <h2 className="font-bold text-center text-2xl font-semibold mb-6">
         INICIAR SESIÓN
       </h2>
 
@@ -188,10 +188,8 @@ function LoginFormContent({ type = "user", switchToRegister, afterLogin }) {
           </div>
         </div>
 
-        {/* Botón de inicio de sesión con Google - Reemplazado con el nuevo componente */}
-        <GoogleLoginButton
-          callbackUrl={type === "admin" ? "/admin" : redirect}
-        />
+        {/* Botón de Google mejorado */}
+        <GoogleLoginButton callbackUrl={redirect} />
 
         {type === "user" && (
           <p className="mt-4 text-sm">
@@ -222,13 +220,3 @@ function LoginFormContent({ type = "user", switchToRegister, afterLogin }) {
     </div>
   );
 }
-
-const LoginForm = (props) => {
-  return (
-    <Suspense fallback={<div className="p-4 text-center">Cargando...</div>}>
-      <LoginFormContent {...props} />
-    </Suspense>
-  );
-};
-
-export default LoginForm;

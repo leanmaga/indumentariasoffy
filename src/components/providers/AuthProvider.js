@@ -2,12 +2,12 @@
 "use client";
 
 import { SessionProvider } from "next-auth/react";
-import AuthContextProvider from "@/context/AuthContext";
+import { AuthProvider as CustomAuthProvider } from "@/context/AuthContext";
 
 export default function AuthProvider({ children }) {
   return (
     <SessionProvider>
-      <AuthContextProvider>{children}</AuthContextProvider>
+      <CustomAuthProvider>{children}</CustomAuthProvider>
     </SessionProvider>
   );
 }

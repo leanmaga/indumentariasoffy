@@ -1,4 +1,3 @@
-// middleware.js
 import { NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
 
@@ -8,23 +7,14 @@ const adminRoutes = ["/admin"];
 // Rutas que requieren cualquier autenticación
 const protectedRoutes = ["/dashboard", "/profile", "/checkout"];
 
-// IMPORTANTE: Patrones de rutas de autenticación que NO deberían ser interceptadas
-const authPatterns = [
-  "/api/auth",
-  "/auth/signin",
-  "/auth/signout",
-  "/auth/callback",
-  "/auth/error",
-];
+// Rutas de API de NextAuth que NO deben ser interceptadas
+const nextAuthApiRoutes = ["/api/auth"];
 
 export async function middleware(request) {
   const { pathname } = request.nextUrl;
 
-  // NO interceptar rutas de autenticación - MUY IMPORTANTE
-  if (authPatterns.some((pattern) => pathname.includes(pattern))) {
-    console.log(
-      `Middleware: Permitiendo paso a ruta de autenticación: ${pathname}`
-    );
+  // NUNCA interceptar rutas de NextAuth
+  if (pathname.startsWith("/api/auth")) {
     return NextResponse.next();
   }
 
