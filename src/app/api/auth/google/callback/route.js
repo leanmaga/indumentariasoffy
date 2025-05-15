@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { authenticateWithGoogle } from "../../../../lib/auth";
+import { authenticateWithGoogle } from "@/lib/auth";
 
 export async function GET(request) {
   // Obtener el código de autorización de la URL
