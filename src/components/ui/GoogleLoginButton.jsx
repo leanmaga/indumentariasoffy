@@ -1,30 +1,32 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { signIn } from "next-auth/react";
 import { FcGoogle } from "react-icons/fc";
-import { toast } from "react-hot-toast";
 
 export default function GoogleLoginButton({ callbackUrl = "/" }) {
   const [isLoading, setIsLoading] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
-  const handleGoogleLogin = async () => {
-    console.log("Iniciando login con Google, callbackUrl:", callbackUrl);
+  useEffect(() => {
+    // Detectar si es dispositivo móvil
+    setIsMobile(/iPhone|iPad|iPod|Android/i.test(navigator.userAgent));
+  }, []);
+
+  const handleGoogleLogin = () => {
     setIsLoading(true);
 
-    try {
-      // Enfoque directo para el login con Google
-      await signIn("google", {
-        callbackUrl,
-        redirect: true, // Crucial: dejar que NextAuth maneje la redirección
-      });
-
-      // Con redirect:true, nunca llegará aquí porque la página se recargará
-    } catch (error) {
-      console.error("Error en GoogleLoginButton:", error);
-      toast.error("Error al conectar con Google");
-      setIsLoading(false);
+    // Para dispositivos móviles, usar un enfoque directo
+    if (isMobile) {
+      // Redirigir directamente a la URL de login de Google
+      window.location.href = `/api/auth/signin/google?callbackUrl=${encodeURIComponent(
+        callbackUrl
+      )}`;
+      return; // Importante para evitar que se ejecute el resto del código
     }
+
+    // Para desktop, usar el método normal
+    signIn("google", { callbackUrl, redirect: true });
   };
 
   return (

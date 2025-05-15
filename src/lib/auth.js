@@ -161,26 +161,26 @@ export const authOptions = {
       name: `next-auth.session-token`,
       options: {
         httpOnly: true,
-        sameSite: isProduction ? "none" : "lax", // En desarrollo usar "lax"
+        sameSite: "lax",
         path: "/",
-        secure: isProduction, // En desarrollo no forzar HTTPS
+        secure: process.env.NODE_ENV === "production",
       },
     },
     callbackUrl: {
       name: `next-auth.callback-url`,
       options: {
-        sameSite: isProduction ? "none" : "lax",
+        sameSite: "lax",
         path: "/",
-        secure: isProduction,
+        secure: process.env.NODE_ENV === "production",
       },
     },
     csrfToken: {
       name: `next-auth.csrf-token`,
       options: {
         httpOnly: true,
-        sameSite: isProduction ? "none" : "lax",
+        sameSite: "lax",
         path: "/",
-        secure: isProduction,
+        secure: process.env.NODE_ENV === "production",
       },
     },
   },
