@@ -26,7 +26,7 @@ const CartItem = ({ item }) => {
           {item.image ? (
             <Image
               src={item.image}
-              alt={item.name}
+              alt={item.name || "Producto en carrito"}
               fill
               style={{ objectFit: "cover" }}
               className="rounded"

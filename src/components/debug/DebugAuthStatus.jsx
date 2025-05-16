@@ -34,10 +34,3 @@ export default function DebugAuthStatus() {
     </div>
   );
 }
-
-// Instrucciones de uso:
-// 1. Crea un archivo en /components/debug/DebugAuthStatus.jsx
-// 2. Copia este código
-// 3. Importa y usa este componente en cualquier página cliente
-// 4. Ejemplo: import DebugAuthStatus from "@/components/debug/DebugAuthStatus";
-// 5. Añade <DebugAuthStatus /> en tu página

@@ -103,11 +103,15 @@ export default function SettingsPage() {
 
   return (
     <div>
-      <h2 className="text-xl font-semibold mb-6">Configuración de la cuenta</h2>
+      <h2 className="font-sora-extralight text-xl font-semibold mb-6">
+        Configuración de la cuenta
+      </h2>
 
       {/* Cambiar contraseña */}
       <div className="mb-8">
-        <h3 className="text-lg font-medium mb-4">Cambiar contraseña</h3>
+        <h3 className="font-sora-extralight text-lg font-medium mb-4">
+          Cambiar contraseña
+        </h3>
 
         {session?.user?.googleAuth ? (
           <p className="text-gray-500">
@@ -183,7 +187,9 @@ export default function SettingsPage() {
 
       {/* Opciones de notificaciones */}
       <div className="mb-8">
-        <h3 className="text-lg font-medium mb-4">Notificaciones</h3>
+        <h3 className="font-sora-extralight text-lg font-medium mb-4">
+          Notificaciones
+        </h3>
 
         <div className="space-y-4 max-w-md">
           <div className="flex items-center">

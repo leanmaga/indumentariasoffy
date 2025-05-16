@@ -93,7 +93,9 @@ export default function OrdersPage() {
 
   return (
     <div>
-      <h2 className="text-xl font-semibold mb-6">Mis Pedidos</h2>
+      <h2 className="font-sora-extralight text-xl font-semibold mb-6">
+        Mis Pedidos
+      </h2>
 
       {orders.length > 0 ? (
         <div className="space-y-6">
@@ -134,9 +136,9 @@ export default function OrdersPage() {
                       <div className="h-16 w-16 relative flex-shrink-0">
                         <Image
                           src={item.imageUrl}
-                          alt={item.title}
-                          width={64}
-                          height={64}
+                          alt={item.title || "Producto"}
+                          fill
+                          sizes="64px"
                           className="object-cover rounded"
                         />
                       </div>

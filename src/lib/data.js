@@ -8,10 +8,17 @@ export async function getFeaturedProducts() {
   try {
     await connectDB();
     const featuredProducts = await Product.find({ featured: true }).limit(8);
+
+    // Si no hay productos destacados, intenta obtener algunos productos normales
+    if (featuredProducts.length === 0) {
+      const regularProducts = await Product.find().limit(8);
+      return JSON.parse(JSON.stringify(regularProducts));
+    }
+
     return JSON.parse(JSON.stringify(featuredProducts));
   } catch (error) {
-    console.error("Error al obtener productos destacados:", error);
-    return [];
+    // Manejo de errores mejorado
+    throw new Error(`Error al obtener productos destacados: ${error.message}`);
   }
 }
 

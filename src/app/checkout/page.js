@@ -522,10 +522,10 @@ export default function CheckoutPage() {
                     <div className="relative h-16 w-16 flex-shrink-0 overflow-hidden">
                       <Image
                         src={item.image}
-                        alt={item.title}
-                        width={64}
-                        height={64}
-                        className="object-cover"
+                        alt={item.title || "Producto en carrito"}
+                        fill
+                        sizes="64px"
+                        className="object-cover rounded"
                       />
                     </div>
                     <div className="ml-4 flex-1">

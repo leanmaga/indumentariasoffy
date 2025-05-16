@@ -11,7 +11,6 @@ export async function POST(request) {
     try {
       data = await request.json();
     } catch (error) {
-      console.error("Error parsing webhook data:", error);
       return NextResponse.json(
         { message: "Invalid JSON payload" },
         { status: 200 }
@@ -27,7 +26,6 @@ export async function POST(request) {
       const paymentId = data.data?.id;
 
       if (!paymentId) {
-        console.error("No payment ID in webhook data");
         return NextResponse.json({ message: "No payment ID" }, { status: 200 });
       }
 
@@ -36,7 +34,6 @@ export async function POST(request) {
       try {
         paymentInfo = await getPaymentStatus(paymentId);
       } catch (error) {
-        console.error(`Error getting payment info for ID ${paymentId}:`, error);
         return NextResponse.json(
           { message: "Error getting payment info" },
           { status: 200 }
@@ -47,7 +44,6 @@ export async function POST(request) {
       const externalReference = paymentInfo.external_reference;
 
       if (!externalReference) {
-        console.error("No external reference in payment info");
         return NextResponse.json(
           { message: "No external reference" },
           { status: 200 }
@@ -60,7 +56,6 @@ export async function POST(request) {
 
         const order = await Order.findById(externalReference);
         if (!order) {
-          console.error(`Order not found: ${externalReference}`);
           return NextResponse.json(
             { message: "Order not found" },
             { status: 200 }
@@ -94,20 +89,16 @@ export async function POST(request) {
 
         await order.save();
       } catch (error) {
-        console.error(`Error updating order ${externalReference}:`, error);
         return NextResponse.json(
           { message: `Error updating order: ${error.message}` },
           { status: 200 }
         );
       }
-    } else {
-      console.log(`Ignoring webhook action: ${data.action}`);
     }
 
     // MercadoPago expects a 200 OK response
     return NextResponse.json({ message: "Webhook processed successfully" });
   } catch (error) {
-    console.error("Error processing MercadoPago webhook:", error);
     // Important to return 200 even in case of error to avoid resends
     return NextResponse.json(
       { message: `Error processing webhook: ${error.message}` },

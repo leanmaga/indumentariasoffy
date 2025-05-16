@@ -240,26 +240,26 @@ const Navbar = () => {
                         </div>
                         <Link
                           href="/profile"
-                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                          className="font-sora-extralight block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                         >
                           Mi Perfil
                         </Link>
                         <Link
                           href="/profile/orders"
-                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                          className="font-sora-extralight block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                         >
                           Mis Pedidos
                         </Link>
                         <Link
                           href="/profile/settings"
-                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                          className="font-sora-extralight block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                         >
                           Configuración
                         </Link>
                         <div className="border-t border-gray-100">
                           <button
                             onClick={handleSignOut}
-                            className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                            className="font-sora-extralight block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                           >
                             Cerrar Sesión
                           </button>

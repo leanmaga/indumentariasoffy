@@ -61,7 +61,6 @@ export const authOptions = {
             role: user.role,
           };
         } catch (error) {
-          console.error("Error en authorize:", error);
           return null;
         }
       },
@@ -76,10 +75,7 @@ export const authOptions = {
     newUser: "/auth/new-user",
   },
   callbacks: {
-    // NUEVO: callback de redirección crucial para dispositivos móviles
     async redirect({ url, baseUrl }) {
-      console.log("Redirect callback:", { url, baseUrl });
-
       // Siempre permitir URLs absolutas con nuestro dominio
       if (
         url.startsWith(baseUrl) ||
@@ -145,7 +141,6 @@ export const authOptions = {
             return true;
           }
         } catch (error) {
-          console.error("Error en signIn callback:", error);
           return false;
         }
       }
@@ -217,7 +212,7 @@ export const authOptions = {
   // Asegúrate de que estas opciones estén presentes
   useSecureCookies: process.env.NODE_ENV === "production",
   secret: process.env.NEXTAUTH_SECRET,
-  debug: process.env.NODE_ENV === "development", // Cambiado a "development" para que no esté siempre en modo debug
+  debug: process.env.NODE_ENV === "development", // Mantiene la configuración de debug
 };
 
 export default authOptions;

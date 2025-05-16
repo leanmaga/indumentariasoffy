@@ -250,8 +250,9 @@ export default function OrderDetailsPage() {
                         <div className="relative h-20 w-20 flex-shrink-0 rounded-md overflow-hidden bg-gray-100">
                           <Image
                             src={item.imageUrl}
-                            alt={item.title}
+                            alt={item.title || "Producto"}
                             fill
+                            sizes="80px"
                             className="object-cover"
                           />
                         </div>

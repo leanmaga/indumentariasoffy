@@ -33,7 +33,9 @@ export default function ProfileLayout({ children }) {
     <div className="bg-gray-50 min-h-screen py-12">
       <div className="container mx-auto px-4">
         <div className="max-w-6xl mx-auto">
-          <h1 className="text-2xl font-bold mb-6">Mi Cuenta</h1>
+          <h1 className="font-sora-extralight text-2xl font-bold mb-6">
+            Mi Cuenta
+          </h1>
 
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             {/* Barra de navegación lateral */}
@@ -42,7 +44,7 @@ export default function ProfileLayout({ children }) {
                 <div className="space-y-1">
                   <Link
                     href="/profile"
-                    className={`block px-4 py-2 rounded-md text-sm font-medium ${
+                    className={`font-sora-regular block px-4 py-2 rounded-md text-sm font-medium ${
                       pathname === "/profile"
                         ? "bg-indigo-50 text-indigo-600"
                         : "text-gray-700 hover:bg-gray-100"
@@ -52,7 +54,7 @@ export default function ProfileLayout({ children }) {
                   </Link>
                   <Link
                     href="/profile/orders"
-                    className={`block px-4 py-2 rounded-md text-sm font-medium ${
+                    className={`font-sora-regular block px-4 py-2 rounded-md text-sm font-medium ${
                       pathname === "/profile/orders" ||
                       pathname.startsWith("/profile/orders/")
                         ? "bg-indigo-50 text-indigo-600"
@@ -63,7 +65,7 @@ export default function ProfileLayout({ children }) {
                   </Link>
                   <Link
                     href="/profile/settings"
-                    className={`block px-4 py-2 rounded-md text-sm font-medium ${
+                    className={`font-sora-regular block px-4 py-2 rounded-md text-sm font-medium ${
                       pathname === "/profile/settings"
                         ? "bg-indigo-50 text-indigo-600"
                         : "text-gray-700 hover:bg-gray-100"

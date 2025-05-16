@@ -58,44 +58,12 @@ async function ProductContent({ id }) {
     product.additionalImages.forEach((img, index) => {
       if (img && img.imageUrl) {
         productImages.push(img.imageUrl);
-      } else {
-        console.log(`DEBUG: Skipped invalid additional image ${index}:`, img);
       }
     });
-  } else {
-    console.log("DEBUG: No additionalImages array found");
   }
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-7xl">
-      {/* Debug info - Only shown in development */}
-      {process.env.NODE_ENV === "development" && (
-        <div
-          className="bg-yellow-100 p-4 mb-4 text-xs overflow-auto"
-          style={{ maxHeight: "200px" }}
-        >
-          <h3 className="font-bold mb-2">Debug Info:</h3>
-          <p>Product ID: {product._id}</p>
-          <p>Title: {product.title}</p>
-          <p>Image Count: {productImages.length}</p>
-          <p>Main Image: {product.imageUrl}</p>
-          <p>
-            Has Additional Images:{" "}
-            {product.additionalImages?.length > 0 ? "Yes" : "No"}
-          </p>
-          {product.additionalImages?.length > 0 && (
-            <ul className="mt-1 ml-4">
-              {product.additionalImages.map((img, i) => (
-                <li key={i} className="truncate">
-                  {i + 1}: {img.imageUrl || "No URL"} (Color:{" "}
-                  {img.color || "None"})
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      )}
-
       {/* Breadcrumb */}
       <div className="mb-6 text-sm text-gray-500 flex items-center space-x-2">
         <Link href="/" className="hover:text-indigo-600">
