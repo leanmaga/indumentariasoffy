@@ -39,7 +39,14 @@ const orderSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["pendiente", "pagado", "enviado", "entregado", "cancelado"],
+      enum: [
+        "pendiente",
+        "pagado",
+        "enviado",
+        "entregado",
+        "cancelado",
+        "whatsapp_pendiente",
+      ],
       default: "pendiente",
     },
     paymentId: {
@@ -48,7 +55,11 @@ const orderSchema = new mongoose.Schema(
     paymentMethod: {
       type: String,
       required: true,
-      enum: ["mercadopago", "credit_card", "debit_card"],
+      enum: ["mercadopago", "credit_card", "debit_card", "whatsapp"],
+    },
+    whatsappOrder: {
+      type: Boolean,
+      default: false,
     },
     shippingInfo: {
       name: {

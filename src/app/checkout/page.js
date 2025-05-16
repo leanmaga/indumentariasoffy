@@ -4,13 +4,14 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useCartStore } from "@/lib/store";
-import { toast } from "react-hot-toast";
+import toast, { Toaster } from "react-hot-toast";
 import { useForm } from "react-hook-form";
 import Link from "next/link";
 import Image from "next/image";
 import { LockClosedIcon } from "@heroicons/react/24/solid";
 import { ArrowLeftIcon } from "@heroicons/react/24/outline";
 import MercadoPagoButton from "@/components/mercadopago/MercadoPagoButton";
+import WhatsAppButton from "@/components/ui/WhatsAppButton";
 
 export default function CheckoutPage() {
   const [mounted, setMounted] = useState(false);
@@ -33,6 +34,7 @@ export default function CheckoutPage() {
     register,
     handleSubmit,
     setValue,
+    watch,
     formState: { errors },
   } = useForm();
 
@@ -50,9 +52,16 @@ export default function CheckoutPage() {
 
       // Si el usuario se acaba de registrar con Google y no tiene teléfono
       if (session.user.needsPhoneUpdate && !session.user.phone) {
-        toast.info(
+        toast(
           "Por favor, ingresa tu número de teléfono para completar tu perfil y continuar con la compra",
-          { duration: 6000 }
+          {
+            duration: 6000,
+            icon: "🔔", // O cualquier icono de información
+            style: {
+              background: "#3498db",
+              color: "#fff",
+            },
+          }
         );
         // Hacer focus en el campo de teléfono
         setTimeout(() => {
@@ -457,7 +466,8 @@ export default function CheckoutPage() {
                   </div>
                 </div> */}
 
-                <div className="mt-8">
+                <div className="mt-8 space-y-4">
+                  {/* Botón de MercadoPago */}
                   <button
                     type="submit"
                     disabled={isSubmitting}
@@ -471,13 +481,26 @@ export default function CheckoutPage() {
                     ) : (
                       <>
                         <LockClosedIcon className="h-5 w-5 mr-2" />
-                        <span>Proceder al Pago - ${total.toFixed(2)}</span>
+                        <span>Pagar con MercadoPago - ${total.toFixed(2)}</span>
                       </>
                     )}
                   </button>
-                  <p className="text-xs text-gray-500 mt-4 text-center">
-                    Tus datos están seguros y protegidos
-                  </p>
+
+                  {/* Usar el componente WhatsAppButton pasando los datos del formulario */}
+                  <WhatsAppButton
+                    userData={watch()} // Pasar los datos actuales del formulario
+                    isDisabled={isSubmitting}
+                    handleBeforeSubmit={() => {
+                      // Validar que el formulario sea correcto antes de continuar
+                      const isValid = Object.keys(errors).length === 0;
+                      if (!isValid) {
+                        toast.error(
+                          "Por favor completa correctamente todos los campos"
+                        );
+                      }
+                      return isValid;
+                    }}
+                  />
                 </div>
               </form>
             </div>

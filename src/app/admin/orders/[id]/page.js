@@ -1,3 +1,4 @@
+// app/admin/orders/[id]/page.js
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -6,6 +7,13 @@ import { ArrowLeftIcon } from "@heroicons/react/24/outline";
 import OrderStatusUpdate from "@/components/admin/OrderStatusUpdate";
 
 export async function generateMetadata({ params }) {
+  // CORREGIDO: Asegurarse de que params.id existe
+  if (!params?.id) {
+    return {
+      title: "Pedido no encontrado | TiendaOnline",
+    };
+  }
+
   const order = await getOrderById(params.id);
 
   if (!order) {
@@ -20,6 +28,10 @@ export async function generateMetadata({ params }) {
 }
 
 export default async function OrderDetailPage({ params }) {
+  if (!params?.id) {
+    notFound();
+  }
+
   const order = await getOrderById(params.id);
 
   if (!order) {

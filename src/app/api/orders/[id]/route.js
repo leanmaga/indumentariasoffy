@@ -92,8 +92,25 @@ export async function PATCH(request, { params }) {
       );
     }
 
-    // Actualizar el estado de la orden
+    // Actualizar el estado de la orden si se proporciona
     if (data.status) {
+      // Validar que sea un estado permitido
+      const validStatuses = [
+        "whatsapp_pendiente", // Añadir este estado
+        "pendiente",
+        "pagado",
+        "enviado",
+        "entregado",
+        "cancelado",
+      ];
+
+      if (!validStatuses.includes(data.status)) {
+        return NextResponse.json(
+          { message: "Estado no válido" },
+          { status: 400 }
+        );
+      }
+
       order.status = data.status;
     }
 

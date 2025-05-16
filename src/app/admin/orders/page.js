@@ -7,7 +7,12 @@ export const metadata = {
 };
 
 export default async function AdminOrdersPage() {
-  const orders = await getAllOrders();
+  const ordersResponse = await getAllOrders();
+
+  // Verificar si la respuesta es un array o un objeto con propiedad orders
+  const orders = Array.isArray(ordersResponse)
+    ? ordersResponse
+    : ordersResponse.orders || [];
 
   return (
     <div>

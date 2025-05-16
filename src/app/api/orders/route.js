@@ -42,10 +42,6 @@ export async function POST(request) {
         // Si la orden existente ya tiene información de pago de MercadoPago, devolverla
         if (orderData.paymentMethod === "mercadopago") {
           // Obtener la información de pago existente si ya fue creada antes
-          // Aquí podrías implementar una función para recuperar datos de pago de MercadoPago
-          // en lugar de crear una nueva preferencia
-
-          // Este es un ejemplo simplificado. Lo ideal sería recuperar la preferencia existente
           const preferenceResponse = await createPaymentPreference(
             existingOrder
           );
@@ -58,6 +54,12 @@ export async function POST(request) {
               init_point: preferenceResponse.init_point,
               sandbox_init_point: preferenceResponse.sandbox_init_point,
             },
+          });
+        } else if (orderData.paymentMethod === "whatsapp") {
+          // Para pedidos de WhatsApp, simplemente devolver el ID
+          return NextResponse.json({
+            message: "Orden de WhatsApp existente recuperada",
+            orderId: existingOrder._id,
           });
         }
 
@@ -77,36 +79,25 @@ export async function POST(request) {
       status: "pendiente",
     });
 
-    // if (similarOrder) {
+    // Verificar si el método de pago es válido
+    const validPaymentMethods = [
+      "mercadopago",
+      "credit_card",
+      "debit_card",
+      "whatsapp",
+    ];
+    if (!validPaymentMethods.includes(orderData.paymentMethod)) {
+      return NextResponse.json(
+        { message: "Método de pago no válido" },
+        { status: 400 }
+      );
+    }
 
-    //   // Opción 1: Considerar esto como un duplicado y devolver la orden existente
-    //   // Aquí podrías habilitar esto para prevenir completamente los duplicados
-    //   /*
-    //   if (orderData.paymentMethod === "mercadopago") {
-    //     const preferenceResponse = await createPaymentPreference(similarOrder);
-
-    //     return NextResponse.json({
-    //       message: "Orden existente recuperada",
-    //       orderId: similarOrder._id,
-    //       paymentInfo: {
-    //         id: preferenceResponse.id,
-    //         init_point: preferenceResponse.init_point,
-    //         sandbox_init_point: preferenceResponse.sandbox_init_point,
-    //       },
-    //     });
-    //   }
-
-    //   return NextResponse.json({
-    //     message: "Orden existente recuperada",
-    //     orderId: similarOrder._id,
-    //   });
-    //   */
-
-    //   // Opción 2: Registrar pero continuar (por si el usuario realmente quiere hacer otro pedido igual)
-    //   console.log(
-    //     "Continuando con la creación de la orden a pesar de la similitud"
-    //   );
-    // }
+    // Determinar el estado inicial de la orden según el método de pago
+    let initialStatus = "pendiente";
+    if (orderData.paymentMethod === "whatsapp") {
+      initialStatus = "whatsapp_pendiente";
+    }
 
     // Crear la orden en la base de datos
     const order = new Order({
@@ -115,8 +106,9 @@ export async function POST(request) {
       totalAmount: orderData.totalAmount,
       paymentMethod: orderData.paymentMethod,
       shippingInfo: orderData.shippingInfo,
-      status: "pendiente",
+      status: initialStatus,
       idempotencyKey: orderData.idempotencyKey, // Guardar la clave de idempotencia
+      whatsappOrder: orderData.paymentMethod === "whatsapp", // Flag para órdenes de WhatsApp
     });
 
     await order.save();
@@ -147,7 +139,6 @@ export async function POST(request) {
         order.status = "cancelado"; // Estado permitido
 
         // Almacenar los detalles del error en un campo adicional
-        // Primero, asegúrate de que el campo exista en tu modelo
         order.paymentDetails = {
           errorType: "error_pago",
           errorMessage: mpError.message,
@@ -160,6 +151,12 @@ export async function POST(request) {
           { status: 500 }
         );
       }
+    } else if (orderData.paymentMethod === "whatsapp") {
+      // Para pedidos de WhatsApp, simplemente devolver el ID de la orden
+      return NextResponse.json({
+        message: "Orden de WhatsApp creada correctamente",
+        orderId: order._id,
+      });
     }
 
     // Para otros métodos de pago
@@ -175,55 +172,26 @@ export async function POST(request) {
     );
   }
 }
-// Agregar este método al archivo existente api/orders/route.js
 
-// GET - Obtener todas las órdenes (solo para admins)
-export async function GET(request) {
+export async function GET() {
   try {
-    // Verificar la sesión del usuario
+    // Verificación de administrador
     const session = await getServerSession(authOptions);
-    if (!session) {
-      return NextResponse.json({ message: "No autorizado" }, { status: 401 });
-    }
-
-    // Verificar si es admin
-    if (session.user.role !== "admin") {
+    if (!session || session.user.role !== "admin") {
       return NextResponse.json({ message: "No autorizado" }, { status: 403 });
     }
 
-    // Conectar a la base de datos
     await connectDB();
 
-    // Parámetros de búsqueda
-    const { searchParams } = new URL(request.url);
-    const limit = parseInt(searchParams.get("limit") || "100");
-    const page = parseInt(searchParams.get("page") || "1");
-    const status = searchParams.get("status");
+    // Obtener todas las órdenes con populate
+    const orders = await Order.find()
+      .populate("user", "name email phone")
+      .sort({ createdAt: -1 });
 
-    // Construir la consulta
-    let query = {};
-    if (status) {
-      query.status = status;
-    }
-
-    // Obtener todas las órdenes con populate del usuario
-    const orders = await Order.find(query)
-      .populate("user", "name email")
-      .sort({ createdAt: -1 })
-      .skip((page - 1) * limit)
-      .limit(limit)
-      .lean();
-
-    // Contar el total para paginación
-    const total = await Order.countDocuments(query);
-
-    // Retornar las órdenes
+    // Devolver DIRECTAMENTE el array (sin wrapper de objeto)
     return NextResponse.json(orders);
   } catch (error) {
     console.error("Error al obtener órdenes:", error);
-    return NextResponse.json(
-      { message: "Error al obtener órdenes" },
-      { status: 500 }
-    );
+    return NextResponse.json([], { status: 500 }); // Devolver array vacío en caso de error
   }
 }

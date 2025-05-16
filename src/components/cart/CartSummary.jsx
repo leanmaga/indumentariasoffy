@@ -1,3 +1,4 @@
+// components/cart/CartSummary.jsx
 "use client";
 
 import { useCartStore } from "@/lib/store";
@@ -58,10 +59,10 @@ const CartSummary = () => {
             </div>
           </div>
 
-          {/* Botón de checkout */}
+          {/* Un solo botón para proceder al checkout donde estarán ambas opciones */}
           <button
             onClick={handleCheckout}
-            className="w-full btn-drop py-3 flex items-center justify-center"
+            className="w-full btn-drop py-3 flex items-center justify-center mb-4"
             disabled={isEmpty}
           >
             <span className="flex items-center">

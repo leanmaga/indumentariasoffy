@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { toast } from "react-hot-toast";
 import { MagnifyingGlassIcon, EyeIcon } from "@heroicons/react/24/outline";
+import { FaWhatsapp } from "react-icons/fa";
 
 const OrderTable = ({ orders: initialOrders }) => {
   const [orders, setOrders] = useState(initialOrders);
@@ -25,7 +26,10 @@ const OrderTable = ({ orders: initialOrders }) => {
           .includes(searchTerm.toLowerCase()));
 
     const matchesStatus =
-      statusFilter === "all" || order.status === statusFilter;
+      statusFilter === "all" ||
+      order.status === statusFilter ||
+      // Caso especial para filtrar todos los pedidos de WhatsApp
+      (statusFilter === "whatsapp" && order.paymentMethod === "whatsapp");
 
     return matchesSearch && matchesStatus;
   });
@@ -69,6 +73,14 @@ const OrderTable = ({ orders: initialOrders }) => {
     return new Date(dateString).toLocaleDateString(undefined, options);
   };
 
+  // Abrir chat de WhatsApp
+  const openWhatsAppChat = (order) => {
+    // Extraer el número de teléfono del pedido (si existe) o usar un número predeterminado
+    const phone = order.shippingInfo?.phone || "5491112345678"; // Reemplaza con tu número
+    const whatsappUrl = `https://wa.me/${phone.replace(/\D/g, "")}`; // Eliminar caracteres no numéricos
+    window.open(whatsappUrl, "_blank");
+  };
+
   return (
     <div>
       {/* Filtros y búsqueda */}
@@ -92,7 +104,9 @@ const OrderTable = ({ orders: initialOrders }) => {
             onChange={(e) => setStatusFilter(e.target.value)}
             className="py-2 px-4 border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
           >
-            <option value="all">Todos los estados</option>
+            <option value="all">Todos los pedidos</option>
+            <option value="whatsapp">Pedidos de WhatsApp</option>
+            <option value="whatsapp_pendiente">WhatsApp - Pendiente</option>
             <option value="pendiente">Pendiente</option>
             <option value="pagado">Pagado</option>
             <option value="enviado">Enviado</option>
@@ -135,6 +149,12 @@ const OrderTable = ({ orders: initialOrders }) => {
                 scope="col"
                 className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
               >
+                Método
+              </th>
+              <th
+                scope="col"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              >
                 Estado
               </th>
               <th
@@ -148,7 +168,12 @@ const OrderTable = ({ orders: initialOrders }) => {
           <tbody className="bg-white divide-y divide-gray-200">
             {filteredOrders.length > 0 ? (
               filteredOrders.map((order) => (
-                <tr key={order._id} className="hover:bg-gray-50">
+                <tr
+                  key={order._id}
+                  className={`hover:bg-gray-50 ${
+                    order.paymentMethod === "whatsapp" ? "bg-green-50" : ""
+                  }`}
+                >
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {order._id.substring(0, 8)}...
                   </td>
@@ -159,6 +184,11 @@ const OrderTable = ({ orders: initialOrders }) => {
                     <div className="text-sm text-gray-500">
                       {order.shippingInfo?.email || "N/A"}
                     </div>
+                    {order.shippingInfo?.phone && (
+                      <div className="text-sm text-gray-500">
+                        {order.shippingInfo.phone}
+                      </div>
+                    )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {formatDate(order.createdAt)}
@@ -167,10 +197,33 @@ const OrderTable = ({ orders: initialOrders }) => {
                     ${order.totalAmount.toFixed(2)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
+                    <span
+                      className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                        order.paymentMethod === "whatsapp"
+                          ? "bg-green-100 text-green-800"
+                          : order.paymentMethod === "mercadopago"
+                          ? "bg-blue-100 text-blue-800"
+                          : "bg-gray-100 text-gray-800"
+                      }`}
+                    >
+                      {order.paymentMethod === "whatsapp" ? (
+                        <span className="flex items-center">
+                          <FaWhatsapp className="mr-1" /> WhatsApp
+                        </span>
+                      ) : order.paymentMethod === "mercadopago" ? (
+                        "MercadoPago"
+                      ) : (
+                        order.paymentMethod
+                      )}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
                       <span
                         className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                          order.status === "pagado"
+                          order.status === "whatsapp_pendiente"
+                            ? "bg-green-100 text-green-800"
+                            : order.status === "pagado"
                             ? "bg-green-100 text-green-800"
                             : order.status === "pendiente"
                             ? "bg-yellow-100 text-yellow-800"
@@ -181,8 +234,10 @@ const OrderTable = ({ orders: initialOrders }) => {
                             : "bg-red-100 text-red-800"
                         }`}
                       >
-                        {order.status.charAt(0).toUpperCase() +
-                          order.status.slice(1)}
+                        {order.status === "whatsapp_pendiente"
+                          ? "WhatsApp - Pendiente"
+                          : order.status.charAt(0).toUpperCase() +
+                            order.status.slice(1)}
                       </span>
 
                       <select
@@ -193,6 +248,9 @@ const OrderTable = ({ orders: initialOrders }) => {
                         className="ml-2 py-1 pl-2 pr-8 text-xs border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
                         disabled={isUpdating}
                       >
+                        <option value="whatsapp_pendiente">
+                          WhatsApp - Pendiente
+                        </option>
                         <option value="pendiente">Pendiente</option>
                         <option value="pagado">Pagado</option>
                         <option value="enviado">Enviado</option>
@@ -202,19 +260,30 @@ const OrderTable = ({ orders: initialOrders }) => {
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <Link
-                      href={`/admin/orders/${order._id}`}
-                      className="text-indigo-600 hover:text-indigo-900"
-                    >
-                      <EyeIcon className="h-5 w-5 inline" />
-                    </Link>
+                    <div className="flex justify-end space-x-2">
+                      {order.paymentMethod === "whatsapp" && (
+                        <button
+                          onClick={() => openWhatsAppChat(order)}
+                          className="text-green-600 hover:text-green-900"
+                          title="Contactar por WhatsApp"
+                        >
+                          <FaWhatsapp className="h-5 w-5" />
+                        </button>
+                      )}
+                      <Link
+                        href={`/admin/orders/${order._id}`}
+                        className="text-indigo-600 hover:text-indigo-900"
+                      >
+                        <EyeIcon className="h-5 w-5" />
+                      </Link>
+                    </div>
                   </td>
                 </tr>
               ))
             ) : (
               <tr>
                 <td
-                  colSpan="6"
+                  colSpan="7"
                   className="px-6 py-4 text-center text-sm text-gray-500"
                 >
                   No se encontraron pedidos

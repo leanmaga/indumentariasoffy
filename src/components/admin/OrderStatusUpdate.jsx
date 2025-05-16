@@ -1,3 +1,4 @@
+// components/admin/OrderStatusUpdate.jsx
 "use client";
 
 import { useState } from "react";
@@ -18,12 +19,13 @@ const OrderStatusUpdate = ({ order }) => {
     setLoading(true);
 
     try {
-      const response = await fetch(`/api/admin/orders/${order._id}`, {
+      const response = await fetch(`/api/orders/${order._id}`, {
+        // Cambia la ruta si es necesario
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ status: newStatus }),
+        body: JSON.stringify({ status }), // Usar status en lugar de newStatus
       });
 
       if (!response.ok) {
@@ -55,6 +57,7 @@ const OrderStatusUpdate = ({ order }) => {
           onChange={(e) => setStatus(e.target.value)}
           className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
         >
+          <option value="whatsapp_pendiente">WhatsApp - Pendiente</option>
           <option value="pendiente">Pendiente</option>
           <option value="pagado">Pagado</option>
           <option value="enviado">Enviado</option>
