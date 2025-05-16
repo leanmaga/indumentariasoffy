@@ -1,6 +1,8 @@
+// components/Navbar.jsx - actualizado con dropdown para el perfil
+
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useSession, signOut } from "next-auth/react";
 import { usePathname } from "next/navigation";
@@ -11,14 +13,17 @@ import {
   Bars3Icon,
   XMarkIcon,
   ShieldCheckIcon,
+  ChevronDownIcon,
 } from "@heroicons/react/24/outline";
 import AuthModal from "@/components/auth/AuthModal";
 import Image from "next/image";
 
 const Navbar = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const { data: session } = useSession();
   const pathname = usePathname();
+  const dropdownRef = useRef(null);
 
   // Solo Zustand
   const cartItems = useCartStore((state) => state.items);
@@ -33,6 +38,9 @@ const Navbar = () => {
   const [authModalView, setAuthModalView] = useState("login");
 
   const isAdmin = session?.user?.role === "admin";
+  const hasGoogleImage =
+    session?.user?.image &&
+    session.user.image.includes("googleusercontent.com");
 
   const handleSignOut = () => {
     // Limpiar Zustand store
@@ -62,8 +70,24 @@ const Navbar = () => {
     setIsAuthModalOpen(true);
   };
 
+  // Cerrar dropdown al hacer clic fuera
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsProfileDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  // Cerrar menú móvil al cambiar de ruta
   useEffect(() => {
     setIsMobileMenuOpen(false);
+    setIsProfileDropdownOpen(false);
   }, [pathname]);
 
   return (
@@ -76,18 +100,15 @@ const Navbar = () => {
             className="text-xl font-bold flex items-center text-gray-900"
           >
             <span>
-              {/* <ShoppingBagIcon className="h-5 w-5 mr-2" /> */}
               <Image
                 src="/images/logo.jpeg"
-                alt="Hero background"
+                alt="Logo"
                 width={75}
                 height={75}
-                className="object-cover"
+                className="object-cover w-auto h-auto"
                 priority
               />
             </span>
-            {/*<span className="hidden sm:inline">IndumentariaSoffy</span>
-            <span className="sm:hidden">Soffy</span>*/}
           </Link>
 
           <div
@@ -170,7 +191,7 @@ const Navbar = () => {
                 </button>
               </div>
             ) : (
-              <div className="flex items-center space-x-3">
+              <div className="flex items-center space-x-3 relative">
                 {isAdmin && (
                   <Link
                     href="/admin/products/add"
@@ -180,14 +201,72 @@ const Navbar = () => {
                   </Link>
                 )}
 
-                <button
-                  onClick={handleSignOut}
-                  className="text-sm uppercase font-medium text-gray-700 hover:text-gray-900 cursor-pointer"
-                >
-                  Cerrar sesión
-                </button>
-                <div className="h-8 w-8 bg-indigo-500 rounded-full flex items-center justify-center">
-                  <UserIcon className="h-5 w-5 text-white" />
+                <div className="relative" ref={dropdownRef}>
+                  <button
+                    onClick={() =>
+                      setIsProfileDropdownOpen(!isProfileDropdownOpen)
+                    }
+                    className="flex items-center space-x-2 focus:outline-none"
+                  >
+                    {hasGoogleImage ? (
+                      <div className="h-8 w-8 rounded-full overflow-hidden">
+                        <Image
+                          src={session.user.image}
+                          alt={session.user.name || "Usuario"}
+                          width={32}
+                          height={32}
+                          className="object-cover w-full h-full"
+                        />
+                      </div>
+                    ) : (
+                      <div className="h-8 w-8 bg-indigo-500 rounded-full flex items-center justify-center">
+                        <UserIcon className="h-5 w-5 text-white" />
+                      </div>
+                    )}
+                    <ChevronDownIcon className="h-4 w-4" />
+                  </button>
+
+                  {/* Dropdown de perfil */}
+                  {isProfileDropdownOpen && (
+                    <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-md shadow-lg z-50">
+                      <div className="py-1">
+                        <div className="px-4 py-2 border-b border-gray-100">
+                          <p className="text-sm font-medium text-gray-900">
+                            {session.user.name}
+                          </p>
+                          <p className="text-xs text-gray-500 truncate">
+                            {session.user.email}
+                          </p>
+                        </div>
+                        <Link
+                          href="/profile"
+                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        >
+                          Mi Perfil
+                        </Link>
+                        <Link
+                          href="/profile/orders"
+                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        >
+                          Mis Pedidos
+                        </Link>
+                        <Link
+                          href="/profile/settings"
+                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        >
+                          Configuración
+                        </Link>
+                        <div className="border-t border-gray-100">
+                          <button
+                            onClick={handleSignOut}
+                            className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                          >
+                            Cerrar Sesión
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -205,7 +284,7 @@ const Navbar = () => {
           </button>
         </div>
 
-        {/* Mobile menu */}
+        {/* Mobile menu - actualizado para incluir opciones de perfil */}
         <div
           className={`md:hidden ${
             isMobileMenuOpen ? "block" : "hidden"
@@ -251,6 +330,28 @@ const Navbar = () => {
                     Mi Perfil
                   </Link>
 
+                  <Link
+                    href="/profile/orders"
+                    className={`block py-2 px-2 uppercase text-sm font-medium ${
+                      isActive("/profile/orders")
+                        ? "text-indigo-500"
+                        : "text-gray-700"
+                    }`}
+                  >
+                    Mis Pedidos
+                  </Link>
+
+                  <Link
+                    href="/profile/settings"
+                    className={`block py-2 px-2 uppercase text-sm font-medium ${
+                      isActive("/profile/settings")
+                        ? "text-indigo-500"
+                        : "text-gray-700"
+                    }`}
+                  >
+                    Configuración
+                  </Link>
+
                   {!isAdmin && (
                     <Link
                       href="/cart"
@@ -293,7 +394,7 @@ const Navbar = () => {
                 {/* Botón para cerrar sesión */}
                 <div className="py-2">
                   <button
-                    onClick={handleSignOut} // Usar la nueva función aquí también
+                    onClick={handleSignOut}
                     className="block w-full py-3 px-4 uppercase text-sm font-medium text-center border border-gray-300 hover:bg-gray-50 cursor-pointer"
                   >
                     Cerrar Sesión
