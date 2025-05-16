@@ -1,29 +1,15 @@
-// components/ui/GoogleLoginButton.jsx
 "use client";
-
 import { signIn } from "next-auth/react";
 import { FcGoogle } from "react-icons/fc";
 import { useState } from "react";
 
 export default function GoogleLoginButton({ callbackUrl = "/" }) {
-  const [isLoading, setIsLoading] = useState(false);
-
+  const [isLoading, setLoading] = useState(false);
   const handleGoogleLogin = async () => {
-    setIsLoading(true);
-
-    try {
-      // Versión mejorada para móviles
-      await signIn("google", {
-        callbackUrl:
-          window.location.origin +
-          (callbackUrl.startsWith("/") ? callbackUrl : `/${callbackUrl}`),
-      });
-    } catch (error) {
-      console.error("Error al iniciar sesión con Google:", error);
-      setIsLoading(false);
-    }
+    setLoading(true);
+    await signIn("google", { callbackUrl, redirect: true });
+    setLoading(false);
   };
-
   return (
     <button
       type="button"
@@ -32,9 +18,7 @@ export default function GoogleLoginButton({ callbackUrl = "/" }) {
       disabled={isLoading}
     >
       <FcGoogle size={20} />
-      <span className="ml-2">
-        {isLoading ? "Conectando..." : "Continuar con Google"}
-      </span>
+      <span>{isLoading ? "Conectando..." : "Continuar con Google"}</span>
     </button>
   );
 }
