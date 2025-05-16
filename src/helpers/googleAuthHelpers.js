@@ -1,4 +1,5 @@
 // src/helpers/googleAuthHelpers.js
+import { NextResponse } from "next/server";
 import { signIn } from "next-auth/react";
 
 // Función simplificada para detectar dispositivos móviles
@@ -19,6 +20,14 @@ export async function handleGoogleSignIn(options = {}) {
       redirect: true, // Dejar que NextAuth maneje la redirección
     });
   } catch (error) {
+    console.error("Error en handleGoogleSignIn:", error);
     return { error: error.message };
+  }
+}
+
+// Función de utilidad para log
+export function logAuthFlow(message, data = {}) {
+  if (process.env.NODE_ENV === "development") {
+    console.log(`[Auth Flow] ${message}`, data);
   }
 }
