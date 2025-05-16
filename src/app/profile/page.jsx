@@ -203,7 +203,7 @@ export default function ProfilePage() {
                           <div className="flex items-center">
                             <UserIcon className="h-5 w-5 text-gray-400 mr-2" />
                             <p className="text-lg font-medium">
-                              {userData.name}
+                              {userData.name || "Usuario"}
                             </p>
                           </div>
                         </div>
@@ -593,7 +593,9 @@ export default function ProfilePage() {
                         </p>
                         <div className="flex items-center">
                           <UserIcon className="h-5 w-5 text-gray-400 mr-2" />
-                          <p className="text-lg font-medium">{userData.name}</p>
+                          <p className="text-lg font-medium">
+                            {userData.name || "Usuario"}
+                          </p>
                         </div>
                       </div>
 
