@@ -31,35 +31,33 @@ const Footer = () => {
 
   return (
     <>
-      <footer className="bg-black text-white py-16">
+      <footer className="bg-black text-white py-10 sm:py-16 w-full flex justify-center items-center">
         <div className="container mx-auto px-4">
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-8 mb-16">
-            {/* Logo Column */}
-            <div className="col-span-2 md:col-span-4 lg:col-span-1">
+          {/* Contenedor principal: flex-col en móvil, flex-row con justify-between en tablet/desktop */}
+          <div className="w-full flex flex-col sm:flex-row sm:justify-between gap-8 mb-10 sm:mb-16">
+            {/* Logo Column - Centrado en móvil, alineado a la izquierda en desktop */}
+            <div className="flex flex-col items-center sm:items-start">
               <Link href="/" className="text-2xl font-bold font-drop">
                 SOFFY
               </Link>
+              {/* Copyright */}
+              <div className="text-center sm:text-left">
+                <p className="text-xs text-gray-400 font-drop">
+                  © {currentYear} IndumentariaSoffy
+                </p>
+              </div>
             </div>
 
-            {/* Company */}
-            <div className="space-y-3">
+            {/* Company - Centrado en móvil */}
+            <div className="flex flex-col items-center sm:items-start space-y-3">
               <h4 className="text-xs font-medium uppercase tracking-wider mb-4 font-drop">
                 Compañía
               </h4>
-              <ul className="space-y-2">
-                {/* <li>
-                  <Link
-                    href="/about"
-                    className="text-sm text-gray-300 hover:text-white transition font-drop"
-                  >
-                    Sobre Nosotros
-                  </Link>
-                </li> */}
-
+              <ul className="flex flex-col items-center sm:items-start space-y-2">
                 <li>
                   <button
                     onClick={() => openDocument("privacy")}
-                    className="text-sm text-gray-300 hover:text-white transition font-drop"
+                    className="cursor-pointer text-sm text-gray-300 hover:text-white transition font-drop"
                   >
                     Política de Privacidad
                   </button>
@@ -67,7 +65,7 @@ const Footer = () => {
                 <li>
                   <button
                     onClick={() => openDocument("terms")}
-                    className="text-sm text-gray-300 hover:text-white transition font-drop"
+                    className="cursor-pointer text-sm text-gray-300 hover:text-white transition font-drop"
                   >
                     Términos de Uso
                   </button>
@@ -75,7 +73,7 @@ const Footer = () => {
                 <li>
                   <button
                     onClick={() => openDocument("cookies")}
-                    className="text-sm text-gray-300 hover:text-white transition font-drop"
+                    className="cursor-pointer text-sm text-gray-300 hover:text-white transition font-drop"
                   >
                     Configuración de Cookies
                   </button>
@@ -83,47 +81,24 @@ const Footer = () => {
               </ul>
             </div>
 
-            {/* Newsletter */}
-            <div className="space-y-3">
-              <h4 className="text-xs font-medium uppercase tracking-wider mb-4 font-drop">
-                Newsletter
-              </h4>
-              <ul className="space-y-2">
-                <li>
-                  <span className="text-sm text-gray-300 font-drop">
-                    Únete y recibe ofertas exclusivas
-                  </span>
-                </li>
-                <li>
-                  <Link
-                    href="#"
-                    className="text-sm text-gray-300 hover:text-white transition font-drop underline"
-                  >
-                    Suscribirse
-                  </Link>
-                </li>
-              </ul>
-            </div>
-
-            {/* Support */}
-            <div className="space-y-3">
-              <h4 className="text-xs font-medium uppercase tracking-wider mb-4 font-drop">
+            {/* Support - Centrado en móvil */}
+            <div className="flex flex-col items-center sm:items-start space-y-3">
+              <h4 className="cursor-pointer text-xs font-medium uppercase tracking-wider mb-4 font-drop">
                 Soporte
               </h4>
-              <ul className="space-y-2">
+              <ul className="flex flex-col items-center sm:items-start space-y-2">
                 <li>
                   <Link
                     href="/contact"
-                    className="text-sm text-gray-300 hover:text-white transition font-drop"
+                    className="cursor-pointer text-sm text-gray-300 hover:text-white transition font-drop"
                   >
                     Contacto
                   </Link>
                 </li>
-
                 <li>
                   <Link
                     href="/help"
-                    className="text-sm text-gray-300 hover:text-white transition font-drop"
+                    className="cursor-pointer text-sm text-gray-300 hover:text-white transition font-drop"
                   >
                     Centro de Ayuda
                   </Link>
@@ -131,23 +106,24 @@ const Footer = () => {
               </ul>
             </div>
 
-            {/* Follow */}
-            <div className="space-y-3">
+            {/* Follow - Centrado en móvil */}
+            <div className="flex flex-col items-center sm:items-start space-y-3">
               <h4 className="text-xs font-medium uppercase tracking-wider mb-4 font-drop">
                 Síguenos
               </h4>
-              <div className="flex space-x-4">
+              <div className="flex justify-center sm:justify-start space-x-4">
                 <a
                   href="https://www.instagram.com/indumentaria_soffy?igsh=ZWNqemd2aGM0cWNq"
                   className="text-gray-300 hover:text-white transition"
                   target="_blank"
                   rel="noopener noreferrer"
+                  aria-label="Instagram"
                 >
                   <svg
                     fill="none"
                     stroke="currentColor"
                     strokeWidth="2"
-                    className="w-5 h-5 "
+                    className="w-5 h-5"
                     viewBox="0 0 24 24"
                   >
                     <rect width="20" height="20" x="2" y="2" rx="5" ry="5" />
@@ -156,13 +132,6 @@ const Footer = () => {
                 </a>
               </div>
             </div>
-          </div>
-
-          {/* Copyright */}
-          <div className="text-right">
-            <p className="text-xs text-gray-400 font-drop">
-              © {currentYear} IndumentariaSoffy
-            </p>
           </div>
         </div>
       </footer>
