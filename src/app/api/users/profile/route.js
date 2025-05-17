@@ -5,6 +5,9 @@ import { authOptions } from "@/lib/auth";
 import connectDB from "@/lib/db";
 import User from "@/models/User";
 
+// Importa el modelo Order correctamente
+import Order from "@/models/Order";
+
 // GET - Obtener perfil del usuario
 export async function GET(request) {
   try {
@@ -17,10 +20,10 @@ export async function GET(request) {
     // Conectar a la base de datos
     await connectDB();
 
-    // Obtener el usuario
-    const user = await User.findOne({ email: session.user.email })
-      .select("-password")
-      .populate("orders");
+    // Obtener el usuario sin populate para evitar problemas
+    const user = await User.findOne({ email: session.user.email }).select(
+      "-password"
+    );
 
     if (!user) {
       return NextResponse.json(
@@ -29,12 +32,31 @@ export async function GET(request) {
       );
     }
 
+    // Obtener las órdenes por separado si el usuario no es admin
+    let userData = JSON.parse(JSON.stringify(user));
+
+    if (user.role !== "admin" && user.orders && user.orders.length > 0) {
+      try {
+        // Obtener las últimas 3 órdenes
+        const recentOrders = await Order.find({ _id: { $in: user.orders } })
+          .sort({ createdAt: -1 })
+          .limit(3)
+          .lean();
+
+        // Añadir órdenes recientes al objeto de usuario
+        userData.recentOrders = recentOrders;
+      } catch (orderError) {
+        console.error("Error al obtener órdenes:", orderError);
+        // No fallamos toda la solicitud si solo hay un error con las órdenes
+      }
+    }
+
     // Devolver el perfil del usuario
-    return NextResponse.json(user);
+    return NextResponse.json(userData);
   } catch (error) {
     console.error("Error al obtener perfil:", error);
     return NextResponse.json(
-      { message: "Error al obtener el perfil" },
+      { message: "Error al obtener el perfil: " + error.message },
       { status: 500 }
     );
   }

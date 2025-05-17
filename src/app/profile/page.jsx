@@ -40,11 +40,26 @@ export default function ProfilePage() {
   useEffect(() => {
     const fetchUserData = async () => {
       try {
-        const response = await fetch("/api/users/profile");
-        if (!response.ok) {
-          throw new Error("Error al obtener datos del perfil");
+        setLoading(true);
+
+        // Verificar que hay una sesión activa
+        if (!session) {
+          setLoading(false);
+          return;
         }
+
+        const response = await fetch("/api/users/profile");
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(
+            errorData.message || "Error al obtener datos del perfil"
+          );
+        }
+
         const data = await response.json();
+
+        // Actualizar estados con la información del usuario
         setUserData(data);
         setFormData({
           name: data.name || "",
@@ -52,8 +67,12 @@ export default function ProfilePage() {
           phone: data.phone || "",
         });
 
-        // Solo obtener pedidos recientes si no es admin
-        if (data.role !== "admin") {
+        // Manejar órdenes recientes
+        if (data.recentOrders) {
+          // Si las órdenes ya vienen incluidas en la respuesta de perfil
+          setRecentOrders(data.recentOrders);
+        } else if (data.role !== "admin") {
+          // Caso de respaldo: hacer una solicitud separada solo si es necesario
           try {
             const ordersResponse = await fetch(
               "/api/users/orders?userOnly=true&limit=3"
@@ -61,13 +80,17 @@ export default function ProfilePage() {
             if (ordersResponse.ok) {
               const ordersData = await ordersResponse.json();
               setRecentOrders(ordersData.orders || []);
+            } else {
+              // No mostrar error al usuario, simplemente log para depuración
+              console.log("No se pudieron cargar las órdenes recientes");
             }
-          } catch (error) {
-            console.error("Error al obtener pedidos recientes:", error);
+          } catch (orderError) {
+            console.error("Error al obtener pedidos recientes:", orderError);
+            // No mostrar errores de órdenes al usuario para no interrumpir la experiencia
           }
         }
       } catch (error) {
-        console.error("Error:", error);
+        console.error("Error al cargar perfil:", error);
         toast.error("No se pudieron cargar los datos del perfil");
       } finally {
         setLoading(false);
@@ -76,6 +99,8 @@ export default function ProfilePage() {
 
     if (session) {
       fetchUserData();
+    } else {
+      setLoading(false);
     }
   }, [session]);
 
