@@ -7,7 +7,7 @@ import { useForm } from "react-hook-form";
 import { toast } from "react-hot-toast";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 import { signIn } from "next-auth/react";
-import GoogleLoginButton from "../ui/GoogleLoginButton";
+import GoogleLoginButton from "@/components/ui/GoogleLoginButton";
 
 export default function RegisterForm({ switchToLogin, afterRegister }) {
   const router = useRouter();
@@ -27,7 +27,6 @@ export default function RegisterForm({ switchToLogin, afterRegister }) {
 
   const password = watch("password", "");
 
-  // Verificar si viene del checkout para mostrar mensaje informativo
   useEffect(() => {
     if (redirectTo.includes("/checkout")) {
       toast.info("Completa el registro para continuar con tu compra", {
@@ -36,70 +35,54 @@ export default function RegisterForm({ switchToLogin, afterRegister }) {
     }
   }, [redirectTo]);
 
-  const onSubmit = async (data) => {
-    setIsLoading(true);
+  // En el onSubmit de RegisterForm.js
 
-    try {
-      const response = await fetch("/api/auth/register", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          name: data.name,
-          email: data.email,
-          password: data.password,
-          phone: data.phone,
-        }),
-      });
+// En RegisterForm.js, la función onSubmit
+const onSubmit = async (data) => {
+  setIsLoading(true);
 
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.message || "Error al registrar el usuario");
-      }
-
-      // Registro exitoso, iniciar sesión automáticamente
-      toast.success("Registro exitoso");
-
-      const loginResult = await signIn("credentials", {
-        redirect: false,
+  try {
+    // Registrar usuario
+    const response = await fetch("/api/auth/register", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        name: data.name,
         email: data.email,
         password: data.password,
-      });
+        phone: data.phone,
+      }),
+    });
 
-      if (loginResult.error) {
-        toast.error("Error al iniciar sesión automáticamente");
-        setIsLoading(false);
-        router.push("/auth/login");
-      } else {
-        // Cerrar el modal primero, luego redirigir
-        if (typeof afterRegister === "function") {
-          afterRegister();
+    const result = await response.json();
 
-          // Usamos setTimeout para asegurar que el modal se cierre antes de redirigir
-          setTimeout(() => {
-            router.push(redirectTo);
-          }, 100);
-        } else {
-          // Si no estamos en un modal, redirigir directamente
-          router.push(redirectTo);
-        }
-      }
-    } catch (error) {
-      toast.error(error.message || "Error al registrar el usuario");
-      console.error("Registration error:", error);
-      setIsLoading(false);
+    if (!response.ok) {
+      throw new Error(result.message || "Error al registrar el usuario");
     }
-  };
 
+    // Mostrar mensaje de éxito
+    toast.success("Registro exitoso. Por favor, verifica tu correo para activar tu cuenta.");
+    
+    // Redirigir a login sin auto-login
+    router.push("/auth/login?registered=true");
+    
+  } catch (error) {
+    toast.error(error.message || "Error al registrar el usuario");
+    console.error("Error de registro:", error);
+    setIsLoading(false);
+  }
+};
+  // Rest of the component remains the same
+  
   return (
+    // Your existing JSX return...
     <div className="w-full max-w-md mx-auto p-6">
       <h2 className="font-bold text-center text-2xl font-semibold mb-6">
         CREAR CUENTA
       </h2>
 
-      {/* Mensaje informativo para usuarios que vienen de checkout */}
       {redirectTo.includes("/checkout") && (
         <div className="mb-6 bg-blue-50 p-4 rounded-md">
           <p className="text-sm text-blue-800">
@@ -110,6 +93,7 @@ export default function RegisterForm({ switchToLogin, afterRegister }) {
       )}
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+        {/* Form fields remain the same */}
         <div>
           <label htmlFor="name" className="block text-sm mb-2">
             Nombre Completo
@@ -297,7 +281,6 @@ export default function RegisterForm({ switchToLogin, afterRegister }) {
           </div>
         </div>
 
-        {/* Botón de Google mejorado */}
         <GoogleLoginButton callbackUrl={redirectTo} />
 
         <p className="mt-4 text-sm">

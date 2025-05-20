@@ -1,11 +1,12 @@
-"use client";
+'use client';
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import toast from "react-hot-toast";
+import { sendPasswordResetEmail } from "@/lib/email-actions"; // Importar directamente la server action
 
-export default function ResetPasswordPage() {
+export default function ResetPasswordPage({ isInModal = false, onBackToLogin, afterSubmit }) {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -18,28 +19,30 @@ export default function ResetPasswordPage() {
     setError("");
 
     try {
-      // Verificar que existe un usuario con este email
-      const response = await fetch(
-        `/api/auth/check-email?email=${encodeURIComponent(email)}`
-      );
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(
-          data.message || "Error al verificar el correo electrónico"
-        );
+      // Usar directamente la server action en lugar de hacer una solicitud fetch
+      const result = await sendPasswordResetEmail(email);
+      
+      if (!result.success) {
+        // Si hay un error específico que debemos mostrar al usuario
+        if (result.error && result.error.includes("Google")) {
+          throw new Error(result.error);
+        }
+        
+        // Para otros errores, lanza un error genérico
+        throw new Error("Error al procesar la solicitud");
       }
 
-      if (!data.exists) {
-        throw new Error("No existe ninguna cuenta con este correo electrónico");
-      }
-
-      // En una aplicación real, aquí enviarías un correo con un enlace de recuperación
-      // Por ahora, solo mostramos un mensaje de éxito
       toast.success(
         "Te hemos enviado un correo con instrucciones para restablecer tu contraseña"
       );
       setSubmitted(true);
+      
+      // Si estamos en el modal y hay una función afterSubmit, la llamamos
+      if (isInModal && typeof afterSubmit === 'function') {
+        setTimeout(() => {
+          afterSubmit();
+        }, 1500); // Esperar un poco para que el usuario vea el mensaje de éxito
+      }
     } catch (error) {
       console.error("Error al solicitar recuperación:", error);
       setError(error.message || "Error al procesar la solicitud");
@@ -51,7 +54,7 @@ export default function ResetPasswordPage() {
 
   if (submitted) {
     return (
-      <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+      <div className={isInModal ? "" : "min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8"}>
         <div className="sm:mx-auto sm:w-full sm:max-w-md">
           <div className="flex justify-center">
             <div className="h-16 w-16 rounded-full bg-green-100 flex items-center justify-center">
@@ -90,12 +93,22 @@ export default function ResetPasswordPage() {
               >
                 Intentar con otro correo
               </button>
-              <Link
-                href="/auth/signin"
-                className="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
-              >
-                Volver a iniciar sesión
-              </Link>
+              
+              {isInModal && typeof onBackToLogin === 'function' ? (
+                <button
+                  onClick={onBackToLogin}
+                  className="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                >
+                  Volver a iniciar sesión
+                </button>
+              ) : (
+                <Link
+                  href="/auth/login"
+                  className="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                >
+                  Volver a iniciar sesión
+                </Link>
+              )}
             </div>
           </div>
         </div>
@@ -104,7 +117,7 @@ export default function ResetPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+    <div className={isInModal ? "" : "min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8"}>
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
           Recupera tu contraseña
@@ -167,12 +180,21 @@ export default function ResetPasswordPage() {
             </div>
 
             <div className="mt-6">
-              <Link
-                href="/auth/signin"
-                className="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
-              >
-                Volver a iniciar sesión
-              </Link>
+              {isInModal && typeof onBackToLogin === 'function' ? (
+                <button
+                  onClick={onBackToLogin}
+                  className="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                >
+                  Volver a iniciar sesión
+                </button>
+              ) : (
+                <Link
+                  href="/auth/login"
+                  className="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                >
+                  Volver a iniciar sesión
+                </Link>
+              )}
             </div>
           </div>
         </div>

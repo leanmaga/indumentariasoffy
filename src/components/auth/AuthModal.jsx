@@ -1,11 +1,14 @@
 "use client";
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Modal from "./Modal";
 import LoginForm from "@/components/auth/LoginForm";
 import RegisterForm from "@/components/auth/RegisterForm";
+import ResetPasswordPage from "@/app/auth/reset-password/page";
 
 const AuthModal = ({ isOpen, onClose, initialView = "login" }) => {
   const [view, setView] = useState(initialView);
+  const router = useRouter();
 
   // Actualiza la vista cuando cambia initialView
   useEffect(() => {
@@ -23,6 +26,11 @@ const AuthModal = ({ isOpen, onClose, initialView = "login" }) => {
     setView("register");
   };
 
+  // Nueva función para cambiar a recuperación de contraseña
+  const handleSwitchToResetPassword = () => {
+    setView("reset-password");
+  };
+
   // Función para manejar el cierre después de acciones exitosas
   const handleSuccess = () => {
     // Retrasar levemente el cierre para permitir que la redirección ocurra primero
@@ -31,18 +39,43 @@ const AuthModal = ({ isOpen, onClose, initialView = "login" }) => {
     }, 100);
   };
 
+  // Determinar si debemos prevenir la redirección al cerrar el modal
+  const preventRedirect = view === "reset-password";
+
   return (
-    <Modal isOpen={isOpen} onClose={onClose} redirectOnClose={true}>
-      {view === "login" ? (
+    <Modal 
+      isOpen={isOpen} 
+      onClose={onClose} 
+      redirectOnClose={true} 
+      preventRedirect={preventRedirect}
+    >
+      {view === "login" && (
         <LoginForm
           switchToRegister={handleSwitchToRegister}
-          afterLogin={handleSuccess} // Usar la nueva función
-          callbackUrl="/" // Puedes personalizar la redirección después del login
+          afterLogin={handleSuccess}
+          onForgotPassword={handleSwitchToResetPassword}
+          isInModal={true}
+          callbackUrl="/"
         />
-      ) : (
+      )}
+      
+      {view === "register" && (
         <RegisterForm
           switchToLogin={handleSwitchToLogin}
-          afterRegister={handleSuccess} // Usar la nueva función
+          afterRegister={handleSuccess}
+        />
+      )}
+      
+      {view === "reset-password" && (
+        <ResetPasswordPage 
+          isInModal={true} 
+          onBackToLogin={handleSwitchToLogin}
+          afterSubmit={() => {
+            // Cerrar el modal después del envío del correo de recuperación
+            onClose();
+            // Opcional: Redirigir si es necesario
+            // router.push("/");
+          }}
         />
       )}
     </Modal>

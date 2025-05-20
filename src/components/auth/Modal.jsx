@@ -10,9 +10,11 @@ const Modal = ({
   children,
   title,
   redirectOnClose = false,
+  redirectPath = "/", // Nueva prop para personalizar la ruta de redirección
+  preventRedirect = false, // Nueva prop para prevenir redirección en casos especiales
 }) => {
   const [mounted, setMounted] = useState(false);
-  const router = useRouter(); // Añadimos el router
+  const router = useRouter();
 
   useEffect(() => {
     setMounted(true);
@@ -30,11 +32,10 @@ const Modal = ({
     // Primero cerrar el modal para evitar interferencias con posibles redirecciones
     onClose();
 
-    // Luego usar un pequeño timeout antes de redirigir para asegurar
-    // que cualquier animación de cierre termine primero
-    if (redirectOnClose) {
+    // Solo redirigir si es necesario y no está prevenido explícitamente
+    if (redirectOnClose && !preventRedirect) {
       setTimeout(() => {
-        router.push("/");
+        router.push(redirectPath);
       }, 50);
     }
   };
@@ -46,14 +47,14 @@ const Modal = ({
       {/* Overlay oscuro */}
       <div
         className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm"
-        onClick={handleClose} // Cambiamos onClose por handleClose
+        onClick={handleClose}
       />
 
       {/* Contenedor del modal */}
       <div className="bg-white relative max-w-lg w-full max-h-[90vh] overflow-auto z-50">
         {/* Botón de cerrar */}
         <button
-          onClick={handleClose} // Cambiamos onClose por handleClose
+          onClick={handleClose}
           className="absolute top-6 right-6 text-gray-600 hover:text-black p-2"
           aria-label="Cerrar"
         >

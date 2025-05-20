@@ -22,7 +22,6 @@ const userSchema = new mongoose.Schema(
     },
     password: {
       type: String,
-      // Hacemos el password condicional - solo requerido si no es Google Auth
       required: function () {
         return !this.googleAuth;
       },
@@ -31,7 +30,6 @@ const userSchema = new mongoose.Schema(
     },
     phone: {
       type: String,
-      // Hacemos el teléfono condicional - solo requerido si no es Google Auth
       required: function () {
         return !this.googleAuth;
       },
@@ -49,7 +47,6 @@ const userSchema = new mongoose.Schema(
         ref: "Order",
       },
     ],
-    // Nuevos campos para soporte de Google Auth
     googleAuth: {
       type: Boolean,
       default: false,
@@ -58,64 +55,87 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
+    // Campos para verificación de email
+    isVerified: {
+      type: Boolean,
+      default: false,
+    },
+    verificationToken: {
+      type: String,
+      select: false,
+    },
+    verificationTokenExpires: {
+      type: Date,
+      select: false,
+    },
+    // Campos para reseteo de contraseña
+    resetPasswordToken: {
+      type: String,
+      select: false,
+    },
+    resetPasswordExpires: {
+      type: Date,
+      select: false,
+    },
   },
   {
     timestamps: true,
   }
 );
 
-// Hash the password before saving
+// VERSIÓN MEJORADA: Hash password before saving
 userSchema.pre("save", async function (next) {
-  // Si es una cuenta de Google sin contraseña, no intentar hashear
-  if (this.googleAuth && !this.password) {
-    return next();
-  }
-
-  // Solo hashear la contraseña si ha sido modificada (o es nueva)
-  if (!this.isModified("password")) return next();
-
   try {
-    // Generar un salt
-    const salt = await bcrypt.genSalt(10);
+    // Skip hashing for Google accounts without password
+    if (this.googleAuth && !this.password) {
+      return next();
+    }
 
-    // Hashear la contraseña junto con el nuevo salt
+    // Only hash if password is modified
+    if (!this.isModified("password")) {
+      return next();
+    }
+    
+    // Verificar que no sea un hash ya existente
+    if (this.password.startsWith('$2a$') || this.password.startsWith('$2b$')) {
+      console.log("La contraseña ya está hasheada, no se rehashea");
+      return next();
+    }
+
+    // Generate salt and hash password
+    console.log("Hasheando contraseña para usuario:", this.email);
+    const salt = await bcrypt.genSalt(10);
     this.password = await bcrypt.hash(this.password, salt);
+    console.log("Contraseña hasheada exitosamente, longitud:", this.password.length);
     next();
   } catch (error) {
+    console.error("Error hashing password:", error);
     next(error);
   }
 });
 
-// Método para comparar contraseñas
-userSchema.methods.comparePassword = async function (candidatePassword) {
+// VERSIÓN SIMPLIFICADA: Compare password method
+userSchema.methods.comparePassword = async function(candidatePassword) {
   try {
-    // Si es una cuenta de Google sin contraseña tradicional
-    if (this.googleAuth && !this.password) {
-      return false; // No permitir inicio de sesión con contraseña
-    }
-
-    // Verificar que tanto la contraseña candidata como la almacenada existen
-    if (!candidatePassword || !this.password) {
-      return false;
-    }
-
-    // Comparar contraseñas
-    return await bcrypt.compare(candidatePassword, this.password);
+    // Para mayor claridad en el debugging
+    console.log("Comparando contraseña para:", this.email);
+    console.log("Contraseña proporcionada longitud:", candidatePassword.length);
+    console.log("Contraseña almacenada longitud:", this.password.length);
+    
+    // Usar bcrypt.compare directamente
+    return bcrypt.compare(candidatePassword, this.password);
   } catch (error) {
-    console.error("Error comparing passwords:", error);
+    console.error("Error al comparar contraseñas:", error);
     return false;
   }
 };
 
-// Método auxiliar para verificar si un usuario puede usar Google Auth
+// Method to check if user can use Google Auth
 userSchema.methods.canUseGoogleAuth = function () {
-  // Un usuario puede usar Google Auth si:
-  // 1. Ya tiene googleAuth activo, o
-  // 2. Tiene una cuenta pero queremos permitir vincularla
   return this.googleAuth || true;
 };
 
-// Prevenir error de sobrescritura de modelo en desarrollo debido a hot reloading
+// Prevent model overwrite in development
 const User = mongoose.models.User || mongoose.model("User", userSchema);
 
 export default User;

@@ -13,6 +13,8 @@ export default function LoginForm({
   type = "user",
   switchToRegister,
   afterLogin,
+  onForgotPassword,
+  isInModal = false,
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -21,6 +23,7 @@ export default function LoginForm({
 
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [loginError, setLoginError] = useState("");
 
   const {
     register,
@@ -46,29 +49,62 @@ export default function LoginForm({
           break;
       }
 
-      // Limpiar el parámetro de error de la URL
+      // Clean error parameter from URL
       const newUrl = new URL(window.location.href);
       newUrl.searchParams.delete("error");
       window.history.replaceState({}, document.title, newUrl.toString());
     }
   }, [error]);
 
-  const onSubmit = async (data) => {
-    setIsLoading(true);
+const onSubmit = async (data) => {
+  setIsLoading(true);
+  setLoginError("");
 
-    try {
-      const result = await signIn("credentials", {
-        redirect: false,
-        email: data.email,
-        password: data.password,
-      });
+  try {
+    console.log("Intentando login con email:", data.email);
+    
+    const result = await signIn("credentials", {
+      redirect: false,
+      email: data.email,
+      password: data.password,
+    });
 
-      if (result.error) {
-        toast.error("Credenciales incorrectas");
-        setIsLoading(false);
+    console.log("Resultado de login:", result);
+
+    if (result.error) {
+      console.error("Login error:", result.error);
+      
+      // Verificar si es un usuario no verificado
+      if (result.error.includes("not verified") || result.error.includes("no verificado")) {
+        setLoginError("Tu cuenta no está verificada. Por favor, revisa tu correo y verifica tu cuenta.");
+        toast.error("Cuenta no verificada. Revisa tu correo para verificar tu cuenta.");
+        
+        // Opcional: ofrecer reenviar correo de verificación
+        const shouldResend = window.confirm("¿Deseas que te reenviemos el correo de verificación?");
+        if (shouldResend) {
+          const resendResult = await fetch("/api/auth/verify-email", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email: data.email }),
+          }).then(res => res.json());
+          
+          if (resendResult.success) {
+            toast.success("Correo de verificación reenviado. Revisa tu bandeja de entrada.");
+          } else {
+            toast.error("Error al reenviar el correo de verificación.");
+          }
+        }
       } else {
-        toast.success("Inicio de sesión exitoso");
+        setLoginError("Credenciales incorrectas");
+        toast.error("Credenciales incorrectas");
+      }
+      
+      setIsLoading(false);
+    } else {
+      toast.success("Inicio de sesión exitoso");
 
+      // Delay navigation slightly to let toast display
+      setTimeout(() => {
         if (typeof afterLogin === "function") {
           afterLogin();
           setTimeout(() => {
@@ -77,12 +113,23 @@ export default function LoginForm({
         } else {
           router.push(redirect);
         }
-      }
-    } catch (error) {
-      toast.error("Error al iniciar sesión");
-      console.error("Login error:", error);
-      setIsLoading(false);
+      }, 300);
     }
+  } catch (error) {
+    console.error("Login error:", error);
+    setLoginError("Error al iniciar sesión");
+    toast.error("Error al iniciar sesión");
+    setIsLoading(false);
+  }
+};
+
+  // Manejador para el enlace "Olvidé mi contraseña"
+  const handleForgotPassword = (e) => {
+    if (isInModal && typeof onForgotPassword === 'function') {
+      e.preventDefault(); // Prevenir la navegación por defecto
+      onForgotPassword(); // Llamar a la función proporcionada por el padre
+    }
+    // Si no estamos en un modal o no hay manejador, deja que el enlace funcione normalmente
   };
 
   return (
@@ -90,6 +137,12 @@ export default function LoginForm({
       <h2 className="font-bold text-center text-2xl font-semibold mb-6">
         INICIAR SESIÓN
       </h2>
+
+      {loginError && (
+        <div className="mb-4 bg-red-50 p-4 rounded-md">
+          <p className="text-sm text-red-600">{loginError}</p>
+        </div>
+      )}
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
         <div>
@@ -165,12 +218,25 @@ export default function LoginForm({
               Recordarme
             </label>
           </div>
-          <Link
-            href="/auth/reset-password"
-            className="text-sm font-medium text-black hover:underline"
-          >
-            ¿Olvidaste tu contraseña?
-          </Link>
+          {isInModal && typeof onForgotPassword === 'function' ? (
+            // Si estamos en un modal, usar un botón que llame a la función proporcionada
+            <button
+              type="button"
+              onClick={onForgotPassword}
+              className="text-sm font-medium text-black hover:underline"
+            >
+              ¿Olvidaste tu contraseña?
+            </button>
+          ) : (
+            // Si no estamos en un modal, usar el enlace normal
+            <Link
+              href="/auth/reset-password"
+              className="text-sm font-medium text-black hover:underline"
+              onClick={handleForgotPassword}
+            >
+              ¿Olvidaste tu contraseña?
+            </Link>
+          )}
         </div>
 
         <button type="submit" disabled={isLoading} className="w-full btn-drop">
@@ -188,7 +254,6 @@ export default function LoginForm({
           </div>
         </div>
 
-        {/* Botón de Google mejorado */}
         <GoogleLoginButton callbackUrl={redirect} />
 
         {type === "user" && (
