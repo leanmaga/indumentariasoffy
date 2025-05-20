@@ -1,6 +1,15 @@
 // lib/email.js
 import nodemailer from 'nodemailer';
 
+// Función para obtener la URL base normalizada
+function getBaseUrl() {
+  // Obtener la URL base de las variables de entorno
+  const url = process.env.NEXT_PUBLIC_FRONTEND_URL || 'http://localhost:3000';
+  
+  // Eliminar slash final si existe
+  return url.endsWith('/') ? url.slice(0, -1) : url;
+}
+
 // Crear un transportador de email - puedes usar un servicio como Gmail o un SMTP propio
 // Para producción, recomiendo servicios como SendGrid, Mailgun, etc.
 export function createEmailTransporter() {
@@ -46,8 +55,8 @@ export function createEmailTransporter() {
 export async function sendVerificationEmail(user, verificationToken) {
   const transporter = createEmailTransporter();
   
-  // URL del frontend para verificar email
-  const verificationUrl = `${process.env.NEXT_PUBLIC_FRONTEND_URL}/auth/verify-email?token=${verificationToken}`;
+  // URL del frontend para verificar email (usando la función getBaseUrl)
+  const verificationUrl = `${getBaseUrl()}/auth/verify-email?token=${verificationToken}`;
   
   const mailOptions = {
     from: `"Tu Tienda" <${process.env.EMAIL_USER}>`,
@@ -88,8 +97,8 @@ export async function sendVerificationEmail(user, verificationToken) {
 export async function sendPasswordResetEmail(user, resetToken) {
   const transporter = createEmailTransporter();
   
-  // URL del frontend para restablecer contraseña
-  const resetUrl = `${process.env.NEXT_PUBLIC_FRONTEND_URL}/auth/reset-password/${resetToken}`;
+  // URL del frontend para restablecer contraseña (usando la función getBaseUrl)
+  const resetUrl = `${getBaseUrl()}/auth/reset-password/${resetToken}`;
   
   const mailOptions = {
     from: `"Tu Tienda" <${process.env.EMAIL_USER}>`,

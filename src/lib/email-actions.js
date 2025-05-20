@@ -5,6 +5,15 @@ import crypto from 'crypto';
 import User from '@/models/User';
 import connectDB from "./db";
 
+// Función para obtener la URL base normalizada
+function getBaseUrl() {
+  // Obtener la URL base de las variables de entorno
+  const url = process.env.NEXT_PUBLIC_FRONTEND_URL || 'http://localhost:3000';
+  
+  // Eliminar slash final si existe
+  return url.endsWith('/') ? url.slice(0, -1) : url;
+}
+
 // Función para crear un transportador de email
 async function createEmailTransporter() {
   // Para desarrollo (pruebas locales)
@@ -73,8 +82,8 @@ export async function sendVerificationEmail(email) {
     // Crear transportador
     const transporter = await createEmailTransporter();
     
-    // URL de verificación
-    const verificationUrl = `${process.env.NEXT_PUBLIC_FRONTEND_URL || 'http://localhost:3000'}/auth/verify-email?token=${verificationToken}`;
+    // URL de verificación (usando la función getBaseUrl)
+    const verificationUrl = `${getBaseUrl()}/auth/verify-email?token=${verificationToken}`;
     
     // URL del logo
     const logoUrl = 'https://indumentaria-soffy.vercel.app/_next/image?url=%2Fimages%2Flogo.jpeg&w=96&q=75';
@@ -155,7 +164,7 @@ export async function sendVerificationEmail(email) {
                   </tr>
                   <tr>
                     <td style="padding-bottom: 20px; text-align: center;">
-                      <a
+                      
                         href="https://www.instagram.com/indumentaria_soffy?igsh=ZWNqemd2aGM0cWNq"
                         style="margin: 0 10px; text-decoration: none;"
                         target="_blank"
@@ -231,8 +240,8 @@ export async function sendPasswordResetEmail(email) {
     // Crear transportador
     const transporter = await createEmailTransporter();
     
-    // URL de restablecimiento
-    const resetUrl = `${process.env.NEXT_PUBLIC_FRONTEND_URL || 'http://localhost:3000'}/auth/reset-password/${resetToken}`;
+    // URL de restablecimiento (usando la función getBaseUrl)
+    const resetUrl = `${getBaseUrl()}/auth/reset-password/${resetToken}`;
     
     // URL del logo
     const logoUrl = 'https://indumentaria-soffy.vercel.app/_next/image?url=%2Fimages%2Flogo.jpeg&w=96&q=75';
@@ -313,7 +322,7 @@ export async function sendPasswordResetEmail(email) {
                   </tr>
                   <tr>
                     <td style="padding-bottom: 20px; text-align: center;">
-                      <a
+                      
                         href="https://www.instagram.com/indumentaria_soffy?igsh=ZWNqemd2aGM0cWNq"
                         style="margin: 0 10px; text-decoration: none;"
                         target="_blank"
