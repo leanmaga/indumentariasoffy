@@ -35,6 +35,7 @@ export default function RegisterForm({ switchToLogin, afterRegister }) {
     }
   }, [redirectTo]);
 
+  // Update the onSubmit function to handle modal scenarios
 const onSubmit = async (data) => {
   setIsLoading(true);
 
@@ -65,8 +66,19 @@ const onSubmit = async (data) => {
     // Mostrar mensaje de éxito
     toast.success("Registro exitoso. Por favor, verifica tu correo para activar tu cuenta.");
     
-    // Redirigir a la página de éxito en lugar de login
-    router.push("/auth/register/success");
+    // Check if we're in a modal (afterRegister callback exists)
+    if (typeof afterRegister === 'function') {
+      // Call the afterRegister callback to close the modal
+      afterRegister();
+      
+      // Wait a brief moment to allow the modal to close, then redirect
+      setTimeout(() => {
+        router.push("/auth/register/success");
+      }, 300);
+    } else {
+      // Direct redirect if not in a modal
+      router.push("/auth/register/success");
+    }
     
   } catch (error) {
     toast.error(error.message || "Error al registrar el usuario");
@@ -74,7 +86,7 @@ const onSubmit = async (data) => {
     setIsLoading(false);
   }
 };
-  
+
   return (
     // Your existing JSX return...
     <div className="w-full max-w-md mx-auto p-6">

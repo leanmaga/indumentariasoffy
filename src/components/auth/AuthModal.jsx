@@ -33,10 +33,7 @@ const AuthModal = ({ isOpen, onClose, initialView = "login" }) => {
 
   // Función para manejar el cierre después de acciones exitosas
   const handleSuccess = () => {
-    // Retrasar levemente el cierre para permitir que la redirección ocurra primero
-    setTimeout(() => {
       onClose();
-    }, 100);
   };
 
   // Determinar si debemos prevenir la redirección al cerrar el modal
