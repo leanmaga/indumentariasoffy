@@ -11,6 +11,7 @@ import {
   ListBulletIcon,
   ChartBarIcon,
 } from "@heroicons/react/24/outline";
+import MercadoPagoLinkButton from "./MercadopagoLinkBUtton";
 
 const AdminSidebar = () => {
   const pathname = usePathname();
@@ -76,6 +77,7 @@ const AdminSidebar = () => {
       <h2 className="text-xl font-semibold mb-6 text-gray-900">
         Administración
       </h2>
+      <MercadoPagoLinkButton/>
       <nav>
         <ul className="space-y-2">
           {menuItems.map((item) => (

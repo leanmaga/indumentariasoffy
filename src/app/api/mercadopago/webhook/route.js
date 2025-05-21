@@ -3,13 +3,30 @@ import { NextResponse } from "next/server";
 import connectDB from "@/lib/db";
 import Order from "@/models/Order";
 import { getPaymentStatus } from "@/lib/mercadopago";
+import crypto from "crypto";
 
 export async function POST(request) {
   try {
+    // Obtener la firma del encabezado
+    const signature = request.headers.get('x-signature') || '';
+    
+    // Clonar el request para poder leer el cuerpo como texto y como JSON
+    const clonedRequest = request.clone();
+    const bodyText = await request.text();
+    
+    // Verificar la firma del webhook - NUEVO
+    if (process.env.MERCADOPAGO_WEBHOOK_SECRET) {
+      const isValid = verifyWebhookSignature(bodyText, signature);
+      if (!isValid) {
+        console.error("Firma de webhook inválida");
+        return NextResponse.json({ message: "Firma inválida" }, { status: 200 });
+      }
+    }
+
     // Parse notification data
     let data;
     try {
-      data = await request.json();
+      data = JSON.parse(bodyText);
     } catch (error) {
       return NextResponse.json(
         { message: "Invalid JSON payload" },
@@ -107,6 +124,26 @@ export async function POST(request) {
   }
 }
 
+// Función para verificar la firma del webhook - NUEVA
+function verifyWebhookSignature(body, signature) {
+  try {
+    if (!signature || !process.env.MERCADOPAGO_WEBHOOK_SECRET) {
+      console.warn("No se puede verificar la firma: falta signature o secret");
+      return false;
+    }
+    
+    const hmac = crypto.createHmac('sha256', process.env.MERCADOPAGO_WEBHOOK_SECRET);
+    hmac.update(body);
+    const calculatedSignature = hmac.digest('hex');
+    
+    // Comparar firmas (la implementación exacta puede variar según MercadoPago)
+    return calculatedSignature === signature;
+  } catch (error) {
+    console.error("Error al verificar firma:", error);
+    return false;
+  }
+}
+
 // MercadoPago also sends OPTIONS requests for CORS
 export async function OPTIONS() {
   return NextResponse.json(
@@ -115,7 +152,7 @@ export async function OPTIONS() {
       headers: {
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Methods": "POST, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type",
+        "Access-Control-Allow-Headers": "Content-Type, x-signature",
       },
     }
   );
