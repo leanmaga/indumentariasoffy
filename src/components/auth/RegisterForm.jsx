@@ -35,9 +35,6 @@ export default function RegisterForm({ switchToLogin, afterRegister }) {
     }
   }, [redirectTo]);
 
-  // En el onSubmit de RegisterForm.js
-
-// En RegisterForm.js, la función onSubmit
 const onSubmit = async (data) => {
   setIsLoading(true);
 
@@ -62,11 +59,14 @@ const onSubmit = async (data) => {
       throw new Error(result.message || "Error al registrar el usuario");
     }
 
+    // Store the email in localStorage for the success page
+    localStorage.setItem("registrationEmail", data.email);
+    
     // Mostrar mensaje de éxito
     toast.success("Registro exitoso. Por favor, verifica tu correo para activar tu cuenta.");
     
-    // Redirigir a login sin auto-login
-    router.push("/auth/login?registered=true");
+    // Redirigir a la página de éxito en lugar de login
+    router.push("/auth/register/success");
     
   } catch (error) {
     toast.error(error.message || "Error al registrar el usuario");
@@ -74,12 +74,11 @@ const onSubmit = async (data) => {
     setIsLoading(false);
   }
 };
-  // Rest of the component remains the same
   
   return (
     // Your existing JSX return...
     <div className="w-full max-w-md mx-auto p-6">
-      <h2 className="font-bold text-center text-2xl font-semibold mb-6">
+      <h2 className="font-bold text-center text-2xl mb-6">
         CREAR CUENTA
       </h2>
 
