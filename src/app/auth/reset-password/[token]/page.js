@@ -37,24 +37,22 @@ export default function NewPasswordPage({ params }) {
     setLoading(true);
     
     try {
-      // Enviar solicitud para actualizar contraseña
+      // Usar la API para actualizar la contraseña
       const response = await fetch("/api/auth/reset-password", {
-        method: "PUT",
+        method: "POST", // Usamos POST en lugar de PUT por compatibilidad
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          token,
-          password,
-        }),
+        body: JSON.stringify({ token, password }),
       });
-      
-      const data = await response.json();
-      
+
+      // Verificar la respuesta
       if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
         throw new Error(data.message || "Error al actualizar la contraseña");
       }
       
+      // Si la respuesta es exitosa
       toast.success("Contraseña actualizada con éxito");
       setSuccess(true);
       
