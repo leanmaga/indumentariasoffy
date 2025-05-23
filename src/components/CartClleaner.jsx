@@ -20,8 +20,3 @@ export default function CartCleaner() {
   // Este componente no renderiza nada visible
   return null;
 }
-
-// Luego añádelo en tu layout.js o app.js
-// import CartCleaner from '@/components/CartCleaner';
-// ...
-// <CartCleaner />

@@ -199,6 +199,7 @@ export async function DELETE(request, { params }) {
   }
 }
 
+// app/api/products/route.js (POST method actualizado)
 export async function POST(request) {
   try {
     // Autenticación: sólo admins pueden crear productos
@@ -210,53 +211,132 @@ export async function POST(request) {
     const data = await request.json();
     await connectDB();
 
-    // Validaciones básicas (puedes extender según tu esquema)
-    if (
-      !data.title ||
-      !data.salePrice ||
-      !data.cost ||
-      !data.profitMargin ||
-      !data.category ||
-      !data.imageUrl
-    ) {
+    // Validaciones de campos obligatorios únicamente
+    if (!data.title || !data.salePrice || !data.category || !data.imageUrl) {
+      const missingFields = [];
+      if (!data.title) missingFields.push("Nombre del producto");
+      if (!data.salePrice) missingFields.push("Precio de venta");
+      if (!data.category) missingFields.push("Categoría");
+      if (!data.imageUrl) missingFields.push("Imagen principal");
+
       return NextResponse.json(
-        { message: "Faltan datos obligatorios para crear el producto" },
+        {
+          message: "Faltan campos obligatorios",
+          missingFields,
+          details: `Por favor completa los siguientes campos: ${missingFields.join(
+            ", "
+          )}`,
+        },
         { status: 400 }
       );
     }
 
-    // Crear el nuevo producto
-    const newProduct = await Product.create({
+    // Validar que el precio de venta sea mayor a 0
+    if (parseFloat(data.salePrice) <= 0) {
+      return NextResponse.json(
+        { message: "El precio de venta debe ser mayor a 0" },
+        { status: 400 }
+      );
+    }
+
+    // Preparar datos del producto con valores por defecto para campos opcionales
+    const productData = {
+      // Campos obligatorios
       title: data.title,
-      description: data.description || "",
       salePrice: parseFloat(data.salePrice),
-      promoPrice: parseFloat(data.promoPrice || 0),
-      cost: parseFloat(data.cost),
-      profitMargin: parseFloat(data.profitMargin),
-      stock: parseInt(data.stock) || 0,
       category: data.category,
-      featured: data.featured || false,
       imageUrl: data.imageUrl,
+
+      // Campos con valores por defecto
+      description: data.description || "",
+      featured: data.featured || false,
       additionalImages: data.additionalImages || [],
       sizes: data.sizes || [],
       colors: data.colors || [],
       variants: data.variants || [],
-      gender: data.gender || "",
-      material: data.material || "",
-      style: data.style || "",
-      season: data.season || "",
-      waistType: data.waistType || "",
-      fit: data.fit || "",
-      heelHeight: data.heelHeight || 0,
-      soleType: data.soleType || "",
-    });
+      stock: 0, // Se calculará después si hay variantes
+    };
+
+    // Agregar campos financieros opcionales solo si tienen valor
+    if (data.promoPrice !== undefined && data.promoPrice !== "") {
+      productData.promoPrice = parseFloat(data.promoPrice) || 0;
+    }
+
+    if (data.cost !== undefined && data.cost !== "") {
+      productData.cost = parseFloat(data.cost);
+    }
+
+    if (data.profitMargin !== undefined && data.profitMargin !== "") {
+      productData.profitMargin = parseFloat(data.profitMargin);
+    }
+
+    // Agregar campos de indumentaria opcionales solo si tienen valor
+    if (data.gender) productData.gender = data.gender;
+    if (data.material) productData.material = data.material;
+    if (data.style) productData.style = data.style;
+    if (data.season) productData.season = data.season;
+
+    // Campos específicos para pantalones
+    if (data.category === "pantalones") {
+      if (data.waistType) productData.waistType = data.waistType;
+      if (data.fit) productData.fit = data.fit;
+    }
+
+    // Campos específicos para calzado
+    if (data.category === "calzado") {
+      if (data.heelHeight !== undefined && data.heelHeight !== "") {
+        productData.heelHeight = parseFloat(data.heelHeight) || 0;
+      }
+      if (data.soleType) productData.soleType = data.soleType;
+    }
+
+    // Manejar stock
+    const variantCategories = ["camisetas", "pantalones", "calzado", "abrigos"];
+    if (
+      variantCategories.includes(data.category) &&
+      data.variants &&
+      Array.isArray(data.variants) &&
+      data.variants.length > 0
+    ) {
+      // Calcular stock total desde las variantes
+      productData.stock = data.variants.reduce(
+        (total, variant) => total + (parseInt(variant.stock) || 0),
+        0
+      );
+    } else if (data.stock !== undefined && data.stock !== "") {
+      // Usar el stock proporcionado o 0 por defecto
+      productData.stock = parseInt(data.stock) || 0;
+    }
+
+    // Crear el nuevo producto
+    const newProduct = await Product.create(productData);
 
     return NextResponse.json(
-      { message: "Producto creado correctamente", product: newProduct },
+      {
+        message: "Producto creado correctamente",
+        product: newProduct,
+      },
       { status: 201 }
     );
   } catch (error) {
     console.error("Error al crear producto:", error);
+
+    // Manejo de errores más específico
+    if (error.name === "ValidationError") {
+      const validationErrors = Object.keys(error.errors).map((field) => ({
+        field,
+        message: error.errors[field].message,
+      }));
+
+      return NextResponse.json(
+        {
+          message: "Error de validación",
+          errors: validationErrors,
+        },
+        { status: 400 }
+      );
+    }
+
     return NextResponse.json(
       { message: "Error al crear producto: " + error.message },
       { status: 500 }

@@ -5,7 +5,7 @@ import { authOptions } from "@/lib/auth";
 import { Providers } from "./providers";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
-import VerificationAlert from "@/components/debug/VerificationAlert"
+// import VerificationAlert from "@/components/debug/VerificationAlert"
 
 export const metadata = {
   title: "TiendaOnline - Tu E-commerce de confianza",
@@ -19,7 +19,7 @@ export default async function RootLayout({ children }) {
       <body className="min-h-screen flex flex-col bg-gray-50">
         <Providers session={session}>
           <Navbar />
-              <VerificationAlert />
+          {/* <VerificationAlert /> */}
           <main className="flex-grow">{children}</main>
           <Footer />
         </Providers>
