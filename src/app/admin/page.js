@@ -268,7 +268,7 @@ export default function AdminDashboard() {
                             : order.status === "enviado"
                             ? "bg-blue-100 text-blue-800"
                             : order.status === "entregado"
-                            ? "bg-black bg-opacity-10 text-black"
+                            ? "bg-black bg-opacity-10 text-white"
                             : "bg-red-100 text-red-800"
                         }`}
                       >

@@ -8,12 +8,11 @@ import { getServerSession } from "next-auth/next";
 // GET para obtener un producto específico por ID
 export async function GET(request, { params }) {
   try {
-    const { id } = params;
+    const { id } = await params;
 
     await connectDB();
 
     const product = await Product.findById(id);
-
     if (!product) {
       return NextResponse.json(
         { message: "Producto no encontrado" },
@@ -35,19 +34,15 @@ export async function GET(request, { params }) {
 export async function PUT(request, { params }) {
   try {
     const session = await getServerSession(authOptions);
-
-    // Verificar autenticación y permisos
     if (!session || session.user.role !== "admin") {
       return NextResponse.json({ message: "No autorizado" }, { status: 403 });
     }
 
-    const { id } = params;
+    const { id } = await params;
     const productData = await request.json();
 
     await connectDB();
-
     const product = await Product.findById(id);
-
     if (!product) {
       return NextResponse.json(
         { message: "Producto no encontrado" },
@@ -55,11 +50,7 @@ export async function PUT(request, { params }) {
       );
     }
 
-    // Actualizar todos los campos
-    Object.keys(productData).forEach((key) => {
-      product[key] = productData[key];
-    });
-
+    Object.assign(product, productData);
     await product.save();
 
     return NextResponse.json({
@@ -79,19 +70,14 @@ export async function PUT(request, { params }) {
 export async function DELETE(request, { params }) {
   try {
     const session = await getServerSession(authOptions);
-
-    // Verificar autenticación y rol de admin
     if (!session || session.user.role !== "admin") {
       return NextResponse.json({ message: "No autorizado" }, { status: 401 });
     }
 
-    const { id } = params;
-
+    const { id } = await params;
     await connectDB();
 
-    // Buscar y eliminar el producto
     const product = await Product.findByIdAndDelete(id);
-
     if (!product) {
       return NextResponse.json(
         { message: "Producto no encontrado" },

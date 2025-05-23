@@ -198,3 +198,68 @@ export async function DELETE(request, { params }) {
     );
   }
 }
+
+export async function POST(request) {
+  try {
+    // Autenticación: sólo admins pueden crear productos
+    const session = await getServerSession(authOptions);
+    if (!session || session.user.role !== "admin") {
+      return NextResponse.json({ message: "No autorizado" }, { status: 403 });
+    }
+
+    const data = await request.json();
+    await connectDB();
+
+    // Validaciones básicas (puedes extender según tu esquema)
+    if (
+      !data.title ||
+      !data.salePrice ||
+      !data.cost ||
+      !data.profitMargin ||
+      !data.category ||
+      !data.imageUrl
+    ) {
+      return NextResponse.json(
+        { message: "Faltan datos obligatorios para crear el producto" },
+        { status: 400 }
+      );
+    }
+
+    // Crear el nuevo producto
+    const newProduct = await Product.create({
+      title: data.title,
+      description: data.description || "",
+      salePrice: parseFloat(data.salePrice),
+      promoPrice: parseFloat(data.promoPrice || 0),
+      cost: parseFloat(data.cost),
+      profitMargin: parseFloat(data.profitMargin),
+      stock: parseInt(data.stock) || 0,
+      category: data.category,
+      featured: data.featured || false,
+      imageUrl: data.imageUrl,
+      additionalImages: data.additionalImages || [],
+      sizes: data.sizes || [],
+      colors: data.colors || [],
+      variants: data.variants || [],
+      gender: data.gender || "",
+      material: data.material || "",
+      style: data.style || "",
+      season: data.season || "",
+      waistType: data.waistType || "",
+      fit: data.fit || "",
+      heelHeight: data.heelHeight || 0,
+      soleType: data.soleType || "",
+    });
+
+    return NextResponse.json(
+      { message: "Producto creado correctamente", product: newProduct },
+      { status: 201 }
+    );
+  } catch (error) {
+    console.error("Error al crear producto:", error);
+    return NextResponse.json(
+      { message: "Error al crear producto: " + error.message },
+      { status: 500 }
+    );
+  }
+}
