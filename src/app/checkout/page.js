@@ -214,7 +214,7 @@ export default function CheckoutPage() {
               continuación para completar el pago con MercadoPago.
             </p>
 
-            <div className="w-full btn-drop py-3">
+            <div className="w-full items-center ">
               <MercadoPagoButton
                 preferenceId={preferenceId}
                 fallbackUrl={mercadoPagoUrl}
