@@ -1,19 +1,25 @@
 // src/app/api/mercadopago/auth/callback/route.js
 import { NextResponse } from "next/server";
 import connectDB from "@/lib/db";
+import MercadoPagoConfig from "@/models/MercadoPagoConfig";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/lib/auth";
 
 export async function GET(request) {
   try {
     // Obtener el código de autorización
     const { searchParams } = new URL(request.url);
     const code = searchParams.get("code");
-    
+    const state = searchParams.get("state"); // userId del admin (opcional)
+
     if (!code) {
-      return NextResponse.redirect(`${process.env.NEXT_PUBLIC_FRONTEND_URL}/admin/settings?error=no_code`);
+      return NextResponse.redirect(
+        `${process.env.NEXT_PUBLIC_FRONTEND_URL}/admin/settings?error=no_code`
+      );
     }
-    
+
     console.log("Código de autorización recibido:", code);
-    
+
     // Intercambiar código por token
     const response = await fetch("https://api.mercadopago.com/oauth/token", {
       method: "POST",
@@ -23,30 +29,61 @@ export async function GET(request) {
         client_id: process.env.MERCADOPAGO_CLIENT_ID,
         grant_type: "authorization_code",
         code: code,
-        redirect_uri: `${process.env.NEXT_PUBLIC_FRONTEND_URL}/api/mercadopago/auth/callback`
-      })
+        redirect_uri: `${process.env.NEXT_PUBLIC_FRONTEND_URL}/api/mercadopago/auth/callback`,
+      }),
     });
-    
+
     const data = await response.json();
-    
+
     if (!response.ok) {
       console.error("Error al obtener token:", data);
-      return NextResponse.redirect(`${process.env.NEXT_PUBLIC_FRONTEND_URL}/admin/settings?error=token_error`);
+      return NextResponse.redirect(
+        `${process.env.NEXT_PUBLIC_FRONTEND_URL}/admin/settings?error=token_error`
+      );
     }
-    
-    // Guardar el token en algún lugar (base de datos, etc.)
-    // Por ahora solo mostramos lo que recibimos
-    console.log("Token obtenido:", data.access_token);
+
+    console.log("Token obtenido exitosamente");
     console.log("El token expira en:", data.expires_in, "segundos");
-    console.log("User ID:", data.user_id);
-    
-    // También necesitarás guardar estos datos en la base de datos
-    // await saveMercadoPagoToken(data);
-    
+    console.log("User ID de MercadoPago:", data.user_id);
+
+    // Conectar a la base de datos
+    await connectDB();
+
+    // Obtener sesión del admin actual
+    const session = await getServerSession(authOptions);
+    const userId = state || session?.user?.id || "default";
+
+    // Desactivar cualquier configuración anterior
+    await MercadoPagoConfig.updateMany({ isActive: true }, { isActive: false });
+
+    // Guardar la nueva configuración
+    const expiresAt = new Date(Date.now() + data.expires_in * 1000);
+
+    const config = await MercadoPagoConfig.findOneAndUpdate(
+      { userId },
+      {
+        userId,
+        accessToken: data.access_token,
+        refreshToken: data.refresh_token,
+        publicKey: data.public_key,
+        userIdMP: data.user_id,
+        isProduction: true,
+        expiresAt,
+        isActive: true,
+      },
+      { upsert: true, new: true }
+    );
+
+    console.log("Configuración guardada exitosamente");
+
     // Redirigir a una página de éxito
-    return NextResponse.redirect(`${process.env.NEXT_PUBLIC_FRONTEND_URL}/admin/settings?success=true`);
+    return NextResponse.redirect(
+      `${process.env.NEXT_PUBLIC_FRONTEND_URL}/admin/settings?success=true&mp_connected=true`
+    );
   } catch (error) {
     console.error("Error en callback:", error);
-    return NextResponse.redirect(`${process.env.NEXT_PUBLIC_FRONTEND_URL}/admin/settings?error=server_error`);
+    return NextResponse.redirect(
+      `${process.env.NEXT_PUBLIC_FRONTEND_URL}/admin/settings?error=server_error`
+    );
   }
 }

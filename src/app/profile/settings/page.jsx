@@ -4,12 +4,18 @@
 import { useState } from "react";
 import { useSession, signOut } from "next-auth/react";
 import { toast } from "react-hot-toast";
+import MercadoPagoLinkButton from "@/components/admin/MercadoPagoLinkbutton";
 
 export default function SettingsPage() {
   const { data: session } = useSession();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteConfirmInput, setDeleteConfirmInput] = useState("");
+
+  const isAdmin = session?.user?.role === "admin";
+  const hasGoogleImage =
+    session?.user?.image &&
+    session.user.image.includes("googleusercontent.com");
 
   // Manejar cambio de contraseña
   const [passwordData, setPasswordData] = useState({
@@ -106,7 +112,14 @@ export default function SettingsPage() {
       <h2 className="font-sora-extralight text-xl font-semibold mb-6">
         Configuración de la cuenta
       </h2>
-
+      {isAdmin && (
+        <div className="mb-8">
+          <h3 className="font-sora-extralight text-lg font-medium mb-4">
+            Autorizar a la app a usar Mercado Pago
+          </h3>
+          <MercadoPagoLinkButton />
+        </div>
+      )}
       {/* Cambiar contraseña */}
       <div className="mb-8">
         <h3 className="font-sora-extralight text-lg font-medium mb-4">

@@ -1,4 +1,3 @@
-// src/app/api/mercadopago/auth/link/route.js
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
@@ -10,16 +9,19 @@ export async function GET() {
     if (!session || session.user.role !== "admin") {
       return NextResponse.json({ error: "No autorizado" }, { status: 403 });
     }
-    
-    // Crear URL de autorización
+
+    // Configurar con tu APP_ID de producción
+    const APP_ID = process.env.MERCADOPAGO_APP_ID; // Necesitas obtener esto de MercadoPago
+    const REDIRECT_URI = `${process.env.NEXT_PUBLIC_BASE_URL}/api/mercadopago/auth/callback`;
+
+    // Crear URL de autorización OAuth2
     const authUrl = new URL("https://auth.mercadopago.com/authorization");
-    authUrl.searchParams.append("client_id", "7032903478408049"); // Tu Client ID
+    authUrl.searchParams.append("client_id", APP_ID);
     authUrl.searchParams.append("response_type", "code");
     authUrl.searchParams.append("platform_id", "mp");
-    authUrl.searchParams.append("redirect_uri", 
-      `${process.env.NEXT_PUBLIC_FRONTEND_URL}/api/mercadopago/auth/callback`);
-    
-    // Retornar la URL para que el frontend pueda redirigir
+    authUrl.searchParams.append("redirect_uri", REDIRECT_URI);
+    authUrl.searchParams.append("state", session.user.id); // Para seguridad
+
     return NextResponse.json({ authUrl: authUrl.toString() });
   } catch (error) {
     console.error("Error generando link:", error);
