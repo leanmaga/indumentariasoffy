@@ -1,24 +1,47 @@
+"use client";
+
 import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { toast } from "react-hot-toast";
 
 export default function MercadoPagoLinkButton() {
-  const [isLinking, setIsLinking] = useState(false);
-  const [isConnected, setIsConnected] = useState(false);
+  const { data: session, status } = useSession();
   const router = useRouter();
 
+  const [isLinking, setIsLinking] = useState(false);
+  const [isUnlinking, setIsUnlinking] = useState(false);
+  const [isConnected, setIsConnected] = useState(false);
+  const [connectionDetails, setConnectionDetails] = useState(null);
+
+  // Solo mostrar el componente si es administrador
+  const isAdmin = session?.user?.role === "admin";
+
   useEffect(() => {
-    // Verificar si ya está conectado
-    checkConnectionStatus();
-  }, []);
+    // Solo verificar si es administrador
+    if (status === "authenticated" && isAdmin) {
+      checkConnectionStatus();
+    }
+  }, [status, isAdmin]);
 
   const checkConnectionStatus = async () => {
     try {
       const response = await fetch("/api/mercadopago/check-status");
+
+      if (!response.ok) {
+        if (response.status === 403) {
+          console.error("No autorizado para verificar estado de MercadoPago");
+          return;
+        }
+        throw new Error("Error al verificar estado");
+      }
+
       const data = await response.json();
       setIsConnected(data.isConnected || false);
+      setConnectionDetails(data);
     } catch (error) {
       console.error("Error checking connection status:", error);
+      // No mostrar error al usuario por tema de seguridad
     }
   };
 
@@ -28,6 +51,14 @@ export default function MercadoPagoLinkButton() {
     try {
       // Generar URL de autorización
       const response = await fetch("/api/mercadopago/auth/link");
+
+      if (!response.ok) {
+        if (response.status === 403) {
+          throw new Error("No tienes permisos para conectar MercadoPago");
+        }
+        throw new Error("Error al generar enlace de autorización");
+      }
+
       const data = await response.json();
 
       if (data.authUrl) {
@@ -38,32 +69,75 @@ export default function MercadoPagoLinkButton() {
       }
     } catch (error) {
       console.error("Error al vincular cuenta:", error);
-      toast.error("Error al vincular cuenta de MercadoPago");
+      toast.error(error.message || "Error al vincular cuenta de MercadoPago");
       setIsLinking(false);
     }
   };
 
   const handleUnlinkAccount = async () => {
-    if (!confirm("¿Estás seguro de desvincular tu cuenta de MercadoPago?")) {
+    const confirmMessage =
+      "¿Estás seguro de desvincular tu cuenta de MercadoPago?\n\n" +
+      "Esto deshabilitará todos los pagos con MercadoPago en tu tienda.";
+
+    if (!confirm(confirmMessage)) {
       return;
     }
+
+    setIsUnlinking(true);
 
     try {
       const response = await fetch("/api/mercadopago/auth/unlink", {
         method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
       });
 
-      if (response.ok) {
-        setIsConnected(false);
-        toast.success("Cuenta desvinculada correctamente");
-      } else {
-        throw new Error("Error al desvincular");
+      const data = await response.json();
+
+      if (!response.ok) {
+        if (response.status === 403) {
+          throw new Error("No tienes permisos para desvincular MercadoPago");
+        }
+        if (response.status === 404) {
+          throw new Error(
+            "No hay configuración de MercadoPago para desvincular"
+          );
+        }
+        throw new Error(data.error || "Error al desvincular cuenta");
       }
+
+      setIsConnected(false);
+      setConnectionDetails(null);
+      toast.success("Cuenta de MercadoPago desvinculada correctamente");
+
+      // Opcional: recargar para actualizar toda la UI
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
     } catch (error) {
       console.error("Error al desvincular cuenta:", error);
-      toast.error("Error al desvincular cuenta");
+      toast.error(error.message || "Error al desvincular cuenta");
+    } finally {
+      setIsUnlinking(false);
     }
   };
+
+  // Si no está autenticado o no es admin, no mostrar nada
+  if (status === "loading") {
+    return (
+      <div className="bg-white p-6 rounded-lg shadow-md mb-6">
+        <div className="animate-pulse">
+          <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+          <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (status === "unauthenticated" || !isAdmin) {
+    return null; // No mostrar el componente
+  }
 
   return (
     <div className="bg-white p-6 rounded-lg shadow-md mb-6">
@@ -102,7 +176,7 @@ export default function MercadoPagoLinkButton() {
           <button
             onClick={handleLinkAccount}
             disabled={isLinking}
-            className="w-full bg-blue-500 text-white py-3 px-4 rounded-md hover:bg-blue-600 transition-colors flex items-center justify-center space-x-2 disabled:opacity-50"
+            className="w-full bg-blue-500 text-white py-3 px-4 rounded-md hover:bg-blue-600 transition-colors flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isLinking ? (
               <>
@@ -158,15 +232,43 @@ export default function MercadoPagoLinkButton() {
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-gray-600">Modo:</span>
-              <span className="font-medium">Producción</span>
+              <span className="font-medium">
+                {connectionDetails?.isProduction ? "Producción" : "Prueba"}
+              </span>
             </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-600">Fuente:</span>
+              <span className="font-medium capitalize">
+                {connectionDetails?.source === "database"
+                  ? "Base de datos"
+                  : connectionDetails?.source === "environment"
+                  ? "Variables de entorno"
+                  : connectionDetails?.source}
+              </span>
+            </div>
+            {connectionDetails?.expiresAt && (
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-600">Expira:</span>
+                <span className="font-medium">
+                  {new Date(connectionDetails.expiresAt).toLocaleDateString()}
+                </span>
+              </div>
+            )}
           </div>
 
           <button
             onClick={handleUnlinkAccount}
-            className="w-full bg-red-50 text-red-600 py-2 px-4 rounded-md hover:bg-red-100 transition-colors text-sm"
+            disabled={isUnlinking}
+            className="w-full bg-red-50 text-red-600 py-2 px-4 rounded-md hover:bg-red-100 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
           >
-            Desvincular cuenta
+            {isUnlinking ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-red-600 mr-2"></div>
+                <span>Desvinculando...</span>
+              </>
+            ) : (
+              "Desvincular cuenta"
+            )}
           </button>
         </div>
       )}

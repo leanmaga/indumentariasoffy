@@ -1,3 +1,4 @@
+// src/components/admin/AdminSidebar.jsx (Actualizado)
 "use client";
 
 import { usePathname } from "next/navigation";
@@ -10,6 +11,7 @@ import {
   PlusCircleIcon,
   ListBulletIcon,
   ChartBarIcon,
+  CogIcon, // Icono para configuración
 } from "@heroicons/react/24/outline";
 
 const AdminSidebar = () => {
@@ -48,11 +50,11 @@ const AdminSidebar = () => {
       icon: <UserGroupIcon className="h-5 w-5" />,
       href: "/admin/users",
     },
-    // {
-    //   title: "Estadísticas",
-    //   icon: <ChartBarIcon className="h-5 w-5" />,
-    //   href: "/admin/stats",
-    // },
+    {
+      title: "Configuración",
+      icon: <CogIcon className="h-5 w-5" />,
+      href: "/admin/settings",
+    },
   ];
 
   // Función para verificar si un enlace está activo
@@ -61,14 +63,6 @@ const AdminSidebar = () => {
       return pathname === "/admin";
     }
     return pathname.startsWith(href);
-  };
-
-  // Función para verificar si un submenú está activo
-  const isSubmenuOpen = (item) => {
-    return (
-      item.submenu &&
-      item.submenu.some((subItem) => pathname.startsWith(subItem.href))
-    );
   };
 
   return (
