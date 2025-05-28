@@ -1,10 +1,10 @@
 // src/app/admin/settings/page.js
 "use client";
 
+import MercadoPagoLinkButton from "@/components/admin/MercadoPagoLinkButton";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
-import MercadoPagoLinkButton from "@/components/admin/MercadoPagoLinkButton";
 
 export default function AdminSettingsPage() {
   const { data: session, status } = useSession();
