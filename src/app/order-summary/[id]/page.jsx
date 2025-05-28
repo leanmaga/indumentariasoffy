@@ -296,7 +296,7 @@ export default function OrderSummaryPage() {
             <div className="mt-10">
               <button
                 onClick={() => {
-                  const phoneNumber = "54911127764823"; // CAMBIA ESTO
+                  const phoneNumber = "5491126907696";
                   const whatsappLink = `https://wa.me/${phoneNumber}`;
                   window.open(whatsappLink, "_blank");
                 }}

@@ -87,7 +87,7 @@ export default function ContactPage() {
                   <h3 className="text-sm font-medium uppercase tracking-wider mb-2 font-drop">
                     Teléfono
                   </h3>
-                  <p className="text-gray-600 font-drop">+1 234 567 890</p>
+                  <p className="text-gray-600 font-drop">+54 9 11 2690-7696</p>
                 </div>
 
                 <div>
@@ -104,33 +104,11 @@ export default function ContactPage() {
                     Síguenos
                   </h3>
                   <div className="flex space-x-6">
-                    {/* <a
-                      href="#"
-                      className="text-black hover:text-gray-600 transition"
-                    >
-                      <svg
-                        fill="currentColor"
-                        className="w-5 h-5"
-                        viewBox="0 0 24 24"
-                      >
-                        <path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z" />
-                      </svg>
-                    </a>
-                    <a
-                      href="#"
-                      className="text-black hover:text-gray-600 transition"
-                    >
-                      <svg
-                        fill="currentColor"
-                        className="w-5 h-5"
-                        viewBox="0 0 24 24"
-                      >
-                        <path d="M23 3a10.9 10.9 0 01-3.14 1.53 4.48 4.48 0 00-7.86 3v1A10.66 10.66 0 013 4s-4 9 5 13a11.64 11.64 0 01-7 2c9 5 20 0 20-11.5a4.5 4.5 0 00-.08-.83A7.72 7.72 0 0023 3z" />
-                      </svg>
-                    </a> */}
                     <a
                       href="https://www.instagram.com/indumentaria_soffy?igsh=ZWNqemd2aGM0cWNq"
                       className="text-black hover:text-gray-600 transition"
+                      target="_blank"
+                      rel="noopener noreferrer"
                     >
                       <svg
                         fill="none"
@@ -148,6 +126,21 @@ export default function ContactPage() {
                           ry="5"
                         />
                         <path d="M16 11.37A4 4 0 1112.63 8 4 4 0 0116 11.37zm1.5-4.87h.01" />
+                      </svg>
+                    </a>
+
+                    <a
+                      href="https://wa.me/5491126907696?text=Hola%20quisiera%20saber%20si"
+                      className="text-black hover:text-gray-600 transition"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <svg
+                        fill="currentColor"
+                        viewBox="0 0 32 32"
+                        className="w-5 h-5"
+                      >
+                        <path d="M16.013 2.007c-7.73 0-14 6.27-14 14 0 2.469.64 4.88 1.858 6.99L2 30l7.18-1.878c2.038 1.124 4.35 1.712 6.832 1.712h.001c7.729 0 14-6.271 14-14s-6.271-14-14-14zm0 25.5c-2.175 0-4.281-.576-6.132-1.666l-.438-.254-4.263 1.115 1.137-4.146-.285-.424c-1.151-1.71-1.759-3.693-1.759-5.73 0-5.798 4.707-10.505 10.505-10.505s10.505 4.707 10.505 10.505-4.707 10.505-10.505 10.505zm5.85-7.838c-.322-.161-1.91-.94-2.205-1.047-.295-.107-.51-.161-.725.161-.214.322-.832 1.047-1.02 1.262-.187.214-.374.242-.696.08-.322-.161-1.36-.5-2.59-1.596-.957-.854-1.603-1.908-1.79-2.23-.187-.322-.02-.495.14-.656.143-.143.322-.374.482-.561.161-.187.214-.322.322-.536.107-.214.053-.401-.027-.561-.08-.161-.725-1.746-.993-2.404-.262-.632-.53-.545-.725-.545l-.619-.013c-.214 0-.561.08-.856.374-.295.295-1.12 1.095-1.12 2.667 0 1.572 1.142 3.09 1.302 3.304.161.214 2.25 3.43 5.447 4.8.762.329 1.356.526 1.82.672.764.244 1.46.21 2.009.128.613-.092 1.91-.778 2.18-1.526.268-.748.268-1.389.188-1.526-.08-.136-.295-.214-.617-.374z" />
                       </svg>
                     </a>
                   </div>
