@@ -51,7 +51,7 @@ export default function AdminSettingsPage() {
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Nombre de la tienda
+                  Nombre de la Tienda
                 </label>
                 <input
                   type="text"
