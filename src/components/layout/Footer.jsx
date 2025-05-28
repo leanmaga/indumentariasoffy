@@ -132,7 +132,7 @@ const Footer = () => {
                 </a>
                 <a
                   href="https://wa.me/5491126907696?text=Hola%20quisiera%20saber%20si"
-                  className="text-black hover:text-gray-600 transition"
+                  className="text-gray-300 hover:text-white transition"
                   target="_blank"
                   rel="noopener noreferrer"
                 >
