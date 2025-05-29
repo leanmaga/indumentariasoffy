@@ -1,4 +1,4 @@
-// app/api/products/[id]/route.js
+// app/api/products/route.js - COMPATIBLE CON TU MODELO
 import { NextResponse } from "next/server";
 import connectDB from "@/lib/db";
 import Product from "@/models/Product";
@@ -51,155 +51,7 @@ export async function GET(request) {
   }
 }
 
-// PUT para actualizar un producto
-export async function PUT(request, { params }) {
-  try {
-    const session = await getServerSession(authOptions);
-
-    // Verificar autenticación y permisos
-    if (!session || session.user.role !== "admin") {
-      return NextResponse.json({ message: "No autorizado" }, { status: 403 });
-    }
-
-    const { id } = params;
-    const data = await request.json();
-
-    await connectDB();
-
-    // Verificar si el producto existe
-    const existingProduct = await Product.findById(id);
-    if (!existingProduct) {
-      return NextResponse.json(
-        { message: "Producto no encontrado" },
-        { status: 404 }
-      );
-    }
-
-    // Preparar datos del producto para actualizar
-    const productData = {
-      title: data.title,
-      description: data.description || "",
-      // Campos financieros
-      salePrice: parseFloat(data.salePrice),
-      promoPrice: parseFloat(data.promoPrice || 0),
-      cost: parseFloat(data.cost),
-      profitMargin: parseFloat(data.profitMargin),
-      stock: parseInt(data.stock) || 0,
-      category: data.category,
-      featured: data.featured || false,
-      // IMPORTANTE: Incluir additionalImages
-      additionalImages: data.additionalImages || [],
-    };
-
-    // Añadir imageUrl solo si se proporciona
-    if (data.imageUrl) {
-      productData.imageUrl = data.imageUrl;
-    }
-
-    // Campos comunes para productos de indumentaria
-    const clothingCategories = [
-      "camisetas",
-      "pantalones",
-      "calzado",
-      "abrigos",
-      "accesorios",
-    ];
-    if (clothingCategories.includes(data.category)) {
-      productData.gender = data.gender || "";
-      productData.material = data.material || "";
-      productData.style = data.style || "";
-      productData.season = data.season || "";
-    }
-
-    // Campos para productos con variantes
-    const variantCategories = ["camisetas", "pantalones", "calzado", "abrigos"];
-    if (
-      variantCategories.includes(data.category) &&
-      Array.isArray(data.sizes) &&
-      data.sizes.length > 0 &&
-      Array.isArray(data.colors) &&
-      data.colors.length > 0
-    ) {
-      productData.sizes = data.sizes;
-      productData.colors = data.colors;
-      productData.variants = data.variants || [];
-
-      // Calcular stock total basado en las variantes
-      if (Array.isArray(data.variants) && data.variants.length > 0) {
-        productData.stock = data.variants.reduce(
-          (total, variant) => total + (variant.stock || 0),
-          0
-        );
-      }
-    }
-
-    // Campos específicos para pantalones
-    if (data.category === "pantalones") {
-      productData.waistType = data.waistType || "";
-      productData.fit = data.fit || "";
-    }
-
-    // Campos específicos para calzado
-    if (data.category === "calzado") {
-      productData.heelHeight = data.heelHeight || 0;
-      productData.soleType = data.soleType || "";
-    }
-
-    // Actualizar el producto con findByIdAndUpdate
-    const updatedProduct = await Product.findByIdAndUpdate(
-      id,
-      productData,
-      { new: true } // Devuelve el documento actualizado
-    );
-
-    return NextResponse.json({
-      message: "Producto actualizado correctamente",
-      product: updatedProduct,
-    });
-  } catch (error) {
-    console.error("Error al actualizar producto:", error);
-    return NextResponse.json(
-      { message: "Error al actualizar producto: " + error.message },
-      { status: 500 }
-    );
-  }
-}
-
-// DELETE para eliminar un producto (si lo necesitas)
-export async function DELETE(request, { params }) {
-  try {
-    const session = await getServerSession(authOptions);
-
-    // Verificar autenticación y rol de admin
-    if (!session || session.user.role !== "admin") {
-      return NextResponse.json({ message: "No autorizado" }, { status: 401 });
-    }
-
-    const { id } = params;
-
-    await connectDB();
-
-    // Buscar y eliminar el producto
-    const product = await Product.findByIdAndDelete(id);
-
-    if (!product) {
-      return NextResponse.json(
-        { message: "Producto no encontrado" },
-        { status: 404 }
-      );
-    }
-
-    return NextResponse.json({ message: "Producto eliminado con éxito" });
-  } catch (error) {
-    console.error("Error al eliminar producto:", error);
-    return NextResponse.json(
-      { message: "Error al eliminar producto" },
-      { status: 500 }
-    );
-  }
-}
-
-// app/api/products/route.js (POST method actualizado)
+// POST method actualizado para tu modelo
 export async function POST(request) {
   try {
     // Autenticación: sólo admins pueden crear productos
@@ -211,7 +63,9 @@ export async function POST(request) {
     const data = await request.json();
     await connectDB();
 
-    // Validaciones de campos obligatorios únicamente
+    console.log("📥 Received product data:", data); // Para debugging
+
+    // Validaciones de campos obligatorios según tu modelo
     if (!data.title || !data.salePrice || !data.category || !data.imageUrl) {
       const missingFields = [];
       if (!data.title) missingFields.push("Nombre del producto");
@@ -239,10 +93,10 @@ export async function POST(request) {
       );
     }
 
-    // Preparar datos del producto con valores por defecto para campos opcionales
+    // Preparar datos del producto según tu modelo
     const productData = {
       // Campos obligatorios
-      title: data.title,
+      title: data.title.trim(),
       salePrice: parseFloat(data.salePrice),
       category: data.category,
       imageUrl: data.imageUrl,
@@ -250,44 +104,62 @@ export async function POST(request) {
       // Campos con valores por defecto
       description: data.description || "",
       featured: data.featured || false,
-      additionalImages: data.additionalImages || [],
-      sizes: data.sizes || [],
-      colors: data.colors || [],
-      variants: data.variants || [],
       stock: 0, // Se calculará después si hay variantes
+      cost: 0, // Valor por defecto según tu modelo
+      profitMargin: 0, // Valor por defecto según tu modelo
+      promoPrice: 0, // Valor por defecto según tu modelo
     };
 
-    // Agregar campos financieros opcionales solo si tienen valor
-    if (data.promoPrice !== undefined && data.promoPrice !== "") {
-      productData.promoPrice = parseFloat(data.promoPrice) || 0;
+    // Agregar campos opcionales solo si tienen valor
+    if (data.promoPrice && parseFloat(data.promoPrice) > 0) {
+      productData.promoPrice = parseFloat(data.promoPrice);
     }
 
-    if (data.cost !== undefined && data.cost !== "") {
+    if (data.cost && parseFloat(data.cost) > 0) {
       productData.cost = parseFloat(data.cost);
     }
 
-    if (data.profitMargin !== undefined && data.profitMargin !== "") {
+    if (data.profitMargin && parseFloat(data.profitMargin) > 0) {
       productData.profitMargin = parseFloat(data.profitMargin);
     }
 
-    // Agregar campos de indumentaria opcionales solo si tienen valor
+    if (data.stock !== undefined && data.stock !== "") {
+      productData.stock = parseInt(data.stock) || 0;
+    }
+
+    // Campos de indumentaria según tu modelo
     if (data.gender) productData.gender = data.gender;
     if (data.material) productData.material = data.material;
     if (data.style) productData.style = data.style;
     if (data.season) productData.season = data.season;
 
-    // Campos específicos para pantalones
+    // Campos específicos para pantalones según tu modelo
     if (data.category === "pantalones") {
       if (data.waistType) productData.waistType = data.waistType;
       if (data.fit) productData.fit = data.fit;
     }
 
-    // Campos específicos para calzado
+    // Campos específicos para calzado según tu modelo
     if (data.category === "calzado") {
       if (data.heelHeight !== undefined && data.heelHeight !== "") {
         productData.heelHeight = parseFloat(data.heelHeight) || 0;
       }
       if (data.soleType) productData.soleType = data.soleType;
+    }
+
+    // Arrays según tu modelo
+    productData.sizes = data.sizes || [];
+    productData.colors = data.colors || [];
+    productData.variants = data.variants || [];
+
+    // 🔧 PROCESAR IMÁGENES ADICIONALES SEGÚN TU MODELO
+    if (data.additionalImages && Array.isArray(data.additionalImages)) {
+      productData.additionalImages = data.additionalImages.map((img) => ({
+        color: img.color || "",
+        imageUrl: img.imageUrl,
+      }));
+    } else {
+      productData.additionalImages = [];
     }
 
     // Manejar stock
@@ -303,13 +175,14 @@ export async function POST(request) {
         (total, variant) => total + (parseInt(variant.stock) || 0),
         0
       );
-    } else if (data.stock !== undefined && data.stock !== "") {
-      // Usar el stock proporcionado o 0 por defecto
-      productData.stock = parseInt(data.stock) || 0;
     }
+
+    console.log("📦 Final product data for your model:", productData); // Para debugging
 
     // Crear el nuevo producto
     const newProduct = await Product.create(productData);
+
+    console.log("✅ Product created successfully:", newProduct._id); // Para debugging
 
     return NextResponse.json(
       {
@@ -319,7 +192,7 @@ export async function POST(request) {
       { status: 201 }
     );
   } catch (error) {
-    console.error("Error al crear producto:", error);
+    console.error("❌ Error al crear producto:", error);
 
     // Manejo de errores más específico
     if (error.name === "ValidationError") {

@@ -8,7 +8,7 @@ import {
   ArrowLeftIcon,
   ExclamationTriangleIcon,
 } from "@heroicons/react/24/outline";
-import MultipleImageUploader from "./MultipleImageUploader";
+import MultipleImageUploader from "../../components/admin/MultipleImageUploader";
 
 const ProductForm = ({ product = null }) => {
   const router = useRouter();
@@ -20,16 +20,14 @@ const ProductForm = ({ product = null }) => {
   );
   const [validationErrors, setValidationErrors] = useState({});
 
-  // Estados para manejar las imágenes
-  const [mainImageFile, setMainImageFile] = useState(null);
-  const [mainImagePreview, setMainImagePreview] = useState(
-    product?.imageUrl || ""
-  );
+  // 🔧 ESTADOS CORREGIDOS - Solo URLs de Cloudinary, NO archivos
+  const [mainImageUrl, setMainImageUrl] = useState(product?.imageUrl || "");
+  const [mainImageInfo, setMainImageInfo] = useState(null);
   const [additionalImages, setAdditionalImages] = useState(
     product?.additionalImages?.map((img) => ({
       imageUrl: img.imageUrl,
       color: img.color,
-      preview: img.imageUrl,
+      info: null, // Para imágenes existentes
     })) || []
   );
 
@@ -80,10 +78,11 @@ const ProductForm = ({ product = null }) => {
     }
   }, [watchSalePrice, watchCost, autoCalculateMargin, setValue]);
 
-  // Funciones para manejar imágenes
-  const handleMainImageChange = (file, preview) => {
-    setMainImageFile(file);
-    setMainImagePreview(preview);
+  // 🔧 FUNCIONES CORREGIDAS - Manejar URLs de Cloudinary directamente
+  const handleMainImageChange = (info, imageUrl, color) => {
+    console.log("📸 Main image from Cloudinary:", { info, imageUrl, color });
+    setMainImageUrl(imageUrl);
+    setMainImageInfo(info);
 
     // Limpiar error de imagen
     if (validationErrors.image) {
@@ -95,12 +94,22 @@ const ProductForm = ({ product = null }) => {
     }
   };
 
-  const handleAddImage = (file, preview, color) => {
-    setAdditionalImages([...additionalImages, { file, preview, color }]);
+  const handleAddImage = (info, imageUrl, color) => {
+    console.log("📸 Additional image from Cloudinary:", {
+      info,
+      imageUrl,
+      color,
+    });
+    const newImage = {
+      imageUrl,
+      color: color || "",
+      info, // Info completa de Cloudinary
+    };
+    setAdditionalImages((prev) => [...prev, newImage]);
   };
 
   const handleRemoveImage = (index) => {
-    setAdditionalImages(additionalImages.filter((_, i) => i !== index));
+    setAdditionalImages((prev) => prev.filter((_, i) => i !== index));
   };
 
   // Función de validación
@@ -121,8 +130,8 @@ const ProductForm = ({ product = null }) => {
         "El precio de venta es obligatorio y debe ser mayor a 0";
     }
 
-    // Para edición, la imagen no es obligatoria si ya existe
-    if (!mainImagePreview && !product) {
+    // Para productos nuevos, la imagen es obligatoria
+    if (!mainImageUrl && !product) {
       errors.image = "Debes subir una imagen principal del producto";
     }
 
@@ -150,8 +159,13 @@ const ProductForm = ({ product = null }) => {
     return Object.keys(errors).length === 0;
   };
 
-  // Enviar el formulario
+  // 🔧 FUNCIÓN ONSUBMIT CORREGIDA - Sin subida de archivos
   const onSubmit = async (data) => {
+    console.log("🚀 Starting form submission...");
+    console.log("📝 Form data:", data);
+    console.log("🖼️ Main image URL:", mainImageUrl);
+    console.log("🖼️ Additional images:", additionalImages);
+
     // Validar antes de enviar
     if (!validateForm(data)) {
       toast.error("Por favor completa todos los campos obligatorios");
@@ -168,7 +182,7 @@ const ProductForm = ({ product = null }) => {
     setLoading(true);
 
     try {
-      // Preparar datos para enviar (solo campos obligatorios)
+      // 🎯 PREPARAR DATOS - Solo URLs, no archivos
       const productData = {
         title: data.title.trim(),
         description: data.description.trim(),
@@ -177,7 +191,7 @@ const ProductForm = ({ product = null }) => {
         featured: data.featured,
       };
 
-      // Solo agregar campos financieros opcionales si tienen valor
+      // Campos financieros opcionales
       if (data.promoPrice) {
         productData.promoPrice = parseFloat(data.promoPrice);
       }
@@ -200,75 +214,45 @@ const ProductForm = ({ product = null }) => {
       if (data.style) productData.style = data.style;
       if (data.season) productData.season = data.season;
 
-      // Subir imagen principal si es nueva
-      if (mainImageFile) {
-        const imageData = new FormData();
-        imageData.append("file", mainImageFile);
+      // 🔧 IMAGEN PRINCIPAL - URL directa de Cloudinary
+      if (mainImageUrl) {
+        productData.imageUrl = mainImageUrl;
 
-        const imageUploadResponse = await fetch("/api/upload", {
-          method: "POST",
-          body: imageData,
-        });
-
-        if (!imageUploadResponse.ok) {
-          const errorData = await imageUploadResponse.json();
-          throw new Error(
-            errorData.error || "Error al subir la imagen principal"
-          );
-        }
-
-        const imageResult = await imageUploadResponse.json();
-        productData.imageUrl = imageResult.imageUrl;
-      } else if (product?.imageUrl) {
-        productData.imageUrl = product.imageUrl;
-      }
-
-      // Subir imágenes adicionales
-      const newAdditionalImages = [];
-
-      // Conservar imágenes adicionales existentes sin archivo
-      if (additionalImages) {
-        additionalImages.forEach((img) => {
-          if (img.imageUrl && !img.file) {
-            newAdditionalImages.push({
-              imageUrl: img.imageUrl,
-              color: img.color || "",
-            });
-          }
-        });
-      }
-
-      // Subir nuevas imágenes adicionales con archivo
-      for (const img of additionalImages) {
-        if (img.file) {
-          const imageData = new FormData();
-          imageData.append("file", img.file);
-
-          const imageUploadResponse = await fetch("/api/upload", {
-            method: "POST",
-            body: imageData,
-          });
-
-          if (!imageUploadResponse.ok) {
-            const errorData = await imageUploadResponse.json();
-            throw new Error(
-              errorData.error || "Error al subir imagen adicional"
-            );
-          }
-
-          const imageResult = await imageUploadResponse.json();
-          newAdditionalImages.push({
-            imageUrl: imageResult.imageUrl,
-            color: img.color || "",
-          });
+        // Agregar info de Cloudinary si está disponible
+        if (mainImageInfo) {
+          productData.imageCloudinaryInfo = {
+            publicId: mainImageInfo.public_id,
+            format: mainImageInfo.format,
+            width: mainImageInfo.width,
+            height: mainImageInfo.height,
+            bytes: mainImageInfo.bytes,
+          };
         }
       }
 
-      productData.additionalImages = newAdditionalImages;
+      // 🔧 IMÁGENES ADICIONALES - URLs directas de Cloudinary
+      productData.additionalImages = additionalImages.map((img) => ({
+        imageUrl: img.imageUrl,
+        color: img.color || "",
+        // Agregar info de Cloudinary si está disponible
+        ...(img.info && {
+          imageCloudinaryInfo: {
+            publicId: img.info.public_id,
+            format: img.info.format,
+            width: img.info.width,
+            height: img.info.height,
+            bytes: img.info.bytes,
+          },
+        }),
+      }));
 
-      // Determinar si es crear o actualizar
+      console.log("📦 Final product data:", productData);
+
+      // 🔧 ENVIAR A API - Sin subir archivos
       const url = product ? `/api/products/${product._id}` : "/api/products";
       const method = product ? "PUT" : "POST";
+
+      console.log(`📡 Sending ${method} request to ${url}`);
 
       const response = await fetch(url, {
         method,
@@ -278,10 +262,16 @@ const ProductForm = ({ product = null }) => {
         body: JSON.stringify(productData),
       });
 
+      console.log("📡 Response status:", response.status);
+
       if (!response.ok) {
         const error = await response.json();
+        console.error("❌ API Error:", error);
         throw new Error(error.message || "Error al guardar producto");
       }
+
+      const result = await response.json();
+      console.log("✅ Product saved successfully:", result);
 
       toast.success(
         product
@@ -293,7 +283,7 @@ const ProductForm = ({ product = null }) => {
       router.push("/admin/products");
       router.refresh();
     } catch (error) {
-      console.error("Error:", error);
+      console.error("❌ Error saving product:", error);
       toast.error(error.message || "Error al guardar el producto");
     } finally {
       setLoading(false);
@@ -622,19 +612,20 @@ const ProductForm = ({ product = null }) => {
               )}
             </div>
 
-            {/* Gestor de múltiples imágenes */}
+            {/* 🔧 GESTOR DE IMÁGENES CORREGIDO */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Imágenes del producto{" "}
                 {!product && <span className="text-red-500">*</span>}
               </label>
+
               <div
                 className={`${
                   validationErrors.image ? "ring-2 ring-red-500 rounded-lg" : ""
                 }`}
               >
                 <MultipleImageUploader
-                  mainImage={mainImagePreview}
+                  mainImage={mainImageUrl}
                   additionalImages={additionalImages}
                   onMainImageChange={handleMainImageChange}
                   onAddImage={handleAddImage}

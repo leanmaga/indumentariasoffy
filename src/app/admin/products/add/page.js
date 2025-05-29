@@ -17,9 +17,9 @@ export default function AddProductPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [validationErrors, setValidationErrors] = useState({});
 
-  // Estados para imágenes múltiples
-  const [mainImageFile, setMainImageFile] = useState(null);
-  const [mainImagePreview, setMainImagePreview] = useState(null);
+  // 🔧 ESTADOS CORREGIDOS - Solo URLs de Cloudinary, NO archivos
+  const [mainImageUrl, setMainImageUrl] = useState("");
+  const [mainImageInfo, setMainImageInfo] = useState(null);
   const [additionalImages, setAdditionalImages] = useState([]);
 
   const [formData, setFormData] = useState({
@@ -227,10 +227,11 @@ export default function AddProductPage() {
     }
   };
 
-  // Funciones para manejar las imágenes múltiples
-  const handleMainImageChange = (file, preview) => {
-    setMainImageFile(file);
-    setMainImagePreview(preview);
+  // 🔧 FUNCIONES CORREGIDAS - Manejar URLs de Cloudinary directamente
+  const handleMainImageChange = (info, imageUrl, color) => {
+    console.log("📸 Main image from Cloudinary:", { info, imageUrl, color });
+    setMainImageUrl(imageUrl);
+    setMainImageInfo(info);
 
     // Limpiar error de imagen
     if (validationErrors.image) {
@@ -242,12 +243,22 @@ export default function AddProductPage() {
     }
   };
 
-  const handleAddImage = (file, preview, color) => {
-    setAdditionalImages([...additionalImages, { file, preview, color }]);
+  const handleAddImage = (info, imageUrl, color) => {
+    console.log("📸 Additional image from Cloudinary:", {
+      info,
+      imageUrl,
+      color,
+    });
+    const newImage = {
+      imageUrl,
+      color: color || "",
+      info, // Info completa de Cloudinary
+    };
+    setAdditionalImages((prev) => [...prev, newImage]);
   };
 
   const handleRemoveImage = (index) => {
-    setAdditionalImages(additionalImages.filter((_, i) => i !== index));
+    setAdditionalImages((prev) => prev.filter((_, i) => i !== index));
   };
 
   // Manejar cambio en el stock de una variante
@@ -340,7 +351,8 @@ export default function AddProductPage() {
         "El precio de venta es obligatorio y debe ser mayor a 0";
     }
 
-    if (!mainImageFile) {
+    // 🔧 VALIDACIÓN CORREGIDA - Verificar URL de imagen, no archivo
+    if (!mainImageUrl) {
       errors.image = "Debes subir una imagen principal del producto";
     }
 
@@ -382,8 +394,14 @@ export default function AddProductPage() {
     return Object.keys(errors).length === 0;
   };
 
+  // 🔧 FUNCIÓN HANDLESUBMIT CORREGIDA - Sin subida de archivos
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    console.log("🚀 Starting form submission...");
+    console.log("📝 Form data:", formData);
+    console.log("🖼️ Main image URL:", mainImageUrl);
+    console.log("🖼️ Additional images:", additionalImages);
 
     // Validar formulario
     if (!validateForm()) {
@@ -401,59 +419,46 @@ export default function AddProductPage() {
     setIsSubmitting(true);
 
     try {
-      // Subir la imagen principal
-      const mainImageData = new FormData();
-      mainImageData.append("file", mainImageFile);
-
-      const mainImageUploadResponse = await fetch("/api/upload", {
-        method: "POST",
-        body: mainImageData,
-      });
-
-      if (!mainImageUploadResponse.ok) {
-        const errorData = await mainImageUploadResponse.json();
-        throw new Error(
-          errorData.error || "Error al subir la imagen principal"
-        );
-      }
-
-      const mainImageResult = await mainImageUploadResponse.json();
-      const mainImageUrl = mainImageResult.imageUrl;
-
-      // Subir imágenes adicionales
-      const additionalImagesData = [];
-
-      for (const img of additionalImages) {
-        const imageData = new FormData();
-        imageData.append("file", img.file);
-
-        const imageUploadResponse = await fetch("/api/upload", {
-          method: "POST",
-          body: imageData,
-        });
-
-        if (!imageUploadResponse.ok) {
-          const errorData = await imageUploadResponse.json();
-          throw new Error(errorData.error || "Error al subir imagen adicional");
-        }
-
-        const imageResult = await imageUploadResponse.json();
-        additionalImagesData.push({
-          imageUrl: imageResult.imageUrl,
-          color: img.color || "",
-        });
-      }
-
-      // Preparar los datos del producto (solo incluir campos con valor)
+      // 🎯 PREPARAR DATOS - Solo URLs, no archivos
       const productData = {
         title: formData.title.trim(),
         description: formData.description.trim(),
         salePrice: parseFloat(formData.salePrice),
         category: formData.category,
-        imageUrl: mainImageUrl,
-        additionalImages: additionalImagesData,
         featured: formData.featured,
       };
+
+      // 🔧 IMAGEN PRINCIPAL - URL directa de Cloudinary
+      if (mainImageUrl) {
+        productData.imageUrl = mainImageUrl;
+
+        // Agregar info de Cloudinary si está disponible
+        if (mainImageInfo) {
+          productData.imageCloudinaryInfo = {
+            publicId: mainImageInfo.public_id,
+            format: mainImageInfo.format,
+            width: mainImageInfo.width,
+            height: mainImageInfo.height,
+            bytes: mainImageInfo.bytes,
+          };
+        }
+      }
+
+      // 🔧 IMÁGENES ADICIONALES - URLs directas de Cloudinary
+      productData.additionalImages = additionalImages.map((img) => ({
+        imageUrl: img.imageUrl,
+        color: img.color || "",
+        // Agregar info de Cloudinary si está disponible
+        ...(img.info && {
+          imageCloudinaryInfo: {
+            publicId: img.info.public_id,
+            format: img.info.format,
+            width: img.info.width,
+            height: img.info.height,
+            bytes: img.info.bytes,
+          },
+        }),
+      }));
 
       // Solo agregar campos financieros opcionales si tienen valor
       if (formData.promoPrice) {
@@ -498,7 +503,11 @@ export default function AddProductPage() {
         productData.stock = parseInt(formData.stock) || 0;
       }
 
-      // Crear el producto
+      console.log("📦 Final product data:", productData);
+
+      // 🔧 CREAR EL PRODUCTO - Sin subir archivos
+      console.log("📡 Sending POST request to /api/products");
+
       const productResponse = await fetch("/api/products", {
         method: "POST",
         headers: {
@@ -507,21 +516,28 @@ export default function AddProductPage() {
         body: JSON.stringify(productData),
       });
 
+      console.log("📡 Response status:", productResponse.status);
+
       if (!productResponse.ok) {
         try {
           const error = await productResponse.json();
+          console.error("❌ API Error:", error);
           throw new Error(error.message || "Error al crear el producto");
         } catch (jsonError) {
+          console.error("❌ JSON Parse Error:", jsonError);
           throw new Error(
             `Error HTTP ${productResponse.status}: Error al crear el producto`
           );
         }
       }
 
+      const result = await productResponse.json();
+      console.log("✅ Product created successfully:", result);
+
       toast.success("Producto creado exitosamente");
       router.push("/admin/products");
     } catch (error) {
-      console.error("Error al crear producto:", error);
+      console.error("❌ Error creating product:", error);
       toast.error(error.message || "Error al crear el producto");
     } finally {
       setIsSubmitting(false);
@@ -1243,7 +1259,7 @@ export default function AddProductPage() {
           </div>
         )}
 
-        {/* Sección de imágenes con validación */}
+        {/*  SECCIÓN DE IMÁGENES */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Imágenes del producto <span className="text-red-500">*</span>
@@ -1254,12 +1270,14 @@ export default function AddProductPage() {
             }`}
           >
             <MultipleImageUploader
-              mainImage={mainImagePreview}
+              mainImage={mainImageUrl}
               additionalImages={additionalImages}
               onMainImageChange={handleMainImageChange}
               onAddImage={handleAddImage}
               onRemoveImage={handleRemoveImage}
               colors={formData.colors}
+              forceSquareCrop={false}
+              showCropPreview={true}
             />
           </div>
           {validationErrors.image && (
