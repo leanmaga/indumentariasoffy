@@ -1,4 +1,4 @@
-// src/app/api/orders/route.js
+// src/app/api/orders/route.js - MEJORADO
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
@@ -30,6 +30,24 @@ export async function POST(request) {
     // Obtener datos del body
     const orderData = await request.json();
 
+    // 🆕 LIMPIAR ÓRDENES PENDIENTES ANTIGUAS ANTES DE CONTINUAR
+    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+    await Order.updateMany(
+      {
+        user: user._id,
+        status: { $in: ["pendiente", "whatsapp_pendiente"] },
+        createdAt: { $lt: fiveMinutesAgo },
+      },
+      {
+        status: "cancelado",
+        $set: {
+          "paymentDetails.cancelledReason":
+            "Timeout automático - orden abandonada",
+          "paymentDetails.cancelledAt": new Date(),
+        },
+      }
+    );
+
     // Verificar si existe una clave de idempotencia
     if (orderData.idempotencyKey) {
       // Buscar si ya existe una orden con esta clave de idempotencia
@@ -39,24 +57,29 @@ export async function POST(request) {
 
       // Si ya existe, devolver la información de esa orden
       if (existingOrder) {
+        console.log(`♻️ Reutilizando orden existente: ${existingOrder._id}`);
+
         // Si la orden existente ya tiene información de pago de MercadoPago, devolverla
         if (orderData.paymentMethod === "mercadopago") {
-          // Obtener la información de pago existente si ya fue creada antes
-          const preferenceResponse = await createPaymentPreference(
-            existingOrder
-          );
+          try {
+            const preferenceResponse = await createPaymentPreference(
+              existingOrder
+            );
 
-          return NextResponse.json({
-            message: "Orden existente recuperada",
-            orderId: existingOrder._id,
-            paymentInfo: {
-              id: preferenceResponse.id,
-              init_point: preferenceResponse.init_point,
-              sandbox_init_point: preferenceResponse.sandbox_init_point,
-            },
-          });
+            return NextResponse.json({
+              message: "Orden existente recuperada",
+              orderId: existingOrder._id,
+              paymentInfo: {
+                id: preferenceResponse.id,
+                init_point: preferenceResponse.init_point,
+                sandbox_init_point: preferenceResponse.sandbox_init_point,
+              },
+            });
+          } catch (mpError) {
+            console.error("Error al recrear preferencia:", mpError);
+            // Continuar con creación de nueva orden si falla
+          }
         } else if (orderData.paymentMethod === "whatsapp") {
-          // Para pedidos de WhatsApp, simplemente devolver el ID
           return NextResponse.json({
             message: "Orden de WhatsApp existente recuperada",
             orderId: existingOrder._id,
@@ -70,14 +93,79 @@ export async function POST(request) {
       }
     }
 
-    // Verificar si existe un pedido similar reciente (mismo total, mismos items)
-    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
-    const similarOrder = await Order.findOne({
+    // 🆕 VERIFICAR ÓRDENES PENDIENTES RECIENTES CON PRODUCTOS SIMILARES
+    const recentCutoff = new Date(Date.now() - 3 * 60 * 1000); // 3 minutos
+
+    const recentPendingOrder = await Order.findOne({
       user: user._id,
-      totalAmount: orderData.totalAmount,
-      createdAt: { $gt: fiveMinutesAgo },
-      status: "pendiente",
-    });
+      status: { $in: ["pendiente", "whatsapp_pendiente"] },
+      createdAt: { $gte: recentCutoff },
+      totalAmount: orderData.totalAmount, // Mismo total
+      // Verificar si tiene productos similares
+      "items.product": {
+        $in: orderData.items.map((item) => item.product),
+      },
+    }).sort({ createdAt: -1 });
+
+    // Si hay una orden pendiente reciente similar, actualizarla en lugar de crear nueva
+    if (recentPendingOrder) {
+      console.log(
+        `♻️ Actualizando orden pendiente reciente: ${recentPendingOrder._id}`
+      );
+
+      // Actualizar la orden existente con los nuevos datos
+      recentPendingOrder.items = orderData.items;
+      recentPendingOrder.totalAmount = orderData.totalAmount;
+      recentPendingOrder.shippingInfo = orderData.shippingInfo;
+      recentPendingOrder.paymentMethod = orderData.paymentMethod;
+      recentPendingOrder.updatedAt = new Date();
+
+      // Actualizar estado según método de pago
+      if (orderData.paymentMethod === "whatsapp") {
+        recentPendingOrder.status = "whatsapp_pendiente";
+        recentPendingOrder.whatsappOrder = true;
+      } else {
+        recentPendingOrder.status = "pendiente";
+        recentPendingOrder.whatsappOrder = false;
+      }
+
+      await recentPendingOrder.save();
+
+      // Crear nueva preferencia si es MercadoPago
+      if (orderData.paymentMethod === "mercadopago") {
+        try {
+          const preferenceResponse = await createPaymentPreference(
+            recentPendingOrder
+          );
+
+          return NextResponse.json({
+            message: "Orden actualizada - redirigiendo al pago",
+            orderId: recentPendingOrder._id,
+            paymentInfo: {
+              id: preferenceResponse.id,
+              init_point: preferenceResponse.init_point,
+              sandbox_init_point: preferenceResponse.sandbox_init_point,
+            },
+          });
+        } catch (mpError) {
+          console.error("Error creando preferencia MP:", mpError);
+          return NextResponse.json(
+            { error: "Error al procesar el pago" },
+            { status: 500 }
+          );
+        }
+      } else if (orderData.paymentMethod === "whatsapp") {
+        return NextResponse.json({
+          message: "Orden de WhatsApp actualizada",
+          orderId: recentPendingOrder._id,
+        });
+      }
+
+      return NextResponse.json({
+        message: "Orden actualizada correctamente",
+        orderId: recentPendingOrder._id,
+      });
+    }
 
     // Verificar si el método de pago es válido
     const validPaymentMethods = [
@@ -107,11 +195,16 @@ export async function POST(request) {
       paymentMethod: orderData.paymentMethod,
       shippingInfo: orderData.shippingInfo,
       status: initialStatus,
-      idempotencyKey: orderData.idempotencyKey, // Guardar la clave de idempotencia
-      whatsappOrder: orderData.paymentMethod === "whatsapp", // Flag para órdenes de WhatsApp
+      idempotencyKey: orderData.idempotencyKey,
+      whatsappOrder: orderData.paymentMethod === "whatsapp",
+      // Inicializar paymentDetails
+      paymentDetails: {
+        statusHistory: [],
+      },
     });
 
     await order.save();
+    console.log(`🆕 Nueva orden creada: ${order._id}`);
 
     // Agregar la orden al usuario
     user.orders.push(order._id);
@@ -122,7 +215,6 @@ export async function POST(request) {
       try {
         const preferenceResponse = await createPaymentPreference(order);
 
-        // Incluir ambas URLs, con prioridad al sandbox para entorno de prueba
         return NextResponse.json({
           message: "Orden creada correctamente",
           orderId: order._id,
@@ -135,14 +227,14 @@ export async function POST(request) {
       } catch (mpError) {
         console.error("Error al crear preferencia en MercadoPago:", mpError);
 
-        // SOLUCIÓN: Usar "cancelado" en lugar de "error_pago"
-        order.status = "cancelado"; // Estado permitido
-
-        // Almacenar los detalles del error en un campo adicional
+        // Marcar orden como cancelada
+        order.status = "cancelado";
         order.paymentDetails = {
           errorType: "error_pago",
           errorMessage: mpError.message,
           errorTimestamp: new Date(),
+          cancelledReason: "Error al crear preferencia de pago",
+          cancelledAt: new Date(),
         };
         await order.save();
 
@@ -152,14 +244,12 @@ export async function POST(request) {
         );
       }
     } else if (orderData.paymentMethod === "whatsapp") {
-      // Para pedidos de WhatsApp, simplemente devolver el ID de la orden
       return NextResponse.json({
         message: "Orden de WhatsApp creada correctamente",
         orderId: order._id,
       });
     }
 
-    // Para otros métodos de pago
     return NextResponse.json({
       message: "Orden creada correctamente",
       orderId: order._id,
@@ -188,10 +278,9 @@ export async function GET() {
       .populate("user", "name email phone")
       .sort({ createdAt: -1 });
 
-    // Devolver DIRECTAMENTE el array (sin wrapper de objeto)
     return NextResponse.json(orders);
   } catch (error) {
     console.error("Error al obtener órdenes:", error);
-    return NextResponse.json([], { status: 500 }); // Devolver array vacío en caso de error
+    return NextResponse.json([], { status: 500 });
   }
 }

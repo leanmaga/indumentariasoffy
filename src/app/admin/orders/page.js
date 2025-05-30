@@ -1,5 +1,6 @@
 import { getAllOrders } from "@/lib/data";
 import OrderTable from "@/components/admin/OrderTable";
+import OrderCleanupButton from "@/components/admin/OrderCleanupButton";
 
 export const metadata = {
   title: "Gestión de Pedidos | TiendaOnline",
@@ -17,7 +18,7 @@ export default async function AdminOrdersPage() {
   return (
     <div>
       <h1 className="text-2xl font-semibold mb-6">Gestión de Pedidos</h1>
-
+      <OrderCleanupButton />
       <div className="bg-white rounded-lg shadow overflow-hidden">
         <OrderTable orders={orders} />
       </div>
