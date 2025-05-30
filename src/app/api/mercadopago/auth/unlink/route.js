@@ -1,4 +1,4 @@
-// src/app/api/mercadopago/auth/unlink/route.js
+// src/app/api/mercadopago/auth/unlink/route.js - VERSIÓN MEJORADA
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
@@ -15,24 +15,64 @@ export async function POST() {
 
     await connectDB();
 
-    // Buscar y eliminar la configuración activa
-    const result = await MercadoPagoConfig.findOneAndDelete({ isActive: true });
+    // 1️⃣ OBTENER la configuración antes de eliminarla
+    const config = await MercadoPagoConfig.findOne({ isActive: true });
 
-    if (!result) {
+    if (!config) {
       return NextResponse.json(
         { error: "No hay configuración de MercadoPago para desvincular" },
         { status: 404 }
       );
     }
 
+    // 2️⃣ REVOCAR el token en MercadoPago (NUEVO - recomendado)
+    try {
+      const accessToken = config.getDecryptedAccessToken();
+
+      if (accessToken) {
+        console.log("Revocando token en MercadoPago...");
+
+        const revokeResponse = await fetch(
+          "https://api.mercadopago.com/oauth/token",
+          {
+            method: "DELETE",
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              client_id: process.env.MERCADOPAGO_CLIENT_ID,
+              client_secret: process.env.MERCADOPAGO_CLIENT_SECRET,
+              access_token: accessToken,
+            }),
+          }
+        );
+
+        if (revokeResponse.ok) {
+          console.log("✅ Token revocado exitosamente en MercadoPago");
+        } else {
+          console.warn(
+            "⚠️ No se pudo revocar el token en MercadoPago, pero continuando..."
+          );
+        }
+      }
+    } catch (revokeError) {
+      console.warn("Error al revocar token (continuando):", revokeError);
+      // No fallar la desvinculación por esto
+    }
+
+    // 3️⃣ ELIMINAR de nuestra base de datos
+    await MercadoPagoConfig.findOneAndDelete({ isActive: true });
+
     console.log(
-      "Configuración de MercadoPago desvinculada por:",
+      "✅ Configuración de MercadoPago desvinculada completamente por:",
       session.user.email
     );
 
     return NextResponse.json({
       success: true,
       message: "Cuenta de MercadoPago desvinculada correctamente",
+      details: "Token revocado y configuración eliminada",
     });
   } catch (error) {
     console.error("Error al desvincular cuenta de MercadoPago:", error);
