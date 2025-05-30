@@ -12,10 +12,15 @@ export async function GET(request) {
     const code = searchParams.get("code");
     const state = searchParams.get("state"); // userId del admin (opcional)
 
+    // Obtener URL base
+    const baseUrl =
+      process.env.NEXT_PUBLIC_BASE_URL ||
+      process.env.NEXT_PUBLIC_FRONTEND_URL ||
+      process.env.NEXTAUTH_URL ||
+      "http://localhost:3000";
+
     if (!code) {
-      return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_FRONTEND_URL}/admin/settings?error=no_code`
-      );
+      return NextResponse.redirect(`${baseUrl}/admin/settings?error=no_code`);
     }
 
     console.log("Código de autorización recibido:", code);
@@ -26,10 +31,11 @@ export async function GET(request) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         client_secret: process.env.MERCADOPAGO_CLIENT_SECRET,
-        client_id: process.env.MERCADOPAGO_CLIENT_ID,
+        client_id:
+          process.env.MERCADOPAGO_CLIENT_ID || process.env.MERCADOPAGO_APP_ID,
         grant_type: "authorization_code",
         code: code,
-        redirect_uri: `${process.env.NEXT_PUBLIC_FRONTEND_URL}/api/mercadopago/auth/callback`,
+        redirect_uri: `${baseUrl}/api/mercadopago/auth/callback`,
       }),
     });
 
@@ -38,7 +44,9 @@ export async function GET(request) {
     if (!response.ok) {
       console.error("Error al obtener token:", data);
       return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_FRONTEND_URL}/admin/settings?error=token_error`
+        `${baseUrl}/admin/settings?error=token_error&details=${encodeURIComponent(
+          JSON.stringify(data)
+        )}`
       );
     }
 
@@ -78,12 +86,21 @@ export async function GET(request) {
 
     // Redirigir a una página de éxito
     return NextResponse.redirect(
-      `${process.env.NEXT_PUBLIC_FRONTEND_URL}/admin/settings?success=true&mp_connected=true`
+      `${baseUrl}/admin/settings?success=true&mp_connected=true`
     );
   } catch (error) {
     console.error("Error en callback:", error);
+
+    const baseUrl =
+      process.env.NEXT_PUBLIC_BASE_URL ||
+      process.env.NEXT_PUBLIC_FRONTEND_URL ||
+      process.env.NEXTAUTH_URL ||
+      "http://localhost:3000";
+
     return NextResponse.redirect(
-      `${process.env.NEXT_PUBLIC_FRONTEND_URL}/admin/settings?error=server_error`
+      `${baseUrl}/admin/settings?error=server_error&details=${encodeURIComponent(
+        error.message
+      )}`
     );
   }
 }

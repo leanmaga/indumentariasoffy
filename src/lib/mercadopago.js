@@ -7,7 +7,7 @@ import MercadoPagoConfigModel from "@/models/MercadoPagoConfig";
 let cachedClient = null;
 let cacheExpiry = null;
 
-// Obtener el cliente de MercadoPago con credenciales dinámicas
+// Obtener el cliente de MercadoPago con credenciales dinámicas - ACTUALIZADA
 const getClient = async () => {
   // Verificar si tenemos un cliente en caché válido
   if (cachedClient && cacheExpiry && new Date() < cacheExpiry) {
@@ -23,8 +23,10 @@ const getClient = async () => {
       // Verificar si el token no ha expirado
       if (config.expiresAt && new Date() > config.expiresAt) {
         console.warn("Token de MercadoPago expirado, necesita renovación");
-        // Aquí podrías implementar la renovación automática del token
-        // usando el refresh_token si está disponible
+        // Lanzar error en lugar de continuar con fallback
+        throw new Error(
+          "Token de MercadoPago expirado. Por favor, vuelve a conectar tu cuenta desde el panel de administración."
+        );
       }
 
       const accessToken = config.getDecryptedAccessToken();
@@ -46,7 +48,8 @@ const getClient = async () => {
       }
     }
 
-    // Fallback a variables de entorno si no hay config en DB
+    // Fallback a variables de entorno SOLO para desarrollo/testing
+    // NOTA: Esto ya no se considera como "configurado" en checkMercadoPagoStatus
     const accessToken = process.env.MERCADOPAGO_ACCESS_TOKEN;
 
     if (!accessToken) {
@@ -55,7 +58,9 @@ const getClient = async () => {
       );
     }
 
-    console.log("Usando credenciales de variables de entorno (modo de prueba)");
+    console.warn(
+      "Usando credenciales de variables de entorno (solo para desarrollo/testing)"
+    );
 
     cachedClient = new MercadoPagoConfig({
       accessToken: accessToken,
@@ -189,22 +194,24 @@ export const checkMercadoPagoStatus = async () => {
     await connectDB();
     const config = await MercadoPagoConfigModel.getActiveConfig();
 
+    // Solo considerar configurado si hay una configuración activa en la base de datos
     if (!config) {
-      // Verificar si hay credenciales en variables de entorno
-      const hasEnvCredentials = !!process.env.MERCADOPAGO_ACCESS_TOKEN;
-
       return {
-        isConfigured: hasEnvCredentials,
+        isConfigured: false, // Cambio principal: siempre false si no hay config en DB
         isProduction: false,
-        source: hasEnvCredentials ? "environment" : "none",
+        source: "none",
       };
     }
 
+    // Verificar si el token no ha expirado
+    const isExpired = config.expiresAt && new Date() > config.expiresAt;
+
     return {
-      isConfigured: true,
+      isConfigured: !isExpired, // Solo configurado si no ha expirado
       isProduction: config.isProduction,
       expiresAt: config.expiresAt,
       source: "database",
+      isExpired: isExpired,
     };
   } catch (error) {
     console.error("Error al verificar estado de MercadoPago:", error);

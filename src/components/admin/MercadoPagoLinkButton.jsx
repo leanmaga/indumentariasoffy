@@ -39,6 +39,13 @@ export default function MercadoPagoLinkButton() {
       const data = await response.json();
       setIsConnected(data.isConnected || false);
       setConnectionDetails(data);
+
+      // Mostrar alerta si el token está expirado
+      if (data.isExpired) {
+        toast.error(
+          "Tu token de MercadoPago ha expirado. Por favor, vuelve a conectar tu cuenta."
+        );
+      }
     } catch (error) {
       console.error("Error checking connection status:", error);
       // No mostrar error al usuario por tema de seguridad
@@ -148,25 +155,62 @@ export default function MercadoPagoLinkButton() {
           </h3>
           <p className="text-sm text-gray-600 mt-1">
             {isConnected
-              ? "Tu cuenta está conectada y lista para recibir pagos"
+              ? connectionDetails?.isExpired
+                ? "Tu token ha expirado, necesita reconexión"
+                : "Tu cuenta está conectada y lista para recibir pagos"
               : "Conecta tu cuenta de MercadoPago para recibir pagos"}
           </p>
         </div>
         <div
           className={`h-3 w-3 rounded-full ${
-            isConnected ? "bg-green-500" : "bg-gray-300"
+            isConnected && !connectionDetails?.isExpired
+              ? "bg-green-500"
+              : connectionDetails?.isExpired
+              ? "bg-yellow-500"
+              : "bg-gray-300"
           }`}
         />
       </div>
 
-      {!isConnected ? (
+      {!isConnected || connectionDetails?.isExpired ? (
         <div className="space-y-4">
+          {connectionDetails?.isExpired && (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4">
+              <div className="flex items-center space-x-2">
+                <svg
+                  className="h-5 w-5 text-yellow-600"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+                <span className="text-yellow-800 font-medium">
+                  Token expirado
+                </span>
+              </div>
+              <p className="text-yellow-700 text-sm mt-2">
+                Tu token de acceso ha expirado. Vuelve a conectar tu cuenta para
+                continuar procesando pagos.
+              </p>
+            </div>
+          )}
+
           <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
             <h4 className="text-sm font-medium text-blue-900 mb-2">
-              ¿Cómo funciona?
+              {connectionDetails?.isExpired
+                ? "¿Cómo reconectar?"
+                : "¿Cómo funciona?"}
             </h4>
             <ol className="text-sm text-blue-700 space-y-1 list-decimal list-inside">
-              <li>Haz clic en "Conectar con MercadoPago"</li>
+              <li>
+                Haz clic en "
+                {connectionDetails?.isExpired ? "Reconectar" : "Conectar"} con
+                MercadoPago"
+              </li>
               <li>Inicia sesión en tu cuenta de MercadoPago</li>
               <li>Autoriza a IndumentariaSoffy para procesar pagos</li>
               <li>¡Listo! Tu tienda estará configurada</li>
@@ -185,12 +229,10 @@ export default function MercadoPagoLinkButton() {
               </>
             ) : (
               <>
-                <img
-                  src="https://http2.mlstatic.com/static/org-img/MP3/MP_ISO_Logo.svg"
-                  alt="MercadoPago"
-                  className="h-6 w-6"
-                />
-                <span>Conectar con MercadoPago</span>
+                <span>
+                  {connectionDetails?.isExpired ? "Reconectar" : "Conectar"} con
+                  MercadoPago
+                </span>
               </>
             )}
           </button>
@@ -238,13 +280,7 @@ export default function MercadoPagoLinkButton() {
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-gray-600">Fuente:</span>
-              <span className="font-medium capitalize">
-                {connectionDetails?.source === "database"
-                  ? "Base de datos"
-                  : connectionDetails?.source === "environment"
-                  ? "Variables de entorno"
-                  : connectionDetails?.source}
-              </span>
+              <span className="font-medium">Base de datos (OAuth)</span>
             </div>
             {connectionDetails?.expiresAt && (
               <div className="flex justify-between text-sm">
