@@ -1,23 +1,58 @@
-// /api/mercadopago/webhook/route.js - SIN VERIFICACIÓN DE FIRMA (TEMPORAL)
+// /api/mercadopago/webhook/route.js - VERSIÓN DEFINITIVA
 import { NextResponse } from "next/server";
 import connectDB from "@/lib/db";
 import Order from "@/models/Order";
-import { getPaymentStatus } from "@/lib/mercadopago";
 import crypto from "crypto";
+
+// Función simplificada para obtener estado del pago
+async function getPaymentStatus(paymentId) {
+  const accessToken = process.env.MERCADOPAGO_ACCESS_TOKEN;
+
+  if (!accessToken) {
+    throw new Error("No access token available");
+  }
+
+  const response = await fetch(
+    `https://api.mercadopago.com/v1/payments/${paymentId}`,
+    {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    }
+  );
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(
+      `Error ${response.status}: ${errorData.message || "Payment not found"}`
+    );
+  }
+
+  return await response.json();
+}
 
 export async function POST(request) {
   try {
-    console.log("🔔 === WEBHOOK RECIBIDO ===");
+    console.log("🔔 === WEBHOOK MERCADOPAGO RECIBIDO ===");
 
-    // Obtener el cuerpo de la request
     const bodyText = await request.text();
+    console.log("📋 Body:", bodyText);
 
-    console.log("📋 Body del webhook:", bodyText);
+    // Verificar firma del webhook (opcional - puede habilitarse más tarde)
+    if (process.env.MERCADOPAGO_WEBHOOK_SECRET) {
+      const signature = request.headers.get("x-signature") || "";
+      const isValid = verifyWebhookSignature(bodyText, signature);
+      if (!isValid) {
+        console.warn(
+          "⚠️ Firma de webhook inválida - procesando de todos modos"
+        );
+        // No fallar por ahora, solo loggear
+      } else {
+        console.log("✅ Firma de webhook válida");
+      }
+    }
 
-    // 🆕 TEMPORALMENTE SALTEAR VERIFICACIÓN DE FIRMA
-    console.log("⚠️ Verificación de firma deshabilitada temporalmente");
-
-    // Parse notification data
+    // Parsear datos de la notificación
     let data;
     try {
       data = JSON.parse(bodyText);
@@ -33,12 +68,11 @@ export async function POST(request) {
     console.log("🎬 Acción:", data.action);
     console.log("🆔 Payment ID:", data.data?.id);
 
-    // Verificar si es una notificación de pago
+    // Procesar solo notificaciones de pagos
     if (
       data.action === "payment.created" ||
       data.action === "payment.updated"
     ) {
-      // Obtener ID del pago
       const paymentId = data.data?.id;
 
       if (!paymentId) {
@@ -66,7 +100,6 @@ export async function POST(request) {
         );
       }
 
-      // Obtener ID de la orden desde external_reference
       const externalReference = paymentInfo.external_reference;
 
       if (!externalReference) {
@@ -96,17 +129,17 @@ export async function POST(request) {
           `📦 Orden encontrada: ${order._id} (Estado actual: ${order.status})`
         );
 
-        // Mapear estado del pago al estado de la orden
         const paymentStatus = paymentInfo.status;
         const previousStatus = order.status;
 
         console.log(`💳 Estado del pago en MP: ${paymentStatus}`);
 
+        // Mapear estado del pago al estado de la orden
         if (paymentStatus === "approved") {
           order.status = "pagado";
           console.log("✅ Marcando orden como PAGADA");
 
-          // Cancelar otras órdenes pendientes del mismo usuario
+          // Cancelar órdenes duplicadas del mismo usuario
           await cancelDuplicateOrders(order);
         } else if (paymentStatus === "pending") {
           order.status = "pendiente";
@@ -120,10 +153,8 @@ export async function POST(request) {
           console.log(`❌ Marcando orden como CANCELADA (${paymentStatus})`);
         }
 
-        // Guardar ID del pago y detalles
+        // Guardar detalles del pago
         order.paymentId = paymentId;
-
-        // Mantener estructura existente de paymentDetails
         order.paymentDetails = {
           status: paymentStatus,
           method: paymentInfo.payment_method_id,
@@ -132,7 +163,7 @@ export async function POST(request) {
           statusHistory: order.paymentDetails?.statusHistory || [],
         };
 
-        // Agregar al historial si cambió el estado
+        // Agregar al historial de cambios de estado
         if (previousStatus !== order.status) {
           order.paymentDetails.statusHistory.push({
             from: previousStatus,
@@ -158,7 +189,9 @@ export async function POST(request) {
         );
       }
     } else {
-      console.log(`ℹ️ Acción no relacionada con pagos: ${data.action}`);
+      console.log(
+        `ℹ️ Acción no relacionada con pagos: ${data.action || data.topic}`
+      );
     }
 
     console.log("✅ === WEBHOOK PROCESADO EXITOSAMENTE ===");
@@ -187,9 +220,7 @@ async function cancelDuplicateOrders(paidOrder) {
       user: paidOrder.user,
       status: { $in: ["pendiente", "whatsapp_pendiente"] },
       createdAt: { $gte: cutoffTime },
-      "items.product": {
-        $in: paidOrder.items.map((item) => item.product),
-      },
+      "items.product": { $in: paidOrder.items.map((item) => item.product) },
     });
 
     if (duplicateOrders.length > 0) {
@@ -199,9 +230,7 @@ async function cancelDuplicateOrders(paidOrder) {
       );
 
       await Order.updateMany(
-        {
-          _id: { $in: duplicateOrders.map((o) => o._id) },
-        },
+        { _id: { $in: duplicateOrders.map((o) => o._id) } },
         {
           status: "cancelado",
           $set: {
@@ -218,6 +247,27 @@ async function cancelDuplicateOrders(paidOrder) {
     }
   } catch (error) {
     console.error("❌ Error cancelando órdenes duplicadas:", error);
+  }
+}
+
+// Función para verificar la firma del webhook
+function verifyWebhookSignature(body, signature) {
+  try {
+    if (!signature || !process.env.MERCADOPAGO_WEBHOOK_SECRET) {
+      return false;
+    }
+
+    const hmac = crypto.createHmac(
+      "sha256",
+      process.env.MERCADOPAGO_WEBHOOK_SECRET
+    );
+    hmac.update(body);
+    const calculatedSignature = hmac.digest("hex");
+
+    return calculatedSignature === signature;
+  } catch (error) {
+    console.error("❌ Error verificando firma:", error);
+    return false;
   }
 }
 
