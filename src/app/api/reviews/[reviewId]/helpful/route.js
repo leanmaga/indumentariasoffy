@@ -1,4 +1,4 @@
-// app/api/reviews/[reviewId]/helpful/route.js
+// app/api/reviews/[reviewId]/helpful/route.js - RUTA CORREGIDA
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import connectDB from "@/lib/db";
@@ -7,7 +7,13 @@ import { authOptions } from "@/lib/auth";
 
 export async function POST(request, { params }) {
   try {
-    const { reviewId } = await params;
+    console.log("👍 POST Helpful - Params received:", params);
+
+    const awaitedParams = await params;
+    const reviewId = awaitedParams.reviewId;
+
+    console.log("📝 Review ID:", reviewId);
+
     const session = await getServerSession(authOptions);
 
     if (!session?.user) {
@@ -52,15 +58,17 @@ export async function POST(request, { params }) {
     review.helpful = review.helpfulVotes.length;
     await review.save();
 
+    console.log("✅ Vote added successfully");
+
     return NextResponse.json({
       success: true,
       helpful: review.helpful,
       message: "¡Gracias por tu voto!",
     });
   } catch (error) {
-    console.error("Error marking review as helpful:", error);
+    console.error("❌ Error marking review as helpful:", error);
     return NextResponse.json(
-      { success: false, error: "Error al procesar tu voto" },
+      { success: false, error: "Error al procesar tu voto: " + error.message },
       { status: 500 }
     );
   }
@@ -69,7 +77,8 @@ export async function POST(request, { params }) {
 // GET para verificar si el usuario ya votó
 export async function GET(request, { params }) {
   try {
-    const { reviewId } = await params;
+    const awaitedParams = await params;
+    const reviewId = awaitedParams.reviewId;
     const session = await getServerSession(authOptions);
 
     if (!session?.user) {

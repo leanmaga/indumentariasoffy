@@ -1,3 +1,4 @@
+// components/ProductReviews.jsx - VERSIÓN CORREGIDA
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -10,7 +11,7 @@ import { ChevronDownIcon, ChevronUpIcon } from "@heroicons/react/24/outline";
 const ProductReviews = ({ productId }) => {
   const { data: session, status } = useSession();
 
-  // Estados existentes
+  // Estados principales
   const [questions, setQuestions] = useState([]);
   const [ratings, setRatings] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -39,7 +40,7 @@ const ProductReviews = ({ productId }) => {
     total: 0,
   });
 
-  // NUEVOS ESTADOS para funcionalidades mejoradas
+  // Estados para funcionalidades avanzadas
   const [filteredRatings, setFilteredRatings] = useState([]);
   const [filteredQuestions, setFilteredQuestions] = useState([]);
   const [ratingFilter, setRatingFilter] = useState("all");
@@ -52,11 +53,44 @@ const ProductReviews = ({ productId }) => {
   const isAuthenticated = status === "authenticated";
   const isLoading = status === "loading";
 
-  // Función para obtener reviews
+  // Logging para debugging
+  const logDebug = (message, data = {}) => {
+    if (process.env.NODE_ENV === "development") {
+      console.log(`[ProductReviews] ${message}`, data);
+    }
+  };
+
+  // Función para obtener reviews con logging mejorado
   const fetchReviews = async () => {
     try {
-      const response = await fetch(`/api/products/${productId}/reviews`);
+      logDebug("Fetching reviews for product", { productId });
+
+      if (!productId) {
+        logDebug("No product ID provided");
+        setLoading(false);
+        return;
+      }
+
+      const url = `/api/products/${productId}/reviews`;
+      logDebug("Calling API", { url });
+
+      const response = await fetch(url);
+      logDebug("API response status", {
+        status: response.status,
+        ok: response.ok,
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        logDebug("API error response", {
+          status: response.status,
+          error: errorText,
+        });
+        throw new Error(`HTTP ${response.status}: ${errorText}`);
+      }
+
       const data = await response.json();
+      logDebug("API response data", data);
 
       if (data.success) {
         setQuestions(data.reviews.questions || []);
@@ -69,46 +103,81 @@ const ProductReviews = ({ productId }) => {
           }
         );
         setCounts(data.counts || { questions: 0, ratings: 0, total: 0 });
+
+        logDebug("Reviews loaded successfully", {
+          questions: data.reviews.questions?.length || 0,
+          ratings: data.reviews.ratings?.length || 0,
+        });
       } else {
-        console.error("Error en la respuesta:", data);
+        logDebug("API returned success: false", data);
         toast.error("Error al cargar las reseñas");
       }
     } catch (error) {
+      logDebug("Error fetching reviews", {
+        error: error.message,
+        stack: error.stack,
+      });
       console.error("Error fetching reviews:", error);
-      toast.error("Error al cargar las reseñas");
+      toast.error(`Error al cargar las reseñas: ${error.message}`);
     } finally {
       setLoading(false);
     }
   };
 
-  // Función para verificar permisos
+  // Función para verificar permisos con logging mejorado
   const checkPermissions = async () => {
-    if (!isAuthenticated) return;
+    if (!isAuthenticated || !productId) {
+      logDebug("Skipping permissions check", { isAuthenticated, productId });
+      return;
+    }
 
     setCheckingPermissions(true);
     try {
-      const response = await fetch(
-        `/api/products/${productId}/reviews/can-review`
-      );
+      const url = `/api/products/${productId}/reviews/can-review`;
+      logDebug("Checking permissions", { url });
+
+      const response = await fetch(url);
+      logDebug("Permissions response", {
+        status: response.status,
+        ok: response.ok,
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        logDebug("Permissions error", {
+          status: response.status,
+          error: errorText,
+        });
+        throw new Error(`HTTP ${response.status}: ${errorText}`);
+      }
+
       const data = await response.json();
+      logDebug("Permissions data", data);
 
       if (data.success) {
         setCanQuestion(data.canQuestion);
         setCanRate(data.canRate);
         setPermissions(data.reasons || {});
+
+        logDebug("Permissions set", {
+          canQuestion: data.canQuestion,
+          canRate: data.canRate,
+          reasons: data.reasons,
+        });
       }
     } catch (error) {
+      logDebug("Error checking permissions", { error: error.message });
       console.error("Error checking permissions:", error);
+      toast.error(`Error verificando permisos: ${error.message}`);
     } finally {
       setCheckingPermissions(false);
     }
   };
 
-  // NUEVA FUNCIÓN: Filtrar y ordenar reviews
+  // Función para filtrar y ordenar reviews
   const filterAndSortReviews = (reviewList, type) => {
     let filtered = [...reviewList];
 
-    // Filtrar por búsqueda
     if (searchTerm) {
       filtered = filtered.filter(
         (review) =>
@@ -117,14 +186,12 @@ const ProductReviews = ({ productId }) => {
       );
     }
 
-    // Filtrar por rating (solo para calificaciones)
     if (type === "ratings" && ratingFilter !== "all") {
       filtered = filtered.filter(
         (review) => review.rating === parseInt(ratingFilter)
       );
     }
 
-    // Ordenar
     filtered.sort((a, b) => {
       switch (sortBy) {
         case "newest":
@@ -145,7 +212,7 @@ const ProductReviews = ({ productId }) => {
     return filtered;
   };
 
-  // NUEVA FUNCIÓN: Marcar como útil
+  // Función para marcar como útil
   const markHelpful = async (reviewId) => {
     if (!isAuthenticated) {
       toast.error("Debes iniciar sesión para votar");
@@ -166,12 +233,12 @@ const ProductReviews = ({ productId }) => {
         toast.error(data.error || "Error al procesar tu voto");
       }
     } catch (error) {
-      console.error("Error marking review as helpful:", error);
+      logDebug("Error marking helpful", { reviewId, error: error.message });
       toast.error("Error al procesar tu voto");
     }
   };
 
-  // NUEVA FUNCIÓN: Toggle expandir comentario
+  // Función para toggle expandir
   const toggleExpanded = (reviewId) => {
     const newExpanded = new Set(expandedItems);
     if (newExpanded.has(reviewId)) {
@@ -184,12 +251,14 @@ const ProductReviews = ({ productId }) => {
 
   // Effects
   useEffect(() => {
+    logDebug("Component mounted/productId changed", { productId });
     if (productId) {
       fetchReviews();
     }
   }, [productId]);
 
   useEffect(() => {
+    logDebug("Auth status changed", { isAuthenticated, status, isLoading });
     if (isAuthenticated && productId && !isLoading) {
       checkPermissions();
     } else if (status === "unauthenticated") {
@@ -203,10 +272,10 @@ const ProductReviews = ({ productId }) => {
   useEffect(() => {
     setFilteredRatings(filterAndSortReviews(ratings, "ratings"));
     setFilteredQuestions(filterAndSortReviews(questions, "questions"));
-    setCurrentPage(1); // Reset página al cambiar filtros
+    setCurrentPage(1);
   }, [ratings, questions, ratingFilter, sortBy, searchTerm]);
 
-  // Funciones de formularios (mantienes las existentes)
+  // Función para enviar pregunta
   const handleSubmitQuestion = async () => {
     if (!isAuthenticated) {
       toast.error("Debes iniciar sesión para hacer una pregunta");
@@ -219,6 +288,11 @@ const ProductReviews = ({ productId }) => {
 
     setSubmitting(true);
     try {
+      logDebug("Submitting question", {
+        productId,
+        comment: questionForm.comment,
+      });
+
       const response = await fetch(`/api/products/${productId}/reviews`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -229,6 +303,8 @@ const ProductReviews = ({ productId }) => {
       });
 
       const data = await response.json();
+      logDebug("Question submission response", data);
+
       if (data.success) {
         toast.success("Pregunta enviada con éxito");
         setQuestionForm({ comment: "" });
@@ -239,13 +315,14 @@ const ProductReviews = ({ productId }) => {
         toast.error(data.error || "Error al enviar la pregunta");
       }
     } catch (error) {
-      console.error("Error submitting question:", error);
+      logDebug("Error submitting question", { error: error.message });
       toast.error("Error al enviar la pregunta");
     } finally {
       setSubmitting(false);
     }
   };
 
+  // Función para enviar calificación
   const handleSubmitRating = async () => {
     if (!isAuthenticated) {
       toast.error("Debes iniciar sesión para calificar");
@@ -262,6 +339,12 @@ const ProductReviews = ({ productId }) => {
 
     setSubmitting(true);
     try {
+      logDebug("Submitting rating", {
+        productId,
+        rating: ratingForm.rating,
+        comment: ratingForm.comment,
+      });
+
       const response = await fetch(`/api/products/${productId}/reviews`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -273,6 +356,8 @@ const ProductReviews = ({ productId }) => {
       });
 
       const data = await response.json();
+      logDebug("Rating submission response", data);
+
       if (data.success) {
         toast.success("Calificación enviada con éxito");
         setRatingForm({ rating: 0, comment: "" });
@@ -283,125 +368,14 @@ const ProductReviews = ({ productId }) => {
         toast.error(data.error || "Error al enviar la calificación");
       }
     } catch (error) {
-      console.error("Error submitting rating:", error);
+      logDebug("Error submitting rating", { error: error.message });
       toast.error("Error al enviar la calificación");
     } finally {
       setSubmitting(false);
     }
   };
 
-  // Componente de filtros
-  const FilterControls = () => (
-    <div className="bg-gray-50 p-4 rounded-lg mb-6 space-y-4">
-      {/* Búsqueda */}
-      <div>
-        <input
-          type="text"
-          placeholder="Buscar en reviews..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-        />
-      </div>
-
-      <div className="flex flex-col sm:flex-row gap-4">
-        {/* Filtro por rating (solo en pestaña de calificaciones) */}
-        {activeTab === "ratings" && (
-          <div className="flex-1">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Filtrar por estrellas
-            </label>
-            <select
-              value={ratingFilter}
-              onChange={(e) => setRatingFilter(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            >
-              <option value="all">Todas las calificaciones</option>
-              <option value="5">
-                5 estrellas ({ratingStats.distribution[4]})
-              </option>
-              <option value="4">
-                4 estrellas ({ratingStats.distribution[3]})
-              </option>
-              <option value="3">
-                3 estrellas ({ratingStats.distribution[2]})
-              </option>
-              <option value="2">
-                2 estrellas ({ratingStats.distribution[1]})
-              </option>
-              <option value="1">
-                1 estrella ({ratingStats.distribution[0]})
-              </option>
-            </select>
-          </div>
-        )}
-
-        {/* Ordenar */}
-        <div className="flex-1">
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Ordenar por
-          </label>
-          <select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          >
-            <option value="newest">Más recientes</option>
-            <option value="oldest">Más antiguos</option>
-            {activeTab === "ratings" && (
-              <>
-                <option value="highest">Mejor calificados</option>
-                <option value="lowest">Peor calificados</option>
-              </>
-            )}
-            <option value="helpful">Más útiles</option>
-          </select>
-        </div>
-      </div>
-    </div>
-  );
-
-  // Componente de paginación
-  const Pagination = ({ items, currentPage, setCurrentPage }) => {
-    const totalPages = Math.ceil(items.length / itemsPerPage);
-    if (totalPages <= 1) return null;
-
-    return (
-      <div className="flex justify-center items-center space-x-2 mt-6">
-        <button
-          onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-          disabled={currentPage === 1}
-          className="px-3 py-1 border rounded disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          Anterior
-        </button>
-
-        {[...Array(totalPages)].map((_, i) => (
-          <button
-            key={i + 1}
-            onClick={() => setCurrentPage(i + 1)}
-            className={`px-3 py-1 border rounded ${
-              currentPage === i + 1
-                ? "bg-indigo-600 text-white"
-                : "bg-white text-gray-700 hover:bg-gray-50"
-            }`}
-          >
-            {i + 1}
-          </button>
-        ))}
-
-        <button
-          onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-          disabled={currentPage === totalPages}
-          className="px-3 py-1 border rounded disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          Siguiente
-        </button>
-      </div>
-    );
-  };
-
-  // Función para renderizar botones (mantienes las existentes)
+  // Renderizar botones de acción
   const renderQuestionButton = () => {
     if (isLoading || checkingPermissions) {
       return (
@@ -511,16 +485,114 @@ const ProductReviews = ({ productId }) => {
     return null;
   };
 
-  if (loading) {
+  // Componentes auxiliares
+  const FilterControls = () => (
+    <div className="bg-gray-50 p-4 rounded-lg mb-6 space-y-4">
+      <div>
+        <input
+          type="text"
+          placeholder="Buscar en reviews..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+        />
+      </div>
+
+      <div className="flex flex-col sm:flex-row gap-4">
+        {activeTab === "ratings" && (
+          <div className="flex-1">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Filtrar por estrellas
+            </label>
+            <select
+              value={ratingFilter}
+              onChange={(e) => setRatingFilter(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            >
+              <option value="all">Todas las calificaciones</option>
+              <option value="5">
+                5 estrellas ({ratingStats.distribution[4]})
+              </option>
+              <option value="4">
+                4 estrellas ({ratingStats.distribution[3]})
+              </option>
+              <option value="3">
+                3 estrellas ({ratingStats.distribution[2]})
+              </option>
+              <option value="2">
+                2 estrellas ({ratingStats.distribution[1]})
+              </option>
+              <option value="1">
+                1 estrella ({ratingStats.distribution[0]})
+              </option>
+            </select>
+          </div>
+        )}
+
+        <div className="flex-1">
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Ordenar por
+          </label>
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          >
+            <option value="newest">Más recientes</option>
+            <option value="oldest">Más antiguos</option>
+            {activeTab === "ratings" && (
+              <>
+                <option value="highest">Mejor calificados</option>
+                <option value="lowest">Peor calificados</option>
+              </>
+            )}
+            <option value="helpful">Más útiles</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  );
+
+  const Pagination = ({ items, currentPage, setCurrentPage }) => {
+    const totalPages = Math.ceil(items.length / itemsPerPage);
+    if (totalPages <= 1) return null;
+
     return (
-      <div className="text-center py-8">
-        <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-indigo-600 border-t-transparent"></div>
-        <p className="mt-2 text-gray-600">Cargando contenido...</p>
+      <div className="flex justify-center items-center space-x-2 mt-6">
+        <button
+          onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+          disabled={currentPage === 1}
+          className="px-3 py-1 border rounded disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          Anterior
+        </button>
+
+        {[...Array(totalPages)].map((_, i) => (
+          <button
+            key={i + 1}
+            onClick={() => setCurrentPage(i + 1)}
+            className={`px-3 py-1 border rounded ${
+              currentPage === i + 1
+                ? "bg-indigo-600 text-white"
+                : "bg-white text-gray-700 hover:bg-gray-50"
+            }`}
+          >
+            {i + 1}
+          </button>
+        ))}
+
+        <button
+          onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+          disabled={currentPage === totalPages}
+          className="px-3 py-1 border rounded disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          Siguiente
+        </button>
       </div>
     );
-  }
+  };
 
-  // Calcular items para mostrar en la página actual
+  // Calcular items para mostrar
   const getCurrentPageItems = (items) => {
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
@@ -530,8 +602,17 @@ const ProductReviews = ({ productId }) => {
   const currentQuestions = getCurrentPageItems(filteredQuestions);
   const currentRatings = getCurrentPageItems(filteredRatings);
 
+  if (loading) {
+    return (
+      <div className="text-center py-8">
+        <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-indigo-600 border-t-transparent"></div>
+        <p className="mt-2 text-gray-600">Cargando contenido...</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="mt-12 space-y-8">
+    <div className="mt-12 space-y-8" id="reviews-section">
       {/* Resumen de calificaciones */}
       {ratingStats.total > 0 && (
         <div className="bg-gray-50 p-6 rounded-lg">
@@ -550,7 +631,6 @@ const ProductReviews = ({ productId }) => {
               </div>
             </div>
 
-            {/* Distribución de estrellas */}
             <div className="space-y-2">
               {[5, 4, 3, 2, 1].map((stars) => (
                 <div key={stars} className="flex items-center gap-2">
@@ -926,11 +1006,11 @@ const ProductReviews = ({ productId }) => {
       {/* DEBUG en desarrollo */}
       {process.env.NODE_ENV === "development" && (
         <div className="mt-4 p-2 bg-yellow-100 border border-yellow-300 rounded text-xs">
-          <strong>DEBUG:</strong> Status: {status} | Can Question:{" "}
+          <strong>DEBUG:</strong>
+          Status: {status} | Product ID: {productId} | Can Question:{" "}
           {canQuestion ? "Sí" : "No"} | Can Rate: {canRate ? "Sí" : "No"} |
-          Reasons: {JSON.stringify(permissions)} | Filtered Questions:{" "}
-          {filteredQuestions.length} | Filtered Ratings:{" "}
-          {filteredRatings.length}
+          Reasons: {JSON.stringify(permissions)} | Questions:{" "}
+          {filteredQuestions.length} | Ratings: {filteredRatings.length}
         </div>
       )}
     </div>

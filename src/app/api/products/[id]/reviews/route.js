@@ -1,4 +1,4 @@
-// app/api/products/[productId]/reviews/route.js - ACTUALIZADO
+// app/api/products/[id]/reviews/route.js - RUTA CORREGIDA
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import connectDB from "@/lib/db";
@@ -9,36 +9,56 @@ import { authOptions } from "@/lib/auth";
 
 // Función para verificar si el usuario ha comprado el producto
 async function hasUserPurchasedProduct(userId, productId) {
-  const order = await Order.findOne({
-    user: userId,
-    "items.product": productId,
-    status: { $in: ["pagado", "enviado", "entregado"] },
-  });
-
-  return !!order;
+  try {
+    const order = await Order.findOne({
+      user: userId,
+      "items.product": productId,
+      status: { $in: ["pagado", "enviado", "entregado"] },
+    });
+    return !!order;
+  } catch (error) {
+    console.error("Error checking purchase:", error);
+    return false;
+  }
 }
 
-// GET - Obtener todas las reviews de un producto (separadas por tipo)
+// GET - Obtener todas las reviews de un producto
 export async function GET(request, { params }) {
   try {
+    console.log("🔍 GET Reviews - Params received:", params);
+
     const awaitedParams = await params;
-    const { searchParams } = new URL(request.url);
-    const type = searchParams.get("type"); // "question", "rating", o sin especificar para ambos
+    const productId = awaitedParams.id; // Usar 'id' consistentemente
 
-    await connectDB();
+    console.log("📦 Product ID:", productId);
 
-    let query = { product: awaitedParams.productId };
-
-    // Filtrar por tipo si se especifica
-    if (type && ["question", "rating"].includes(type)) {
-      query.type = type;
+    if (!productId) {
+      return NextResponse.json(
+        { success: false, error: "Product ID is required" },
+        { status: 400 }
+      );
     }
 
-    const reviews = await Review.find(query)
+    await connectDB();
+    console.log("✅ Database connected");
+
+    // Verificar que el producto existe
+    const product = await Product.findById(productId);
+    if (!product) {
+      console.log("❌ Product not found:", productId);
+      return NextResponse.json(
+        { success: false, error: "Producto no encontrado" },
+        { status: 404 }
+      );
+    }
+
+    const reviews = await Review.find({ product: productId })
       .populate("user", "name")
       .sort({ createdAt: -1 });
 
-    // Separar por tipo para estadísticas
+    console.log("📊 Reviews found:", reviews.length);
+
+    // Separar por tipo
     const questions = reviews.filter((r) => r.type === "question");
     const ratings = reviews.filter((r) => r.type === "rating");
 
@@ -67,7 +87,7 @@ export async function GET(request, { params }) {
 
     return NextResponse.json({
       success: true,
-      reviews: type ? reviews : { questions, ratings }, // Devolver separado si no se especifica tipo
+      reviews: { questions, ratings },
       ratingStats,
       counts: {
         questions: questions.length,
@@ -76,9 +96,12 @@ export async function GET(request, { params }) {
       },
     });
   } catch (error) {
-    console.error("Error fetching reviews:", error);
+    console.error("❌ Error fetching reviews:", error);
     return NextResponse.json(
-      { success: false, error: "Error al obtener las reseñas" },
+      {
+        success: false,
+        error: "Error al obtener las reseñas: " + error.message,
+      },
       { status: 500 }
     );
   }
@@ -87,8 +110,15 @@ export async function GET(request, { params }) {
 // POST - Crear una nueva pregunta o calificación
 export async function POST(request, { params }) {
   try {
+    console.log("📝 POST Review - Params received:", params);
+
     const awaitedParams = await params;
+    const productId = awaitedParams.id; // Usar 'id' consistentemente
+
+    console.log("📦 Product ID:", productId);
+
     const session = await getServerSession(authOptions);
+    console.log("👤 Session:", session?.user?.id);
 
     if (!session?.user) {
       return NextResponse.json(
@@ -98,8 +128,14 @@ export async function POST(request, { params }) {
     }
 
     await connectDB();
+    console.log("✅ Database connected");
 
     const { type, rating, comment } = await request.json();
+    console.log("📄 Review data:", {
+      type,
+      rating,
+      comment: comment?.substring(0, 50),
+    });
 
     // Validar tipo
     if (!type || !["question", "rating"].includes(type)) {
@@ -129,9 +165,9 @@ export async function POST(request, { params }) {
       );
     }
 
-    // Verificar si el usuario ya ha dejado este tipo de interacción para este producto
+    // Verificar si el usuario ya ha dejado este tipo de interacción
     const existingReview = await Review.findOne({
-      product: awaitedParams.productId,
+      product: productId,
       user: session.user.id,
       type: type,
     });
@@ -149,7 +185,7 @@ export async function POST(request, { params }) {
     }
 
     // Verificar si el producto existe
-    const product = await Product.findById(awaitedParams.productId);
+    const product = await Product.findById(productId);
     if (!product) {
       return NextResponse.json(
         { success: false, error: "Producto no encontrado" },
@@ -160,8 +196,9 @@ export async function POST(request, { params }) {
     // Verificar permisos según el tipo
     const hasPurchased = await hasUserPurchasedProduct(
       session.user.id,
-      awaitedParams.productId
+      productId
     );
+    console.log("🛒 User has purchased:", hasPurchased);
 
     // SOLO para calificaciones con estrellas requerir compra
     if (type === "rating" && !hasPurchased) {
@@ -175,12 +212,9 @@ export async function POST(request, { params }) {
       );
     }
 
-    // Para preguntas, cualquier usuario autenticado puede escribir
-    // (no se requiere haber comprado el producto)
-
     // Crear la nueva review/pregunta
     const reviewData = {
-      product: awaitedParams.productId,
+      product: productId,
       user: session.user.id,
       type: type,
       comment: comment.trim(),
@@ -192,10 +226,12 @@ export async function POST(request, { params }) {
       reviewData.rating = parseInt(rating);
     }
 
-    const review = await Review.create(reviewData);
+    console.log("💾 Creating review with data:", reviewData);
 
-    // Poblar la información del usuario
+    const review = await Review.create(reviewData);
     await review.populate("user", "name");
+
+    console.log("✅ Review created successfully:", review._id);
 
     return NextResponse.json({
       success: true,
@@ -206,9 +242,12 @@ export async function POST(request, { params }) {
           : "Pregunta enviada con éxito",
     });
   } catch (error) {
-    console.error("Error creating review:", error);
+    console.error("❌ Error creating review:", error);
     return NextResponse.json(
-      { success: false, error: "Error al enviar la interacción" },
+      {
+        success: false,
+        error: "Error al enviar la interacción: " + error.message,
+      },
       { status: 500 }
     );
   }

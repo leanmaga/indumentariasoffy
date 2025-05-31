@@ -1,4 +1,4 @@
-// app/api/products/[productId]/reviews/can-review/route.js - ACTUALIZADO
+// app/api/products/[id]/reviews/can-review/route.js - RUTA CORREGIDA
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import connectDB from "@/lib/db";
@@ -8,22 +8,34 @@ import { authOptions } from "@/lib/auth";
 
 // Función para verificar si el usuario ha comprado el producto
 async function hasUserPurchasedProduct(userId, productId) {
-  const order = await Order.findOne({
-    user: userId,
-    "items.product": productId,
-    status: { $in: ["pagado", "enviado", "entregado"] },
-  });
-
-  return !!order;
+  try {
+    const order = await Order.findOne({
+      user: userId,
+      "items.product": productId,
+      status: { $in: ["pagado", "enviado", "entregado"] },
+    });
+    return !!order;
+  } catch (error) {
+    console.error("Error checking purchase:", error);
+    return false;
+  }
 }
 
 // GET - Verificar qué tipo de interacciones puede hacer el usuario
 export async function GET(request, { params }) {
   try {
+    console.log("🔍 GET Can-Review - Params received:", params);
+
     const awaitedParams = await params;
+    const productId = awaitedParams.id; // Usar 'id' consistentemente
+
+    console.log("📦 Product ID:", productId);
+
     const session = await getServerSession(authOptions);
+    console.log("👤 Session user ID:", session?.user?.id);
 
     if (!session?.user) {
+      console.log("❌ User not authenticated");
       return NextResponse.json({
         success: true,
         canQuestion: false,
@@ -36,25 +48,30 @@ export async function GET(request, { params }) {
     }
 
     await connectDB();
+    console.log("✅ Database connected");
 
     // Verificar si ya dejó cada tipo de interacción
     const existingQuestion = await Review.findOne({
-      product: awaitedParams.productId,
+      product: productId,
       user: session.user.id,
       type: "question",
     });
 
     const existingRating = await Review.findOne({
-      product: awaitedParams.productId,
+      product: productId,
       user: session.user.id,
       type: "rating",
     });
 
+    console.log("📋 Existing question:", !!existingQuestion);
+    console.log("⭐ Existing rating:", !!existingRating);
+
     // Verificar si compró el producto
     const hasPurchased = await hasUserPurchasedProduct(
       session.user.id,
-      awaitedParams.productId
+      productId
     );
+    console.log("🛒 Has purchased:", hasPurchased);
 
     // Lógica para preguntas: cualquier usuario autenticado que no haya preguntado
     const canQuestion = !existingQuestion;
@@ -68,6 +85,13 @@ export async function GET(request, { params }) {
       ? "not_purchased"
       : null;
 
+    console.log("✅ Permissions calculated:", {
+      canQuestion,
+      canRate,
+      questionReason,
+      ratingReason,
+    });
+
     return NextResponse.json({
       success: true,
       canQuestion,
@@ -79,9 +103,12 @@ export async function GET(request, { params }) {
       hasPurchased,
     });
   } catch (error) {
-    console.error("Error checking review eligibility:", error);
+    console.error("❌ Error checking review eligibility:", error);
     return NextResponse.json(
-      { success: false, error: "Error al verificar elegibilidad" },
+      {
+        success: false,
+        error: "Error al verificar elegibilidad: " + error.message,
+      },
       { status: 500 }
     );
   }
