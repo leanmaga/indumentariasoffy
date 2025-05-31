@@ -1,4 +1,4 @@
-// models/Review.js
+// models/Review.js - ACTUALIZADO
 import mongoose from "mongoose";
 
 const reviewSchema = new mongoose.Schema(
@@ -13,11 +13,20 @@ const reviewSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
+    // NUEVO: Tipo de interacción
+    type: {
+      type: String,
+      enum: ["question", "rating"], // question = pregunta/comentario, rating = calificación con estrellas
+      required: true,
+    },
+    // Rating es opcional ahora (solo para type: "rating")
     rating: {
       type: Number,
-      required: true,
       min: 1,
       max: 5,
+      required: function () {
+        return this.type === "rating";
+      },
     },
     comment: {
       type: String,
@@ -42,47 +51,68 @@ const reviewSchema = new mongoose.Schema(
       type: Boolean,
       default: false, // true si el usuario compró el producto
     },
+    // NUEVO: Campo para respuestas del vendedor (futuro)
+    response: {
+      type: String,
+      default: "",
+    },
+    responseDate: {
+      type: Date,
+    },
   },
   {
     timestamps: true,
   }
 );
 
-// Prevenir múltiples reviews del mismo usuario para el mismo producto
-reviewSchema.index({ product: 1, user: 1 }, { unique: true });
+// ACTUALIZADO: Índice único por usuario, producto Y tipo
+reviewSchema.index({ product: 1, user: 1, type: 1 }, { unique: true });
 
-// Middleware para actualizar el rating del producto después de crear una review
+// ACTUALIZADO: Middleware para actualizar el rating del producto SOLO con reviews de tipo "rating"
 reviewSchema.post("save", async function (doc) {
-  const Review = this.constructor;
-  const Product = mongoose.model("Product");
+  // Solo actualizar stats si es una calificación con estrellas
+  if (doc.type === "rating") {
+    const Review = this.constructor;
+    const Product = mongoose.model("Product");
 
-  const stats = await Review.aggregate([
-    { $match: { product: doc.product } },
-    {
-      $group: {
-        _id: null,
-        avgRating: { $avg: "$rating" },
-        numReviews: { $sum: 1 },
+    const stats = await Review.aggregate([
+      {
+        $match: {
+          product: doc.product,
+          type: "rating", // Solo incluir calificaciones con estrellas
+        },
       },
-    },
-  ]);
+      {
+        $group: {
+          _id: null,
+          avgRating: { $avg: "$rating" },
+          numReviews: { $sum: 1 },
+        },
+      },
+    ]);
 
-  if (stats.length > 0) {
-    await Product.findByIdAndUpdate(doc.product, {
-      rating: Math.round(stats[0].avgRating * 10) / 10,
-      numReviews: stats[0].numReviews,
-    });
+    if (stats.length > 0) {
+      await Product.findByIdAndUpdate(doc.product, {
+        rating: Math.round(stats[0].avgRating * 10) / 10,
+        numReviews: stats[0].numReviews,
+      });
+    }
   }
 });
 
-// Middleware para actualizar el rating del producto después de eliminar una review
+// ACTUALIZADO: Middleware para actualizar el rating después de eliminar
 reviewSchema.post("findOneAndDelete", async function (doc) {
-  if (doc) {
+  if (doc && doc.type === "rating") {
     const Review = mongoose.model("Review");
     const Product = mongoose.model("Product");
 
     const stats = await Review.aggregate([
-      { $match: { product: doc.product } },
+      {
+        $match: {
+          product: doc.product,
+          type: "rating", // Solo incluir calificaciones con estrellas
+        },
+      },
       {
         $group: {
           _id: null,
@@ -98,7 +128,7 @@ reviewSchema.post("findOneAndDelete", async function (doc) {
         numReviews: stats[0].numReviews,
       });
     } else {
-      // Si no hay más reviews, resetear valores
+      // Si no hay más reviews con rating, resetear valores
       await Product.findByIdAndUpdate(doc.product, {
         rating: 0,
         numReviews: 0,

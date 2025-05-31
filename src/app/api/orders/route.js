@@ -1,4 +1,4 @@
-// src/app/api/orders/route.js - MEJORADO
+// src/app/api/orders/route.js - ACTUALIZADO CON EMAILS
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
@@ -6,6 +6,10 @@ import connectDB from "@/lib/db";
 import Order from "@/models/Order";
 import User from "@/models/User";
 import { createPaymentPreference } from "@/lib/mercadopago";
+import {
+  sendOrderConfirmationToCustomer,
+  sendNewOrderNotificationToAdmin,
+} from "@/lib/order-emails";
 
 export async function POST(request) {
   try {
@@ -50,16 +54,13 @@ export async function POST(request) {
 
     // Verificar si existe una clave de idempotencia
     if (orderData.idempotencyKey) {
-      // Buscar si ya existe una orden con esta clave de idempotencia
       const existingOrder = await Order.findOne({
         idempotencyKey: orderData.idempotencyKey,
       });
 
-      // Si ya existe, devolver la información de esa orden
       if (existingOrder) {
         console.log(`♻️ Reutilizando orden existente: ${existingOrder._id}`);
 
-        // Si la orden existente ya tiene información de pago de MercadoPago, devolverla
         if (orderData.paymentMethod === "mercadopago") {
           try {
             const preferenceResponse = await createPaymentPreference(
@@ -77,7 +78,6 @@ export async function POST(request) {
             });
           } catch (mpError) {
             console.error("Error al recrear preferencia:", mpError);
-            // Continuar con creación de nueva orden si falla
           }
         } else if (orderData.paymentMethod === "whatsapp") {
           return NextResponse.json({
@@ -100,27 +100,23 @@ export async function POST(request) {
       user: user._id,
       status: { $in: ["pendiente", "whatsapp_pendiente"] },
       createdAt: { $gte: recentCutoff },
-      totalAmount: orderData.totalAmount, // Mismo total
-      // Verificar si tiene productos similares
+      totalAmount: orderData.totalAmount,
       "items.product": {
         $in: orderData.items.map((item) => item.product),
       },
     }).sort({ createdAt: -1 });
 
-    // Si hay una orden pendiente reciente similar, actualizarla en lugar de crear nueva
     if (recentPendingOrder) {
       console.log(
         `♻️ Actualizando orden pendiente reciente: ${recentPendingOrder._id}`
       );
 
-      // Actualizar la orden existente con los nuevos datos
       recentPendingOrder.items = orderData.items;
       recentPendingOrder.totalAmount = orderData.totalAmount;
       recentPendingOrder.shippingInfo = orderData.shippingInfo;
       recentPendingOrder.paymentMethod = orderData.paymentMethod;
       recentPendingOrder.updatedAt = new Date();
 
-      // Actualizar estado según método de pago
       if (orderData.paymentMethod === "whatsapp") {
         recentPendingOrder.status = "whatsapp_pendiente";
         recentPendingOrder.whatsappOrder = true;
@@ -131,7 +127,6 @@ export async function POST(request) {
 
       await recentPendingOrder.save();
 
-      // Crear nueva preferencia si es MercadoPago
       if (orderData.paymentMethod === "mercadopago") {
         try {
           const preferenceResponse = await createPaymentPreference(
@@ -197,7 +192,6 @@ export async function POST(request) {
       status: initialStatus,
       idempotencyKey: orderData.idempotencyKey,
       whatsappOrder: orderData.paymentMethod === "whatsapp",
-      // Inicializar paymentDetails
       paymentDetails: {
         statusHistory: [],
       },
@@ -209,6 +203,44 @@ export async function POST(request) {
     // Agregar la orden al usuario
     user.orders.push(order._id);
     await user.save();
+
+    // 🆕 ENVIAR EMAILS DE CONFIRMACIÓN DE ORDEN
+    console.log("📧 Enviando emails de confirmación de orden...");
+
+    try {
+      // Email de confirmación al cliente
+      const customerEmailResult = await sendOrderConfirmationToCustomer(
+        order,
+        user
+      );
+
+      if (customerEmailResult.success) {
+        console.log("✅ Email de confirmación enviado al cliente");
+      } else {
+        console.error(
+          "❌ Error enviando email al cliente:",
+          customerEmailResult.error
+        );
+      }
+
+      // Email de notificación al administrador
+      const adminEmailResult = await sendNewOrderNotificationToAdmin(
+        order,
+        user
+      );
+
+      if (adminEmailResult.success) {
+        console.log("✅ Email de notificación enviado al admin");
+      } else {
+        console.error(
+          "❌ Error enviando email al admin:",
+          adminEmailResult.error
+        );
+      }
+    } catch (emailError) {
+      console.error("❌ Error general enviando emails:", emailError);
+      // No fallar la creación de la orden por errores de email
+    }
 
     // Si el método de pago es MercadoPago, crear preferencia de pago
     if (orderData.paymentMethod === "mercadopago") {

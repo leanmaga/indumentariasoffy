@@ -1,23 +1,23 @@
-// app/api/products/[productId]/reviews/can-review/route.js
+// app/api/products/[productId]/reviews/can-review/route.js - ACTUALIZADO
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import connectDB from "@/lib/db";
 import Review from "@/models/Review";
 import Order from "@/models/Order";
-import authOptions from "@/lib/auth";
+import { authOptions } from "@/lib/auth";
 
 // Función para verificar si el usuario ha comprado el producto
 async function hasUserPurchasedProduct(userId, productId) {
   const order = await Order.findOne({
     user: userId,
     "items.product": productId,
-    status: { $in: ["completed", "delivered"] },
+    status: { $in: ["pagado", "enviado", "entregado"] },
   });
 
   return !!order;
 }
 
-// GET - Verificar si el usuario puede reseñar un producto
+// GET - Verificar qué tipo de interacciones puede hacer el usuario
 export async function GET(request, { params }) {
   try {
     const awaitedParams = await params;
@@ -26,26 +26,29 @@ export async function GET(request, { params }) {
     if (!session?.user) {
       return NextResponse.json({
         success: true,
-        canReview: false,
-        reason: "not_authenticated",
+        canQuestion: false,
+        canRate: false,
+        reasons: {
+          question: "not_authenticated",
+          rating: "not_authenticated",
+        },
       });
     }
 
     await connectDB();
 
-    // Verificar si ya dejó una reseña
-    const existingReview = await Review.findOne({
+    // Verificar si ya dejó cada tipo de interacción
+    const existingQuestion = await Review.findOne({
       product: awaitedParams.productId,
       user: session.user.id,
+      type: "question",
     });
 
-    if (existingReview) {
-      return NextResponse.json({
-        success: true,
-        canReview: false,
-        reason: "already_reviewed",
-      });
-    }
+    const existingRating = await Review.findOne({
+      product: awaitedParams.productId,
+      user: session.user.id,
+      type: "rating",
+    });
 
     // Verificar si compró el producto
     const hasPurchased = await hasUserPurchasedProduct(
@@ -53,18 +56,27 @@ export async function GET(request, { params }) {
       awaitedParams.productId
     );
 
-    if (!hasPurchased) {
-      return NextResponse.json({
-        success: true,
-        canReview: false,
-        reason: "not_purchased",
-      });
-    }
+    // Lógica para preguntas: cualquier usuario autenticado que no haya preguntado
+    const canQuestion = !existingQuestion;
+    const questionReason = existingQuestion ? "already_asked" : null;
+
+    // Lógica para calificaciones: solo usuarios que compraron y no han calificado
+    const canRate = hasPurchased && !existingRating;
+    const ratingReason = existingRating
+      ? "already_rated"
+      : !hasPurchased
+      ? "not_purchased"
+      : null;
 
     return NextResponse.json({
       success: true,
-      canReview: true,
-      reason: null,
+      canQuestion,
+      canRate,
+      reasons: {
+        question: questionReason,
+        rating: ratingReason,
+      },
+      hasPurchased,
     });
   } catch (error) {
     console.error("Error checking review eligibility:", error);

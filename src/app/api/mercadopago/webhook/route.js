@@ -1,8 +1,13 @@
-// /api/mercadopago/webhook/route.js - VERSIÓN DEFINITIVA
+// /api/mercadopago/webhook/route.js - VERSIÓN CON EMAILS
 import { NextResponse } from "next/server";
 import connectDB from "@/lib/db";
 import Order from "@/models/Order";
+import User from "@/models/User";
 import crypto from "crypto";
+import {
+  sendPaymentConfirmationToCustomer,
+  sendPaymentNotificationToAdmin,
+} from "@/lib/order-emails";
 
 // Función simplificada para obtener estado del pago
 async function getPaymentStatus(paymentId) {
@@ -38,7 +43,7 @@ export async function POST(request) {
     const bodyText = await request.text();
     console.log("📋 Body:", bodyText);
 
-    // Verificar firma del webhook (opcional - puede habilitarse más tarde)
+    // Verificar firma del webhook (opcional)
     if (process.env.MERCADOPAGO_WEBHOOK_SECRET) {
       const signature = request.headers.get("x-signature") || "";
       const isValid = verifyWebhookSignature(bodyText, signature);
@@ -46,7 +51,6 @@ export async function POST(request) {
         console.warn(
           "⚠️ Firma de webhook inválida - procesando de todos modos"
         );
-        // No fallar por ahora, solo loggear
       } else {
         console.log("✅ Firma de webhook válida");
       }
@@ -125,6 +129,16 @@ export async function POST(request) {
           );
         }
 
+        // 🆕 OBTENER INFORMACIÓN DEL USUARIO
+        const user = await User.findById(order.user);
+        if (!user) {
+          console.warn(`⚠️ Usuario no encontrado para la orden ${order._id}`);
+          return NextResponse.json(
+            { message: "User not found" },
+            { status: 200 }
+          );
+        }
+
         console.log(
           `📦 Orden encontrada: ${order._id} (Estado actual: ${order.status})`
         );
@@ -138,6 +152,46 @@ export async function POST(request) {
         if (paymentStatus === "approved") {
           order.status = "pagado";
           console.log("✅ Marcando orden como PAGADA");
+
+          // 🆕 ENVIAR EMAILS DE CONFIRMACIÓN DE PAGO
+          console.log("📧 Enviando emails de confirmación de pago...");
+
+          try {
+            // Email al cliente
+            const customerEmailResult = await sendPaymentConfirmationToCustomer(
+              order,
+              user,
+              paymentInfo
+            );
+
+            if (customerEmailResult.success) {
+              console.log("✅ Email de confirmación enviado al cliente");
+            } else {
+              console.error(
+                "❌ Error enviando email al cliente:",
+                customerEmailResult.error
+              );
+            }
+
+            // Email al administrador
+            const adminEmailResult = await sendPaymentNotificationToAdmin(
+              order,
+              user,
+              paymentInfo
+            );
+
+            if (adminEmailResult.success) {
+              console.log("✅ Email de notificación enviado al admin");
+            } else {
+              console.error(
+                "❌ Error enviando email al admin:",
+                adminEmailResult.error
+              );
+            }
+          } catch (emailError) {
+            console.error("❌ Error general enviando emails:", emailError);
+            // No fallar el webhook por errores de email
+          }
 
           // Cancelar órdenes duplicadas del mismo usuario
           await cancelDuplicateOrders(order);
