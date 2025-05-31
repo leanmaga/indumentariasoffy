@@ -1,4 +1,4 @@
-// app/api/reviews/[reviewId]/helpful/route.js - RUTA CORREGIDA
+// app/api/reviews/[reviewId]/helpful/route.js - VERSIÓN CORREGIDA
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import connectDB from "@/lib/db";
@@ -7,14 +7,24 @@ import { authOptions } from "@/lib/auth";
 
 export async function POST(request, { params }) {
   try {
-    console.log("👍 POST Helpful - Params received:", params);
+    console.log("👍 POST Helpful - Raw params:", params);
 
+    // CORRECCIÓN: Asegurarse de obtener correctamente el reviewId
     const awaitedParams = await params;
     const reviewId = awaitedParams.reviewId;
 
-    console.log("📝 Review ID:", reviewId);
+    console.log("📝 Review ID extraído:", reviewId);
+
+    if (!reviewId) {
+      console.log("❌ No reviewId provided");
+      return NextResponse.json(
+        { success: false, error: "ID de review requerido" },
+        { status: 400 }
+      );
+    }
 
     const session = await getServerSession(authOptions);
+    console.log("👤 Session user:", session?.user?.id);
 
     if (!session?.user) {
       return NextResponse.json(
@@ -24,8 +34,11 @@ export async function POST(request, { params }) {
     }
 
     await connectDB();
+    console.log("✅ Database connected");
 
     const review = await Review.findById(reviewId);
+    console.log("📋 Review found:", !!review);
+
     if (!review) {
       return NextResponse.json(
         { success: false, error: "Review no encontrada" },
@@ -37,6 +50,8 @@ export async function POST(request, { params }) {
     const alreadyVoted = review.helpfulVotes.some(
       (vote) => vote.user.toString() === session.user.id
     );
+
+    console.log("🗳️ Already voted:", alreadyVoted);
 
     if (alreadyVoted) {
       return NextResponse.json(
@@ -58,7 +73,7 @@ export async function POST(request, { params }) {
     review.helpful = review.helpfulVotes.length;
     await review.save();
 
-    console.log("✅ Vote added successfully");
+    console.log("✅ Vote added successfully, new count:", review.helpful);
 
     return NextResponse.json({
       success: true,
@@ -115,4 +130,17 @@ export async function GET(request, { params }) {
       { status: 500 }
     );
   }
+}
+
+// ===================================================================
+// DEBUGGING: Crear ruta de testing para verificar que funciona
+// ===================================================================
+
+// app/api/test-helpful/route.js - RUTA DE TESTING
+export async function TestHelpful() {
+  return NextResponse.json({
+    success: true,
+    message: "La ruta de helpful está funcionando correctamente",
+    timestamp: new Date().toISOString(),
+  });
 }
