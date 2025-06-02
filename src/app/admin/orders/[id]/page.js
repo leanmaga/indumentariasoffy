@@ -84,13 +84,13 @@ export default async function OrderDetailPage({ params }) {
             <div className="divide-y divide-gray-200">
               {order.items.map((item) => (
                 <div key={item._id} className="flex p-6">
-                  <div className="h-24 w-24 flex-shrink-0 overflow-hidden rounded-md border border-gray-200 relative">
+                  <div className=" flex-shrink-0 overflow-hidden rounded-md border border-gray-200 relative">
                     <Image
                       src={item.imageUrl}
                       alt={item.title}
                       layout="responsive"
-                      width={200}
-                      height={200}
+                      width={96}
+                      height={96}
                       className="object-cover object-center"
                     />
                   </div>

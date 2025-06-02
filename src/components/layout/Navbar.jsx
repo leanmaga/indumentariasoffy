@@ -100,7 +100,7 @@ const Navbar = () => {
                 alt="Logo"
                 width={75}
                 height={75}
-                className="object-cover h-auto"
+                className="object-cover"
                 priority
               />
             </Link>
@@ -215,7 +215,7 @@ const Navbar = () => {
                       aria-label="Menu de usuario"
                     >
                       {hasGoogleImage ? (
-                        <div className="h-9 w-9 rounded-full overflow-hidden border-2 border-white shadow-sm">
+                        <div className=" rounded-full overflow-hidden border-2 border-white shadow-sm">
                           <Image
                             src={session.user.image}
                             alt={session.user.name || "Usuario"}
@@ -331,7 +331,7 @@ const Navbar = () => {
                   alt="Logo"
                   width={65}
                   height={65}
-                  className="object-cover h-auto"
+                  className="object-cover"
                 />
               </Link>
               <button
@@ -350,7 +350,7 @@ const Navbar = () => {
                 <div className="mb-6">
                   <div className="flex items-center p-4 bg-gray-50 rounded-lg border border-gray-100">
                     {hasGoogleImage ? (
-                      <div className="h-10 w-10 rounded-full overflow-hidden border-2 border-white shadow-sm">
+                      <div className=" rounded-full overflow-hidden border-2 border-white shadow-sm">
                         <Image
                           src={session.user.image}
                           alt={session.user.name || "Usuario"}

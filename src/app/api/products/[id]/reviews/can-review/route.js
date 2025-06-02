@@ -1,4 +1,4 @@
-// src/app/api/products/[id]/reviews/can-review/route.js - CORREGIDA
+// src/app/api/products/[id]/reviews/can-review/route.js
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import connectDB from "@/lib/db";
@@ -16,7 +16,10 @@ async function hasUserPurchasedProduct(userId, productId) {
     });
     return !!order;
   } catch (error) {
-    console.error("Error checking purchase:", error);
+    // Solo log en desarrollo
+    if (process.env.NODE_ENV === "development") {
+      console.error("Error checking purchase:", error);
+    }
     return false;
   }
 }
@@ -81,20 +84,16 @@ export async function GET(request, { params }) {
         rating: ratingReason,
       },
       hasPurchased,
-      debugInfo: {
-        userId: session.user.id,
-        productId,
-        existingQuestion: !!existingQuestion,
-        existingRating: !!existingRating,
-        hasPurchased,
-      },
     });
   } catch (error) {
-    console.error("❌ Error checking review eligibility:", error);
+    if (process.env.NODE_ENV === "development") {
+      console.error("❌ Error checking review eligibility:", error);
+    }
+
     return NextResponse.json(
       {
         success: false,
-        error: "Error al verificar elegibilidad: " + error.message,
+        error: "Error al verificar elegibilidad",
       },
       { status: 500 }
     );

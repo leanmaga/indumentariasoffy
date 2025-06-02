@@ -8,27 +8,22 @@ import Footer from "@/components/layout/Footer";
 import Script from "next/script";
 
 export const metadata = {
-  title: "TiendaOnline – Tu E‑commerce de confianza",
+  title: "Indumentaria Soffy – Tu E‑commerce de confianza",
   description: "Encuentra los mejores productos al mejor precio.",
   icons: {
     icon: [
       {
-        url: "images/favicon_io/favicon-16x16.png",
-        sizes: "16x16",
-        type: "image/png",
-      },
-      {
-        url: "images/favicon_io/favicon-32x32.png",
+        url: "images/favicon-32x32.png",
         sizes: "32x32",
         type: "image/png",
       },
     ],
     // shortcut icon (alias típico)
-    shortcut: [{ url: "images/favicon_io/favicon.ico" }],
+    shortcut: [{ url: "images/favicon.ico" }],
     // icono para iOS
     apple: [
       {
-        url: "images/favicon_io/apple-touch-icon.png",
+        url: "images/apple-touch-icon.png",
         sizes: "180x180",
         type: "image/png",
       },
