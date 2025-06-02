@@ -1,6 +1,4 @@
-// ================================================================
-// app/api/admin/questions/route.js - Preguntas para admin
-// ================================================================
+// src/app/api/admin/questions/route.js
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import connectDB from "@/lib/db";
@@ -53,14 +51,14 @@ export async function GET(request) {
       helpful: question.helpful,
       verified: question.verified,
       user: {
-        _id: question.user._id,
-        name: question.user.name,
-        email: question.user.email,
+        _id: question.user?._id,
+        name: question.user?.name,
+        email: question.user?.email,
       },
       product: {
-        _id: question.product._id,
-        title: question.product.title,
-        imageUrl: question.product.imageUrl,
+        _id: question.product?._id,
+        title: question.product?.title,
+        imageUrl: question.product?.imageUrl,
       },
       status: question.response ? "answered" : "pending",
       priority: question.verified ? "high" : "normal",

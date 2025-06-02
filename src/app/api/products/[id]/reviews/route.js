@@ -1,11 +1,13 @@
-// app/api/products/[id]/reviews/route.js - RUTA CORREGIDA
+// src/app/api/products/[id]/reviews/route.js - VERSIÓN CORREGIDA Y COMPLETA
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import connectDB from "@/lib/db";
 import Product from "@/models/Product";
 import Review from "@/models/Review";
 import Order from "@/models/Order";
+import User from "@/models/User";
 import { authOptions } from "@/lib/auth";
+import { sendNewQuestionNotificationToAdmin } from "@/lib/review-emails";
 
 // Función para verificar si el usuario ha comprado el producto
 async function hasUserPurchasedProduct(userId, productId) {
@@ -25,11 +27,9 @@ async function hasUserPurchasedProduct(userId, productId) {
 // GET - Obtener todas las reviews de un producto
 export async function GET(request, { params }) {
   try {
-    console.log("🔍 GET Reviews - Params received:", params);
+    console.log("🔍 GET Reviews - Iniciando...");
 
-    const awaitedParams = await params;
-    const productId = awaitedParams.id; // Usar 'id' consistentemente
-
+    const { id: productId } = await params;
     console.log("📦 Product ID:", productId);
 
     if (!productId) {
@@ -40,7 +40,6 @@ export async function GET(request, { params }) {
     }
 
     await connectDB();
-    console.log("✅ Database connected");
 
     // Verificar que el producto existe
     const product = await Product.findById(productId);
@@ -52,11 +51,12 @@ export async function GET(request, { params }) {
       );
     }
 
+    // Obtener todas las reviews del producto
     const reviews = await Review.find({ product: productId })
       .populate("user", "name")
       .sort({ createdAt: -1 });
 
-    console.log("📊 Reviews found:", reviews.length);
+    console.log("📊 Reviews encontradas:", reviews.length);
 
     // Separar por tipo
     const questions = reviews.filter((r) => r.type === "question");
@@ -110,15 +110,13 @@ export async function GET(request, { params }) {
 // POST - Crear una nueva pregunta o calificación
 export async function POST(request, { params }) {
   try {
-    console.log("📝 POST Review - Params received:", params);
+    console.log("📝 POST Review - Iniciando...");
 
-    const awaitedParams = await params;
-    const productId = awaitedParams.id; // Usar 'id' consistentemente
-
+    const { id: productId } = await params;
     console.log("📦 Product ID:", productId);
 
     const session = await getServerSession(authOptions);
-    console.log("👤 Session:", session?.user?.id);
+    console.log("👤 User ID:", session?.user?.id);
 
     if (!session?.user) {
       return NextResponse.json(
@@ -128,7 +126,6 @@ export async function POST(request, { params }) {
     }
 
     await connectDB();
-    console.log("✅ Database connected");
 
     const { type, rating, comment } = await request.json();
     console.log("📄 Review data:", {
@@ -145,7 +142,7 @@ export async function POST(request, { params }) {
       );
     }
 
-    // Validaciones según el tipo
+    // Validaciones específicas
     if (type === "rating") {
       if (!rating || rating < 1 || rating > 5) {
         return NextResponse.json(
@@ -165,7 +162,7 @@ export async function POST(request, { params }) {
       );
     }
 
-    // Verificar si el usuario ya ha dejado este tipo de interacción
+    // Verificar si ya existe este tipo de interacción
     const existingReview = await Review.findOne({
       product: productId,
       user: session.user.id,
@@ -184,7 +181,7 @@ export async function POST(request, { params }) {
       );
     }
 
-    // Verificar si el producto existe
+    // Verificar que el producto existe
     const product = await Product.findById(productId);
     if (!product) {
       return NextResponse.json(
@@ -193,7 +190,16 @@ export async function POST(request, { params }) {
       );
     }
 
-    // Verificar permisos según el tipo
+    // Obtener info del usuario
+    const user = await User.findById(session.user.id);
+    if (!user) {
+      return NextResponse.json(
+        { success: false, error: "Usuario no encontrado" },
+        { status: 404 }
+      );
+    }
+
+    // Verificar permisos de compra para calificaciones
     const hasPurchased = await hasUserPurchasedProduct(
       session.user.id,
       productId
@@ -233,13 +239,34 @@ export async function POST(request, { params }) {
 
     console.log("✅ Review created successfully:", review._id);
 
+    // 🆕 ENVIAR NOTIFICACIÓN AL ADMIN SI ES UNA PREGUNTA
+    if (type === "question") {
+      console.log("📧 Enviando notificación de nueva pregunta al admin...");
+      try {
+        const emailResult = await sendNewQuestionNotificationToAdmin(
+          review,
+          product,
+          user
+        );
+
+        if (emailResult.success) {
+          console.log("✅ Email de notificación enviado al admin");
+        } else {
+          console.error("❌ Error enviando email al admin:", emailResult.error);
+        }
+      } catch (emailError) {
+        console.error("❌ Error enviando notificación:", emailError);
+        // No fallar la creación de la pregunta por error de email
+      }
+    }
+
     return NextResponse.json({
       success: true,
       review,
       message:
         type === "rating"
           ? "Calificación enviada con éxito"
-          : "Pregunta enviada con éxito",
+          : "Pregunta enviada con éxito. Recibirás una notificación cuando sea respondida.",
     });
   } catch (error) {
     console.error("❌ Error creating review:", error);

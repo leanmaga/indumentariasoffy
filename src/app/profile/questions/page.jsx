@@ -1,7 +1,7 @@
-// src/app/admin/questions/page.js - VERSIÓN OPTIMIZADA
+// src/app/admin/questions/page.js - PANEL DE ADMINISTRACIÓN
 "use client";
 
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { toast } from "react-hot-toast";
 import Image from "next/image";
@@ -12,7 +12,9 @@ import {
   UserIcon,
   PaperAirplaneIcon,
   MagnifyingGlassIcon,
-  FunnelIcon,
+  ExclamationTriangleIcon,
+  BellIcon,
+  EyeIcon,
 } from "@heroicons/react/24/outline";
 
 const AdminQuestionsPage = () => {
@@ -28,119 +30,50 @@ const AdminQuestionsPage = () => {
   const [responseText, setResponseText] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  // Refs para evitar polling excesivo
-  const lastFetchRef = useRef(0);
-  const pollingIntervalRef = useRef(null);
-  const isActiveRef = useRef(true);
-
-  // Función de fetch optimizada con debounce
-  const fetchQuestions = useCallback(
-    async (showLoading = true) => {
-      const now = Date.now();
-
-      // Evitar llamadas muy frecuentes (mínimo 2 segundos entre calls)
-      if (now - lastFetchRef.current < 2000) {
-        console.log("⏭️ Saltando fetch (muy reciente)");
-        return;
-      }
-
-      lastFetchRef.current = now;
-
-      if (!session?.user?.role || session.user.role !== "admin") {
-        return;
-      }
-
-      try {
-        if (showLoading) setLoading(true);
-
-        const params = new URLSearchParams({
-          status: filter,
-          page: currentPage.toString(),
-          limit: "10",
-        });
-
-        console.log(`🔄 Fetching questions: ${filter}, page: ${currentPage}`);
-
-        const response = await fetch(`/api/admin/questions?${params}`);
-        const data = await response.json();
-
-        if (data.success) {
-          setQuestions(data.questions);
-          setStats(data.stats);
-          setTotalPages(data.pagination.total);
-          console.log(`✅ Loaded ${data.questions.length} questions`);
-        } else {
-          console.error("❌ Error en respuesta:", data);
-          toast.error("Error al cargar preguntas");
-        }
-      } catch (error) {
-        console.error("❌ Error fetching questions:", error);
-        toast.error("Error al cargar preguntas");
-      } finally {
-        if (showLoading) setLoading(false);
-      }
-    },
-    [session, filter, currentPage]
-  );
-
-  // Effect principal - solo fetch inicial y cuando cambian los filtros
   useEffect(() => {
     if (session?.user?.role === "admin") {
-      console.log("🎯 Fetching due to filter/page change");
-      fetchQuestions(true);
+      fetchQuestions();
     }
   }, [session, filter, currentPage]);
 
-  // Effect para polling automático (MUY REDUCIDO)
+  // Auto-refresh para nuevas preguntas
   useEffect(() => {
-    if (!session?.user?.role || session.user.role !== "admin") return;
+    if (session?.user?.role === "admin") {
+      const interval = setInterval(() => {
+        fetchQuestions();
+      }, 30000); // Cada 30 segundos
 
-    // Limpiar intervalo anterior
-    if (pollingIntervalRef.current) {
-      clearInterval(pollingIntervalRef.current);
+      return () => clearInterval(interval);
     }
+  }, [session]);
 
-    // Solo hacer polling si hay preguntas pendientes Y la página está activa
-    if (stats.pending > 0 && isActiveRef.current) {
-      console.log("⏰ Iniciando polling suave (cada 30 segundos)");
+  const fetchQuestions = async () => {
+    try {
+      setLoading(true);
+      const params = new URLSearchParams({
+        status: filter,
+        page: currentPage.toString(),
+        limit: "10",
+      });
 
-      pollingIntervalRef.current = setInterval(() => {
-        if (isActiveRef.current && document.visibilityState === "visible") {
-          console.log("🔄 Polling automático");
-          fetchQuestions(false); // Sin loading spinner
-        }
-      }, 30000); // 30 segundos en lugar de constante
-    }
+      const response = await fetch(`/api/admin/questions?${params}`);
+      const data = await response.json();
 
-    return () => {
-      if (pollingIntervalRef.current) {
-        clearInterval(pollingIntervalRef.current);
-        pollingIntervalRef.current = null;
-      }
-    };
-  }, [stats.pending, fetchQuestions]);
-
-  // Effect para detectar cuando la página está activa/inactiva
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      isActiveRef.current = document.visibilityState === "visible";
-
-      if (isActiveRef.current) {
-        console.log("👁️ Página visible - habilitando polling");
+      if (data.success) {
+        setQuestions(data.questions);
+        setStats(data.stats);
+        setTotalPages(data.pagination.total);
       } else {
-        console.log("😴 Página oculta - deshabilitando polling");
+        toast.error("Error al cargar preguntas");
       }
-    };
+    } catch (error) {
+      console.error("Error fetching questions:", error);
+      toast.error("Error al cargar preguntas");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-
-    return () => {
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-      isActiveRef.current = false;
-    };
-  }, []);
-
-  // Función optimizada para responder
   const handleRespond = async (questionId) => {
     if (!responseText.trim() || responseText.trim().length < 10) {
       toast.error("La respuesta debe tener al menos 10 caracteres");
@@ -149,8 +82,6 @@ const AdminQuestionsPage = () => {
 
     setSubmitting(true);
     try {
-      console.log(`📤 Enviando respuesta a pregunta ${questionId}`);
-
       const response = await fetch(
         `/api/admin/questions/${questionId}/respond`,
         {
@@ -163,27 +94,23 @@ const AdminQuestionsPage = () => {
       const data = await response.json();
 
       if (data.success) {
-        toast.success("Respuesta enviada correctamente");
+        toast.success(
+          "Respuesta enviada. El usuario ha sido notificado por email."
+        );
         setRespondingTo(null);
         setResponseText("");
-
-        // Refrescar datos después de responder
-        setTimeout(() => {
-          fetchQuestions(false);
-        }, 500);
+        fetchQuestions(); // Refrescar lista
       } else {
-        console.error("❌ Error en respuesta:", data);
         toast.error(data.error || "Error al enviar respuesta");
       }
     } catch (error) {
-      console.error("❌ Error responding:", error);
+      console.error("Error responding:", error);
       toast.error("Error al enviar respuesta");
     } finally {
       setSubmitting(false);
     }
   };
 
-  // Función de filtrado local para evitar re-fetching
   const filteredQuestions = questions.filter(
     (question) =>
       searchTerm === "" ||
@@ -202,6 +129,21 @@ const AdminQuestionsPage = () => {
     });
   };
 
+  const getTimeAgo = (date) => {
+    const now = new Date();
+    const questionDate = new Date(date);
+    const diffMs = now - questionDate;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return "Ahora mismo";
+    if (diffMins < 60) return `Hace ${diffMins} min`;
+    if (diffHours < 24) return `Hace ${diffHours}h`;
+    if (diffDays < 7) return `Hace ${diffDays}d`;
+    return formatDate(date);
+  };
+
   if (!session?.user || session.user.role !== "admin") {
     return (
       <div className="bg-red-50 border border-red-200 rounded-lg p-4">
@@ -217,23 +159,25 @@ const AdminQuestionsPage = () => {
       {/* Header y Estadísticas */}
       <div className="bg-white rounded-lg shadow p-6">
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">
-            Gestión de Preguntas
-          </h1>
-
-          {/* Indicador de estado */}
-          <div className="flex items-center space-x-2 text-sm text-gray-600">
-            <div
-              className={`w-2 h-2 rounded-full ${
-                isActiveRef.current ? "bg-green-500" : "bg-gray-400"
-              }`}
-            ></div>
-            <span>
-              {pollingIntervalRef.current
-                ? "Auto-refresh ON"
-                : "Auto-refresh OFF"}
-            </span>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">
+              Gestión de Preguntas
+            </h1>
+            <p className="text-gray-600 mt-1">
+              Responde las preguntas de los clientes sobre productos
+            </p>
           </div>
+
+          {/* Notificación de preguntas pendientes */}
+          {stats.pending > 0 && (
+            <div className="bg-orange-100 border border-orange-300 rounded-lg p-3 flex items-center space-x-2">
+              <BellIcon className="h-5 w-5 text-orange-600" />
+              <span className="text-orange-800 font-medium">
+                {stats.pending} pregunta{stats.pending !== 1 ? "s" : ""}{" "}
+                pendiente{stats.pending !== 1 ? "s" : ""}
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Estadísticas */}
@@ -280,8 +224,10 @@ const AdminQuestionsPage = () => {
             className="px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"
           >
             <option value="all">Todas las preguntas</option>
-            <option value="pending">Pendientes respuesta</option>
-            <option value="answered">Respondidas</option>
+            <option value="pending">
+              Pendientes respuesta ({stats.pending})
+            </option>
+            <option value="answered">Respondidas ({stats.answered})</option>
           </select>
         </div>
       </div>
@@ -289,9 +235,31 @@ const AdminQuestionsPage = () => {
       {/* Lista de Preguntas */}
       <div className="bg-white rounded-lg shadow">
         <div className="p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">
-            Preguntas ({filteredQuestions.length})
-          </h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-gray-900">
+              Preguntas ({filteredQuestions.length})
+            </h2>
+
+            <button
+              onClick={fetchQuestions}
+              className="flex items-center space-x-2 px-3 py-1 text-sm text-gray-600 hover:text-gray-900 border border-gray-300 rounded-md hover:bg-gray-50"
+            >
+              <svg
+                className="h-4 w-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                />
+              </svg>
+              <span>Actualizar</span>
+            </button>
+          </div>
 
           {loading ? (
             <div className="text-center py-8">
@@ -308,7 +276,11 @@ const AdminQuestionsPage = () => {
               {filteredQuestions.map((question) => (
                 <div
                   key={question._id}
-                  className="border border-gray-200 rounded-lg p-4 hover:border-gray-300 transition-colors"
+                  className={`border rounded-lg p-4 hover:border-gray-300 transition-colors ${
+                    !question.response
+                      ? "border-orange-200 bg-orange-50"
+                      : "border-gray-200"
+                  }`}
                 >
                   {/* Header de la pregunta */}
                   <div className="flex items-start justify-between mb-3">
@@ -323,13 +295,18 @@ const AdminQuestionsPage = () => {
                         <div className="text-sm text-gray-500">
                           {question.user?.email}
                         </div>
+                        <div className="text-xs text-gray-400">
+                          {getTimeAgo(question.createdAt)}
+                        </div>
                       </div>
                     </div>
 
                     <div className="flex items-center space-x-2">
-                      <span className="text-sm text-gray-500">
-                        {formatDate(question.createdAt)}
-                      </span>
+                      {question.verified && (
+                        <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                          Cliente verificado
+                        </span>
+                      )}
 
                       {question.response ? (
                         <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
@@ -346,34 +323,38 @@ const AdminQuestionsPage = () => {
                   </div>
 
                   {/* Información del producto */}
-                  {question.product && (
-                    <div className="flex items-center space-x-3 mb-3 p-3 bg-gray-50 rounded-lg">
-                      <div className="w-12 h-12 relative flex-shrink-0">
-                        <Image
-                          src={question.product.imageUrl || "/placeholder.jpg"}
-                          alt={question.product.title || "Producto"}
-                          fill
-                          sizes="48px"
-                          className="object-cover rounded-md"
-                        />
+                  <div className="flex items-center space-x-3 mb-3 p-3 bg-gray-50 rounded-lg">
+                    <div className="w-12 h-12 relative flex-shrink-0">
+                      <Image
+                        src={question.product?.imageUrl || "/placeholder.jpg"}
+                        alt={question.product?.title || "Producto"}
+                        fill
+                        sizes="48px"
+                        className="object-cover rounded-md"
+                        onError={(e) => {
+                          e.target.src = "/placeholder.jpg";
+                        }}
+                      />
+                    </div>
+                    <div>
+                      <div className="font-medium text-gray-900">
+                        {question.product?.title || "Producto eliminado"}
                       </div>
-                      <div>
-                        <div className="font-medium text-gray-900">
-                          {question.product.title || "Producto eliminado"}
-                        </div>
-                        <div className="text-sm text-gray-500">
-                          Pregunta sobre este producto
-                        </div>
+                      <div className="text-sm text-gray-500">
+                        Pregunta sobre este producto
                       </div>
                     </div>
-                  )}
+                    <button className="ml-auto text-indigo-600 hover:text-indigo-800 text-sm">
+                      <EyeIcon className="h-4 w-4" />
+                    </button>
+                  </div>
 
                   {/* Pregunta */}
                   <div className="mb-4">
                     <h4 className="text-sm font-medium text-gray-700 mb-2">
                       Pregunta:
                     </h4>
-                    <p className="text-gray-900 bg-blue-50 p-3 rounded-lg">
+                    <p className="text-gray-900 bg-blue-50 p-3 rounded-lg border-l-4 border-blue-400">
                       {question.comment}
                     </p>
                   </div>
@@ -413,6 +394,20 @@ const AdminQuestionsPage = () => {
                               Mínimo 10 caracteres ({responseText.length}/10)
                             </p>
                           </div>
+
+                          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                            <div className="flex items-start space-x-2">
+                              <ExclamationTriangleIcon className="h-4 w-4 text-blue-600 mt-0.5" />
+                              <div className="text-xs text-blue-800">
+                                <p className="font-medium">Recordatorio:</p>
+                                <p>
+                                  El cliente recibirá un email automático con tu
+                                  respuesta.
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+
                           <div className="flex space-x-2">
                             <button
                               onClick={() => handleRespond(question._id)}
@@ -457,11 +452,14 @@ const AdminQuestionsPage = () => {
                   )}
 
                   {/* Información adicional */}
-                  <div className="mt-3 pt-3 border-t border-gray-100 text-xs text-gray-500">
-                    ID: {question._id.slice(-6)} |
-                    {question.verified && " Cliente verificado |"}
-                    {question.helpful > 0 &&
-                      ` ${question.helpful} votos útiles`}
+                  <div className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500">
+                    <span>ID: {question._id.slice(-6)}</span>
+                    <div className="flex items-center space-x-4">
+                      {question.helpful > 0 && (
+                        <span>👍 {question.helpful} votos útiles</span>
+                      )}
+                      <span>{formatDate(question.createdAt)}</span>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -479,22 +477,19 @@ const AdminQuestionsPage = () => {
                 Anterior
               </button>
 
-              {[...Array(Math.min(totalPages, 5))].map((_, i) => {
-                const page = i + 1;
-                return (
-                  <button
-                    key={page}
-                    onClick={() => setCurrentPage(page)}
-                    className={`px-3 py-1 border rounded ${
-                      currentPage === page
-                        ? "bg-indigo-600 text-white"
-                        : "bg-white text-gray-700 hover:bg-gray-50"
-                    }`}
-                  >
-                    {page}
-                  </button>
-                );
-              })}
+              {[...Array(totalPages)].map((_, i) => (
+                <button
+                  key={i + 1}
+                  onClick={() => setCurrentPage(i + 1)}
+                  className={`px-3 py-1 border rounded ${
+                    currentPage === i + 1
+                      ? "bg-indigo-600 text-white"
+                      : "bg-white text-gray-700 hover:bg-gray-50"
+                  }`}
+                >
+                  {i + 1}
+                </button>
+              ))}
 
               <button
                 onClick={() =>
@@ -509,16 +504,6 @@ const AdminQuestionsPage = () => {
           )}
         </div>
       </div>
-
-      {/* Debug info en desarrollo */}
-      {process.env.NODE_ENV === "development" && (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-xs">
-          <strong>🔧 Debug:</strong> Polling:{" "}
-          {pollingIntervalRef.current ? "ON" : "OFF"} | Activo:{" "}
-          {isActiveRef.current ? "Sí" : "No"} | Última actualización:{" "}
-          {new Date(lastFetchRef.current).toLocaleTimeString()}
-        </div>
-      )}
     </div>
   );
 };

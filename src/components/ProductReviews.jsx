@@ -1,4 +1,4 @@
-// components/ProductReviews.jsx - VERSIÓN CORREGIDA
+// src/components/ProductReviews.jsx - COMPONENTE PRINCIPAL INTEGRADO
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -6,7 +6,14 @@ import { useSession } from "next-auth/react";
 import { toast } from "react-hot-toast";
 import Link from "next/link";
 import StarRating from "./ui/StarRating";
-import { ChevronDownIcon, ChevronUpIcon } from "@heroicons/react/24/outline";
+import {
+  ChevronDownIcon,
+  ChevronUpIcon,
+  ChatBubbleLeftRightIcon,
+  StarIcon,
+  ExclamationTriangleIcon,
+  CheckCircleIcon,
+} from "@heroicons/react/24/outline";
 
 const ProductReviews = ({ productId }) => {
   const { data: session, status } = useSession();
@@ -19,7 +26,6 @@ const ProductReviews = ({ productId }) => {
   const [canQuestion, setCanQuestion] = useState(false);
   const [canRate, setCanRate] = useState(false);
   const [permissions, setPermissions] = useState({});
-  const [checkingPermissions, setCheckingPermissions] = useState(false);
 
   // Estados de formularios
   const [showQuestionForm, setShowQuestionForm] = useState(false);
@@ -40,57 +46,25 @@ const ProductReviews = ({ productId }) => {
     total: 0,
   });
 
-  // Estados para funcionalidades avanzadas
-  const [filteredRatings, setFilteredRatings] = useState([]);
-  const [filteredQuestions, setFilteredQuestions] = useState([]);
-  const [ratingFilter, setRatingFilter] = useState("all");
-  const [sortBy, setSortBy] = useState("newest");
-  const [searchTerm, setSearchTerm] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(5);
+  // Estados para funcionalidades
   const [expandedItems, setExpandedItems] = useState(new Set());
+  const [searchTerm, setSearchTerm] = useState("");
+  const [sortBy, setSortBy] = useState("newest");
+  const [ratingFilter, setRatingFilter] = useState("all");
 
   const isAuthenticated = status === "authenticated";
   const isLoading = status === "loading";
 
-  // Logging para debugging
-  const logDebug = (message, data = {}) => {
-    if (process.env.NODE_ENV === "development") {
-      console.log(`[ProductReviews] ${message}`, data);
-    }
-  };
-
-  // Función para obtener reviews con logging mejorado
+  // Función para obtener reviews
   const fetchReviews = async () => {
     try {
-      logDebug("Fetching reviews for product", { productId });
-
       if (!productId) {
-        logDebug("No product ID provided");
         setLoading(false);
         return;
       }
 
-      const url = `/api/products/${productId}/reviews`;
-      logDebug("Calling API", { url });
-
-      const response = await fetch(url);
-      logDebug("API response status", {
-        status: response.status,
-        ok: response.ok,
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        logDebug("API error response", {
-          status: response.status,
-          error: errorText,
-        });
-        throw new Error(`HTTP ${response.status}: ${errorText}`);
-      }
-
+      const response = await fetch(`/api/products/${productId}/reviews`);
       const data = await response.json();
-      logDebug("API response data", data);
 
       if (data.success) {
         setQuestions(data.reviews.questions || []);
@@ -103,113 +77,144 @@ const ProductReviews = ({ productId }) => {
           }
         );
         setCounts(data.counts || { questions: 0, ratings: 0, total: 0 });
-
-        logDebug("Reviews loaded successfully", {
-          questions: data.reviews.questions?.length || 0,
-          ratings: data.reviews.ratings?.length || 0,
-        });
       } else {
-        logDebug("API returned success: false", data);
         toast.error("Error al cargar las reseñas");
       }
     } catch (error) {
-      logDebug("Error fetching reviews", {
-        error: error.message,
-        stack: error.stack,
-      });
       console.error("Error fetching reviews:", error);
-      toast.error(`Error al cargar las reseñas: ${error.message}`);
+      toast.error("Error al cargar las reseñas");
     } finally {
       setLoading(false);
     }
   };
 
-  // Función para verificar permisos con logging mejorado
+  // Función para verificar permisos
   const checkPermissions = async () => {
-    if (!isAuthenticated || !productId) {
-      logDebug("Skipping permissions check", { isAuthenticated, productId });
-      return;
-    }
+    if (!isAuthenticated || !productId) return;
 
-    setCheckingPermissions(true);
     try {
-      const url = `/api/products/${productId}/reviews/can-review`;
-      logDebug("Checking permissions", { url });
-
-      const response = await fetch(url);
-      logDebug("Permissions response", {
-        status: response.status,
-        ok: response.ok,
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        logDebug("Permissions error", {
-          status: response.status,
-          error: errorText,
-        });
-        throw new Error(`HTTP ${response.status}: ${errorText}`);
-      }
-
+      const response = await fetch(
+        `/api/products/${productId}/reviews/can-review`
+      );
       const data = await response.json();
-      logDebug("Permissions data", data);
 
       if (data.success) {
         setCanQuestion(data.canQuestion);
         setCanRate(data.canRate);
         setPermissions(data.reasons || {});
-
-        logDebug("Permissions set", {
-          canQuestion: data.canQuestion,
-          canRate: data.canRate,
-          reasons: data.reasons,
-        });
       }
     } catch (error) {
-      logDebug("Error checking permissions", { error: error.message });
       console.error("Error checking permissions:", error);
-      toast.error(`Error verificando permisos: ${error.message}`);
-    } finally {
-      setCheckingPermissions(false);
     }
   };
 
-  // Función para filtrar y ordenar reviews
-  const filterAndSortReviews = (reviewList, type) => {
-    let filtered = [...reviewList];
+  // Effects
+  useEffect(() => {
+    if (productId) {
+      fetchReviews();
+    }
+  }, [productId]);
 
-    if (searchTerm) {
-      filtered = filtered.filter(
-        (review) =>
-          review.comment.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          review.user?.name.toLowerCase().includes(searchTerm.toLowerCase())
-      );
+  useEffect(() => {
+    if (isAuthenticated && productId && !isLoading) {
+      checkPermissions();
+    } else if (status === "unauthenticated") {
+      setCanQuestion(false);
+      setCanRate(false);
+      setPermissions({});
+    }
+  }, [isAuthenticated, status, productId, isLoading]);
+
+  // Función para enviar pregunta
+  const handleSubmitQuestion = async () => {
+    if (!isAuthenticated) {
+      toast.error("Debes iniciar sesión para hacer una pregunta");
+      return;
     }
 
-    if (type === "ratings" && ratingFilter !== "all") {
-      filtered = filtered.filter(
-        (review) => review.rating === parseInt(ratingFilter)
-      );
+    if (questionForm.comment.trim().length < 10) {
+      toast.error("La pregunta debe tener al menos 10 caracteres");
+      return;
     }
 
-    filtered.sort((a, b) => {
-      switch (sortBy) {
-        case "newest":
-          return new Date(b.createdAt) - new Date(a.createdAt);
-        case "oldest":
-          return new Date(a.createdAt) - new Date(b.createdAt);
-        case "highest":
-          return type === "ratings" ? (b.rating || 0) - (a.rating || 0) : 0;
-        case "lowest":
-          return type === "ratings" ? (a.rating || 0) - (b.rating || 0) : 0;
-        case "helpful":
-          return (b.helpful || 0) - (a.helpful || 0);
-        default:
-          return 0;
+    setSubmitting(true);
+    try {
+      const response = await fetch(`/api/products/${productId}/reviews`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "question",
+          comment: questionForm.comment.trim(),
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        toast.success(
+          "Pregunta enviada con éxito. Recibirás una notificación cuando sea respondida."
+        );
+        setQuestionForm({ comment: "" });
+        setShowQuestionForm(false);
+        await fetchReviews();
+        await checkPermissions();
+      } else {
+        toast.error(data.error || "Error al enviar la pregunta");
       }
-    });
+    } catch (error) {
+      console.error("Error submitting question:", error);
+      toast.error("Error al enviar la pregunta");
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
-    return filtered;
+  // Función para enviar calificación
+  const handleSubmitRating = async () => {
+    if (!isAuthenticated) {
+      toast.error("Debes iniciar sesión para calificar");
+      return;
+    }
+
+    if (ratingForm.rating === 0) {
+      toast.error("Por favor selecciona una calificación");
+      return;
+    }
+
+    if (ratingForm.comment.trim().length < 10) {
+      toast.error("El comentario debe tener al menos 10 caracteres");
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const response = await fetch(`/api/products/${productId}/reviews`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "rating",
+          rating: ratingForm.rating,
+          comment: ratingForm.comment.trim(),
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        toast.success("Calificación enviada con éxito");
+        setRatingForm({ rating: 0, comment: "" });
+        setShowRatingForm(false);
+        await fetchReviews();
+        await checkPermissions();
+      } else {
+        toast.error(data.error || "Error al enviar la calificación");
+      }
+    } catch (error) {
+      console.error("Error submitting rating:", error);
+      toast.error("Error al enviar la calificación");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   // Función para marcar como útil
@@ -233,7 +238,7 @@ const ProductReviews = ({ productId }) => {
         toast.error(data.error || "Error al procesar tu voto");
       }
     } catch (error) {
-      logDebug("Error marking helpful", { reviewId, error: error.message });
+      console.error("Error marking helpful:", error);
       toast.error("Error al procesar tu voto");
     }
   };
@@ -249,135 +254,29 @@ const ProductReviews = ({ productId }) => {
     setExpandedItems(newExpanded);
   };
 
-  // Effects
-  useEffect(() => {
-    logDebug("Component mounted/productId changed", { productId });
-    if (productId) {
-      fetchReviews();
-    }
-  }, [productId]);
+  // Filtros
+  const filteredQuestions = questions.filter(
+    (q) =>
+      searchTerm === "" ||
+      q.comment.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      q.user?.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
-  useEffect(() => {
-    logDebug("Auth status changed", { isAuthenticated, status, isLoading });
-    if (isAuthenticated && productId && !isLoading) {
-      checkPermissions();
-    } else if (status === "unauthenticated") {
-      setCanQuestion(false);
-      setCanRate(false);
-      setPermissions({});
-    }
-  }, [isAuthenticated, status, productId, isLoading]);
+  const filteredRatings = ratings.filter((r) => {
+    const matchesSearch =
+      searchTerm === "" ||
+      r.comment.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      r.user?.name.toLowerCase().includes(searchTerm.toLowerCase());
 
-  // Effect para filtrar reviews
-  useEffect(() => {
-    setFilteredRatings(filterAndSortReviews(ratings, "ratings"));
-    setFilteredQuestions(filterAndSortReviews(questions, "questions"));
-    setCurrentPage(1);
-  }, [ratings, questions, ratingFilter, sortBy, searchTerm]);
+    const matchesFilter =
+      ratingFilter === "all" || r.rating === parseInt(ratingFilter);
 
-  // Función para enviar pregunta
-  const handleSubmitQuestion = async () => {
-    if (!isAuthenticated) {
-      toast.error("Debes iniciar sesión para hacer una pregunta");
-      return;
-    }
-    if (questionForm.comment.trim().length < 10) {
-      toast.error("La pregunta debe tener al menos 10 caracteres");
-      return;
-    }
-
-    setSubmitting(true);
-    try {
-      logDebug("Submitting question", {
-        productId,
-        comment: questionForm.comment,
-      });
-
-      const response = await fetch(`/api/products/${productId}/reviews`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          type: "question",
-          comment: questionForm.comment.trim(),
-        }),
-      });
-
-      const data = await response.json();
-      logDebug("Question submission response", data);
-
-      if (data.success) {
-        toast.success("Pregunta enviada con éxito");
-        setQuestionForm({ comment: "" });
-        setShowQuestionForm(false);
-        await fetchReviews();
-        await checkPermissions();
-      } else {
-        toast.error(data.error || "Error al enviar la pregunta");
-      }
-    } catch (error) {
-      logDebug("Error submitting question", { error: error.message });
-      toast.error("Error al enviar la pregunta");
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  // Función para enviar calificación
-  const handleSubmitRating = async () => {
-    if (!isAuthenticated) {
-      toast.error("Debes iniciar sesión para calificar");
-      return;
-    }
-    if (ratingForm.rating === 0) {
-      toast.error("Por favor selecciona una calificación");
-      return;
-    }
-    if (ratingForm.comment.trim().length < 10) {
-      toast.error("El comentario debe tener al menos 10 caracteres");
-      return;
-    }
-
-    setSubmitting(true);
-    try {
-      logDebug("Submitting rating", {
-        productId,
-        rating: ratingForm.rating,
-        comment: ratingForm.comment,
-      });
-
-      const response = await fetch(`/api/products/${productId}/reviews`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          type: "rating",
-          rating: ratingForm.rating,
-          comment: ratingForm.comment.trim(),
-        }),
-      });
-
-      const data = await response.json();
-      logDebug("Rating submission response", data);
-
-      if (data.success) {
-        toast.success("Calificación enviada con éxito");
-        setRatingForm({ rating: 0, comment: "" });
-        setShowRatingForm(false);
-        await fetchReviews();
-        await checkPermissions();
-      } else {
-        toast.error(data.error || "Error al enviar la calificación");
-      }
-    } catch (error) {
-      logDebug("Error submitting rating", { error: error.message });
-      toast.error("Error al enviar la calificación");
-    } finally {
-      setSubmitting(false);
-    }
-  };
+    return matchesSearch && matchesFilter;
+  });
 
   // Renderizar botones de acción
   const renderQuestionButton = () => {
-    if (isLoading || checkingPermissions) {
+    if (isLoading) {
       return (
         <div className="text-center py-2">
           <div className="inline-block animate-spin rounded-full h-4 w-4 border-2 border-indigo-600 border-t-transparent"></div>
@@ -426,7 +325,7 @@ const ProductReviews = ({ productId }) => {
   };
 
   const renderRatingButton = () => {
-    if (isLoading || checkingPermissions) {
+    if (isLoading) {
       return (
         <div className="text-center py-2">
           <div className="inline-block animate-spin rounded-full h-4 w-4 border-2 border-indigo-600 border-t-transparent"></div>
@@ -485,123 +384,6 @@ const ProductReviews = ({ productId }) => {
     return null;
   };
 
-  // Componentes auxiliares
-  const FilterControls = () => (
-    <div className="bg-gray-50 p-4 rounded-lg mb-6 space-y-4">
-      <div>
-        <input
-          type="text"
-          placeholder="Buscar en reviews..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-        />
-      </div>
-
-      <div className="flex flex-col sm:flex-row gap-4">
-        {activeTab === "ratings" && (
-          <div className="flex-1">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Filtrar por estrellas
-            </label>
-            <select
-              value={ratingFilter}
-              onChange={(e) => setRatingFilter(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            >
-              <option value="all">Todas las calificaciones</option>
-              <option value="5">
-                5 estrellas ({ratingStats.distribution[4]})
-              </option>
-              <option value="4">
-                4 estrellas ({ratingStats.distribution[3]})
-              </option>
-              <option value="3">
-                3 estrellas ({ratingStats.distribution[2]})
-              </option>
-              <option value="2">
-                2 estrellas ({ratingStats.distribution[1]})
-              </option>
-              <option value="1">
-                1 estrella ({ratingStats.distribution[0]})
-              </option>
-            </select>
-          </div>
-        )}
-
-        <div className="flex-1">
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Ordenar por
-          </label>
-          <select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          >
-            <option value="newest">Más recientes</option>
-            <option value="oldest">Más antiguos</option>
-            {activeTab === "ratings" && (
-              <>
-                <option value="highest">Mejor calificados</option>
-                <option value="lowest">Peor calificados</option>
-              </>
-            )}
-            <option value="helpful">Más útiles</option>
-          </select>
-        </div>
-      </div>
-    </div>
-  );
-
-  const Pagination = ({ items, currentPage, setCurrentPage }) => {
-    const totalPages = Math.ceil(items.length / itemsPerPage);
-    if (totalPages <= 1) return null;
-
-    return (
-      <div className="flex justify-center items-center space-x-2 mt-6">
-        <button
-          onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-          disabled={currentPage === 1}
-          className="px-3 py-1 border rounded disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          Anterior
-        </button>
-
-        {[...Array(totalPages)].map((_, i) => (
-          <button
-            key={i + 1}
-            onClick={() => setCurrentPage(i + 1)}
-            className={`px-3 py-1 border rounded ${
-              currentPage === i + 1
-                ? "bg-indigo-600 text-white"
-                : "bg-white text-gray-700 hover:bg-gray-50"
-            }`}
-          >
-            {i + 1}
-          </button>
-        ))}
-
-        <button
-          onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-          disabled={currentPage === totalPages}
-          className="px-3 py-1 border rounded disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          Siguiente
-        </button>
-      </div>
-    );
-  };
-
-  // Calcular items para mostrar
-  const getCurrentPageItems = (items) => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
-    return items.slice(startIndex, endIndex);
-  };
-
-  const currentQuestions = getCurrentPageItems(filteredQuestions);
-  const currentRatings = getCurrentPageItems(filteredRatings);
-
   if (loading) {
     return (
       <div className="text-center py-8">
@@ -635,7 +417,7 @@ const ProductReviews = ({ productId }) => {
               {[5, 4, 3, 2, 1].map((stars) => (
                 <div key={stars} className="flex items-center gap-2">
                   <span className="text-sm w-3">{stars}</span>
-                  <StarRating rating={stars} size="xs" />
+                  <StarIcon className="h-3 w-3 text-yellow-400 fill-current" />
                   <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
                     <div
                       className="h-full bg-yellow-400"
@@ -672,6 +454,7 @@ const ProductReviews = ({ productId }) => {
                 : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
             }`}
           >
+            <ChatBubbleLeftRightIcon className="h-4 w-4 inline mr-1" />
             Preguntas ({counts.questions})
           </button>
           <button
@@ -682,13 +465,22 @@ const ProductReviews = ({ productId }) => {
                 : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
             }`}
           >
+            <StarIcon className="h-4 w-4 inline mr-1" />
             Calificaciones ({counts.ratings})
           </button>
         </nav>
       </div>
 
-      {/* Filtros */}
-      <FilterControls />
+      {/* Buscador */}
+      <div className="bg-gray-50 p-4 rounded-lg">
+        <input
+          type="text"
+          placeholder="Buscar en reviews..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+        />
+      </div>
 
       {/* Contenido de pestañas */}
       {activeTab === "questions" && (
@@ -738,93 +530,98 @@ const ProductReviews = ({ productId }) => {
 
           {/* Lista de preguntas */}
           <div className="space-y-4">
-            {currentQuestions.length > 0 ? (
-              <>
-                {currentQuestions.map((question) => {
-                  const isExpanded = expandedItems.has(question._id);
-                  const shouldTruncate = question.comment.length > 200;
-                  const displayComment = isExpanded
-                    ? question.comment
-                    : shouldTruncate
-                    ? question.comment.substring(0, 200) + "..."
-                    : question.comment;
+            {filteredQuestions.length > 0 ? (
+              filteredQuestions.map((question) => {
+                const isExpanded = expandedItems.has(question._id);
+                const shouldTruncate = question.comment.length > 200;
+                const displayComment = isExpanded
+                  ? question.comment
+                  : shouldTruncate
+                  ? question.comment.substring(0, 200) + "..."
+                  : question.comment;
 
-                  return (
-                    <div
-                      key={question._id}
-                      className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
-                    >
-                      <div className="flex items-start justify-between mb-2">
-                        <div>
-                          <p className="font-medium text-gray-900">
-                            {question.user?.name || "Usuario"}
-                          </p>
-                          <p className="text-sm text-gray-500">
-                            {new Date(question.createdAt).toLocaleDateString(
-                              "es-ES",
-                              {
-                                year: "numeric",
-                                month: "long",
-                                day: "numeric",
-                              }
-                            )}
-                          </p>
-                        </div>
-                        {question.verified && (
-                          <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
-                            Cliente verificado
-                          </span>
-                        )}
-                      </div>
-
-                      <p className="text-gray-700 mb-3">{displayComment}</p>
-
-                      {shouldTruncate && (
-                        <button
-                          onClick={() => toggleExpanded(question._id)}
-                          className="text-indigo-600 hover:text-indigo-800 text-sm font-medium flex items-center gap-1 mb-3"
-                        >
-                          {isExpanded ? (
-                            <>
-                              Ver menos <ChevronUpIcon className="h-4 w-4" />
-                            </>
-                          ) : (
-                            <>
-                              Ver más <ChevronDownIcon className="h-4 w-4" />
-                            </>
+                return (
+                  <div
+                    key={question._id}
+                    className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+                  >
+                    <div className="flex items-start justify-between mb-2">
+                      <div>
+                        <p className="font-medium text-gray-900">
+                          {question.user?.name || "Usuario"}
+                        </p>
+                        <p className="text-sm text-gray-500">
+                          {new Date(question.createdAt).toLocaleDateString(
+                            "es-ES",
+                            {
+                              year: "numeric",
+                              month: "long",
+                              day: "numeric",
+                            }
                           )}
-                        </button>
+                        </p>
+                      </div>
+                      {question.verified && (
+                        <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
+                          ✓ Cliente verificado
+                        </span>
                       )}
+                    </div>
 
-                      {question.response && (
-                        <div className="bg-blue-50 border-l-4 border-blue-400 p-3 mt-3">
+                    <p className="text-gray-700 mb-3">{displayComment}</p>
+
+                    {shouldTruncate && (
+                      <button
+                        onClick={() => toggleExpanded(question._id)}
+                        className="text-indigo-600 hover:text-indigo-800 text-sm font-medium flex items-center gap-1 mb-3"
+                      >
+                        {isExpanded ? (
+                          <>
+                            Ver menos <ChevronUpIcon className="h-4 w-4" />
+                          </>
+                        ) : (
+                          <>
+                            Ver más <ChevronDownIcon className="h-4 w-4" />
+                          </>
+                        )}
+                      </button>
+                    )}
+
+                    {question.response && (
+                      <div className="bg-blue-50 border-l-4 border-blue-400 p-3 mt-3">
+                        <div className="flex items-center mb-1">
+                          <CheckCircleIcon className="h-4 w-4 text-blue-600 mr-2" />
                           <p className="text-sm font-medium text-blue-900">
                             Respuesta del vendedor:
                           </p>
-                          <p className="text-blue-800 mt-1">
-                            {question.response}
-                          </p>
                         </div>
-                      )}
+                        <p className="text-blue-800 mt-1">
+                          {question.response}
+                        </p>
+                        {question.responseDate && (
+                          <p className="text-xs text-blue-600 mt-1">
+                            Respondido el{" "}
+                            {new Date(question.responseDate).toLocaleDateString(
+                              "es-ES"
+                            )}
+                          </p>
+                        )}
+                      </div>
+                    )}
 
-                      <button
-                        onClick={() => markHelpful(question._id)}
-                        className="text-sm text-gray-600 hover:text-indigo-600 transition-colors mt-2 flex items-center gap-1"
-                        disabled={!isAuthenticated}
-                      >
-                        👍 ¿Te resultó útil? ({question.helpful || 0})
-                      </button>
-                    </div>
-                  );
-                })}
-                <Pagination
-                  items={filteredQuestions}
-                  currentPage={currentPage}
-                  setCurrentPage={setCurrentPage}
-                />
-              </>
+                    <button
+                      onClick={() => markHelpful(question._id)}
+                      className="text-sm text-gray-600 hover:text-indigo-600 transition-colors mt-2 flex items-center gap-1"
+                      disabled={!isAuthenticated}
+                    >
+                      👍 ¿Te resultó útil? ({question.helpful || 0})
+                    </button>
+                  </div>
+                );
+              })
             ) : (
               <div className="text-center py-8 text-gray-500">
+                <ChatBubbleLeftRightIcon className="h-12 w-12 mx-auto text-gray-300 mb-3" />
                 <p>
                   {searchTerm
                     ? "No se encontraron preguntas que coincidan con tu búsqueda"
@@ -908,87 +705,109 @@ const ProductReviews = ({ productId }) => {
             )}
           </div>
 
+          {/* Filtro de calificaciones */}
+          {ratingStats.total > 0 && (
+            <div className="flex space-x-4">
+              <select
+                value={ratingFilter}
+                onChange={(e) => setRatingFilter(e.target.value)}
+                className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              >
+                <option value="all">Todas las calificaciones</option>
+                <option value="5">
+                  5 estrellas ({ratingStats.distribution[4]})
+                </option>
+                <option value="4">
+                  4 estrellas ({ratingStats.distribution[3]})
+                </option>
+                <option value="3">
+                  3 estrellas ({ratingStats.distribution[2]})
+                </option>
+                <option value="2">
+                  2 estrellas ({ratingStats.distribution[1]})
+                </option>
+                <option value="1">
+                  1 estrella ({ratingStats.distribution[0]})
+                </option>
+              </select>
+            </div>
+          )}
+
           {/* Lista de calificaciones */}
           <div className="space-y-4">
-            {currentRatings.length > 0 ? (
-              <>
-                {currentRatings.map((rating) => {
-                  const isExpanded = expandedItems.has(rating._id);
-                  const shouldTruncate = rating.comment.length > 200;
-                  const displayComment = isExpanded
-                    ? rating.comment
-                    : shouldTruncate
-                    ? rating.comment.substring(0, 200) + "..."
-                    : rating.comment;
+            {filteredRatings.length > 0 ? (
+              filteredRatings.map((rating) => {
+                const isExpanded = expandedItems.has(rating._id);
+                const shouldTruncate = rating.comment.length > 200;
+                const displayComment = isExpanded
+                  ? rating.comment
+                  : shouldTruncate
+                  ? rating.comment.substring(0, 200) + "..."
+                  : rating.comment;
 
-                  return (
-                    <div
-                      key={rating._id}
-                      className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
-                    >
-                      <div className="flex items-start justify-between mb-2">
-                        <div>
-                          <div className="flex items-center gap-2 mb-1">
-                            <StarRating rating={rating.rating} size="sm" />
-                            {rating.verified && (
-                              <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
-                                Compra verificada
-                              </span>
-                            )}
-                          </div>
-                          <p className="font-medium text-gray-900">
-                            {rating.user?.name || "Usuario"}
-                          </p>
-                          <p className="text-sm text-gray-500">
-                            {new Date(rating.createdAt).toLocaleDateString(
-                              "es-ES",
-                              {
-                                year: "numeric",
-                                month: "long",
-                                day: "numeric",
-                              }
-                            )}
-                          </p>
-                        </div>
-                      </div>
-
-                      <p className="text-gray-700 mb-3">{displayComment}</p>
-
-                      {shouldTruncate && (
-                        <button
-                          onClick={() => toggleExpanded(rating._id)}
-                          className="text-indigo-600 hover:text-indigo-800 text-sm font-medium flex items-center gap-1 mb-3"
-                        >
-                          {isExpanded ? (
-                            <>
-                              Ver menos <ChevronUpIcon className="h-4 w-4" />
-                            </>
-                          ) : (
-                            <>
-                              Ver más <ChevronDownIcon className="h-4 w-4" />
-                            </>
+                return (
+                  <div
+                    key={rating._id}
+                    className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+                  >
+                    <div className="flex items-start justify-between mb-2">
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <StarRating rating={rating.rating} size="sm" />
+                          {rating.verified && (
+                            <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
+                              ✓ Compra verificada
+                            </span>
                           )}
-                        </button>
-                      )}
-
-                      <button
-                        onClick={() => markHelpful(rating._id)}
-                        className="text-sm text-gray-600 hover:text-indigo-600 transition-colors flex items-center gap-1"
-                        disabled={!isAuthenticated}
-                      >
-                        👍 ¿Te resultó útil? ({rating.helpful || 0})
-                      </button>
+                        </div>
+                        <p className="font-medium text-gray-900">
+                          {rating.user?.name || "Usuario"}
+                        </p>
+                        <p className="text-sm text-gray-500">
+                          {new Date(rating.createdAt).toLocaleDateString(
+                            "es-ES",
+                            {
+                              year: "numeric",
+                              month: "long",
+                              day: "numeric",
+                            }
+                          )}
+                        </p>
+                      </div>
                     </div>
-                  );
-                })}
-                <Pagination
-                  items={filteredRatings}
-                  currentPage={currentPage}
-                  setCurrentPage={setCurrentPage}
-                />
-              </>
+
+                    <p className="text-gray-700 mb-3">{displayComment}</p>
+
+                    {shouldTruncate && (
+                      <button
+                        onClick={() => toggleExpanded(rating._id)}
+                        className="text-indigo-600 hover:text-indigo-800 text-sm font-medium flex items-center gap-1 mb-3"
+                      >
+                        {isExpanded ? (
+                          <>
+                            Ver menos <ChevronUpIcon className="h-4 w-4" />
+                          </>
+                        ) : (
+                          <>
+                            Ver más <ChevronDownIcon className="h-4 w-4" />
+                          </>
+                        )}
+                      </button>
+                    )}
+
+                    <button
+                      onClick={() => markHelpful(rating._id)}
+                      className="text-sm text-gray-600 hover:text-indigo-600 transition-colors flex items-center gap-1"
+                      disabled={!isAuthenticated}
+                    >
+                      👍 ¿Te resultó útil? ({rating.helpful || 0})
+                    </button>
+                  </div>
+                );
+              })
             ) : (
               <div className="text-center py-8 text-gray-500">
+                <StarIcon className="h-12 w-12 mx-auto text-gray-300 mb-3" />
                 <p>
                   {searchTerm || ratingFilter !== "all"
                     ? "No se encontraron calificaciones que coincidan con los filtros"
@@ -1000,17 +819,6 @@ const ProductReviews = ({ productId }) => {
               </div>
             )}
           </div>
-        </div>
-      )}
-
-      {/* DEBUG en desarrollo */}
-      {process.env.NODE_ENV === "development" && (
-        <div className="mt-4 p-2 bg-yellow-100 border border-yellow-300 rounded text-xs">
-          <strong>DEBUG:</strong>
-          Status: {status} | Product ID: {productId} | Can Question:{" "}
-          {canQuestion ? "Sí" : "No"} | Can Rate: {canRate ? "Sí" : "No"} |
-          Reasons: {JSON.stringify(permissions)} | Questions:{" "}
-          {filteredQuestions.length} | Ratings: {filteredRatings.length}
         </div>
       )}
     </div>

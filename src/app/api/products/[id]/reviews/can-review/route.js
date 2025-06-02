@@ -1,4 +1,4 @@
-// app/api/products/[id]/reviews/can-review/route.js - RUTA CORREGIDA
+// src/app/api/products/[id]/reviews/can-review/route.js - CORREGIDA
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import connectDB from "@/lib/db";
@@ -24,15 +24,13 @@ async function hasUserPurchasedProduct(userId, productId) {
 // GET - Verificar qué tipo de interacciones puede hacer el usuario
 export async function GET(request, { params }) {
   try {
-    console.log("🔍 GET Can-Review - Params received:", params);
+    console.log("🔍 GET Can-Review - Iniciando...");
 
-    const awaitedParams = await params;
-    const productId = awaitedParams.id; // Usar 'id' consistentemente
-
+    const { id: productId } = await params;
     console.log("📦 Product ID:", productId);
 
     const session = await getServerSession(authOptions);
-    console.log("👤 Session user ID:", session?.user?.id);
+    console.log("👤 User ID:", session?.user?.id);
 
     if (!session?.user) {
       console.log("❌ User not authenticated");
@@ -101,6 +99,13 @@ export async function GET(request, { params }) {
         rating: ratingReason,
       },
       hasPurchased,
+      debugInfo: {
+        userId: session.user.id,
+        productId,
+        existingQuestion: !!existingQuestion,
+        existingRating: !!existingRating,
+        hasPurchased,
+      },
     });
   } catch (error) {
     console.error("❌ Error checking review eligibility:", error);

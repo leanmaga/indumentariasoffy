@@ -1,6 +1,4 @@
-// ================================================================
-// app/api/admin/questions/[questionId]/respond/route.js
-// ================================================================
+// src/app/api/admin/questions/[questionId]/respond/route.js
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import connectDB from "@/lib/db";
@@ -21,7 +19,14 @@ export async function POST(request, { params }) {
       );
     }
 
-    const { questionId } = await params;
+    console.log("🔍 Params received:", params);
+
+    // Obtener el id correctamente (el parámetro es [id] no [questionId])
+    const awaitedParams = await params;
+    const questionId = awaitedParams.id;
+
+    console.log("📝 Question ID:", questionId);
+
     const { response } = await request.json();
 
     if (!response || response.trim().length < 10) {
@@ -66,8 +71,9 @@ export async function POST(request, { params }) {
         question.product,
         question.user
       );
+      console.log("✅ Email de respuesta enviado");
     } catch (emailError) {
-      console.error("Error sending email notification:", emailError);
+      console.error("❌ Error sending email notification:", emailError);
       // No fallar la operación por error de email
     }
 
@@ -81,9 +87,9 @@ export async function POST(request, { params }) {
       },
     });
   } catch (error) {
-    console.error("Error responding to question:", error);
+    console.error("❌ Error responding to question:", error);
     return NextResponse.json(
-      { success: false, error: "Error al enviar respuesta" },
+      { success: false, error: "Error al enviar respuesta: " + error.message },
       { status: 500 }
     );
   }

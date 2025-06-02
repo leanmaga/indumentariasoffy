@@ -1,4 +1,3 @@
-// app/api/reviews/[reviewId]/helpful/route.js - VERSIÓN CORREGIDA
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import connectDB from "@/lib/db";
@@ -7,13 +6,10 @@ import { authOptions } from "@/lib/auth";
 
 export async function POST(request, { params }) {
   try {
-    console.log("👍 POST Helpful - Raw params:", params);
+    console.log("👍 POST Helpful - Iniciando...");
 
-    // CORRECCIÓN: Asegurarse de obtener correctamente el reviewId
-    const awaitedParams = await params;
-    const reviewId = awaitedParams.reviewId;
-
-    console.log("📝 Review ID extraído:", reviewId);
+    const { reviewId } = await params;
+    console.log("📝 Review ID:", reviewId);
 
     if (!reviewId) {
       console.log("❌ No reviewId provided");
@@ -24,7 +20,7 @@ export async function POST(request, { params }) {
     }
 
     const session = await getServerSession(authOptions);
-    console.log("👤 Session user:", session?.user?.id);
+    console.log("👤 User ID:", session?.user?.id);
 
     if (!session?.user) {
       return NextResponse.json(
@@ -92,8 +88,7 @@ export async function POST(request, { params }) {
 // GET para verificar si el usuario ya votó
 export async function GET(request, { params }) {
   try {
-    const awaitedParams = await params;
-    const reviewId = awaitedParams.reviewId;
+    const { reviewId } = await params;
     const session = await getServerSession(authOptions);
 
     if (!session?.user) {
@@ -130,17 +125,4 @@ export async function GET(request, { params }) {
       { status: 500 }
     );
   }
-}
-
-// ===================================================================
-// DEBUGGING: Crear ruta de testing para verificar que funciona
-// ===================================================================
-
-// app/api/test-helpful/route.js - RUTA DE TESTING
-export async function TestHelpful() {
-  return NextResponse.json({
-    success: true,
-    message: "La ruta de helpful está funcionando correctamente",
-    timestamp: new Date().toISOString(),
-  });
 }
