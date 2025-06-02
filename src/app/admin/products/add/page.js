@@ -229,7 +229,6 @@ export default function AddProductPage() {
 
   // 🔧 FUNCIONES CORREGIDAS - Manejar URLs de Cloudinary directamente
   const handleMainImageChange = (info, imageUrl, color) => {
-    console.log("📸 Main image from Cloudinary:", { info, imageUrl, color });
     setMainImageUrl(imageUrl);
     setMainImageInfo(info);
 
@@ -244,15 +243,10 @@ export default function AddProductPage() {
   };
 
   const handleAddImage = (info, imageUrl, color) => {
-    console.log("📸 Additional image from Cloudinary:", {
-      info,
-      imageUrl,
-      color,
-    });
     const newImage = {
       imageUrl,
       color: color || "",
-      info, // Info completa de Cloudinary
+      info,
     };
     setAdditionalImages((prev) => [...prev, newImage]);
   };
@@ -398,11 +392,6 @@ export default function AddProductPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    console.log("🚀 Starting form submission...");
-    console.log("📝 Form data:", formData);
-    console.log("🖼️ Main image URL:", mainImageUrl);
-    console.log("🖼️ Additional images:", additionalImages);
-
     // Validar formulario
     if (!validateForm()) {
       toast.error("Por favor completa todos los campos obligatorios");
@@ -503,10 +492,7 @@ export default function AddProductPage() {
         productData.stock = parseInt(formData.stock) || 0;
       }
 
-      console.log("📦 Final product data:", productData);
-
       // 🔧 CREAR EL PRODUCTO - Sin subir archivos
-      console.log("📡 Sending POST request to /api/products");
 
       const productResponse = await fetch("/api/products", {
         method: "POST",
@@ -515,8 +501,6 @@ export default function AddProductPage() {
         },
         body: JSON.stringify(productData),
       });
-
-      console.log("📡 Response status:", productResponse.status);
 
       if (!productResponse.ok) {
         try {
@@ -532,7 +516,6 @@ export default function AddProductPage() {
       }
 
       const result = await productResponse.json();
-      console.log("✅ Product created successfully:", result);
 
       toast.success("Producto creado exitosamente");
       router.push("/admin/products");
@@ -637,6 +620,7 @@ export default function AddProductPage() {
               <option value="electronica">Electrónica</option>
               <option value="hogar">Hogar</option>
               <option value="deporte">Deporte</option>
+              <option value="ofertas">Ofertas</option>
               <option value="otros">Otros</option>
             </select>
             {validationErrors.category && (

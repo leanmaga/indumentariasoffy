@@ -63,8 +63,6 @@ export async function POST(request) {
     const data = await request.json();
     await connectDB();
 
-    console.log("📥 Received product data:", data); // Para debugging
-
     // Validaciones de campos obligatorios según tu modelo
     if (!data.title || !data.salePrice || !data.category || !data.imageUrl) {
       const missingFields = [];
@@ -176,13 +174,8 @@ export async function POST(request) {
         0
       );
     }
-
-    console.log("📦 Final product data for your model:", productData); // Para debugging
-
     // Crear el nuevo producto
     const newProduct = await Product.create(productData);
-
-    console.log("✅ Product created successfully:", newProduct._id); // Para debugging
 
     return NextResponse.json(
       {

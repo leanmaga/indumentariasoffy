@@ -35,19 +35,13 @@ export async function GET() {
       );
     }
 
-    console.log("Generando URL de autorización:");
-    console.log("APP_ID:", APP_ID);
-    console.log("REDIRECT_URI:", REDIRECT_URI);
-
     // Crear URL de autorización OAuth2
     const authUrl = new URL("https://auth.mercadopago.com.ar/authorization");
     authUrl.searchParams.append("client_id", APP_ID);
     authUrl.searchParams.append("response_type", "code");
     authUrl.searchParams.append("platform_id", "mp");
     authUrl.searchParams.append("redirect_uri", REDIRECT_URI);
-    authUrl.searchParams.append("state", session.user.id); // Para seguridad
-
-    console.log("URL de autorización generada:", authUrl.toString());
+    authUrl.searchParams.append("state", session.user.id);
 
     return NextResponse.json({ authUrl: authUrl.toString() });
   } catch (error) {

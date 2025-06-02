@@ -24,16 +24,10 @@ async function hasUserPurchasedProduct(userId, productId) {
 // GET - Verificar qué tipo de interacciones puede hacer el usuario
 export async function GET(request, { params }) {
   try {
-    console.log("🔍 GET Can-Review - Iniciando...");
-
     const { id: productId } = await params;
-    console.log("📦 Product ID:", productId);
-
     const session = await getServerSession(authOptions);
-    console.log("👤 User ID:", session?.user?.id);
 
     if (!session?.user) {
-      console.log("❌ User not authenticated");
       return NextResponse.json({
         success: true,
         canQuestion: false,
@@ -46,7 +40,6 @@ export async function GET(request, { params }) {
     }
 
     await connectDB();
-    console.log("✅ Database connected");
 
     // Verificar si ya dejó cada tipo de interacción
     const existingQuestion = await Review.findOne({
@@ -61,15 +54,11 @@ export async function GET(request, { params }) {
       type: "rating",
     });
 
-    console.log("📋 Existing question:", !!existingQuestion);
-    console.log("⭐ Existing rating:", !!existingRating);
-
     // Verificar si compró el producto
     const hasPurchased = await hasUserPurchasedProduct(
       session.user.id,
       productId
     );
-    console.log("🛒 Has purchased:", hasPurchased);
 
     // Lógica para preguntas: cualquier usuario autenticado que no haya preguntado
     const canQuestion = !existingQuestion;
@@ -82,13 +71,6 @@ export async function GET(request, { params }) {
       : !hasPurchased
       ? "not_purchased"
       : null;
-
-    console.log("✅ Permissions calculated:", {
-      canQuestion,
-      canRate,
-      questionReason,
-      ratingReason,
-    });
 
     return NextResponse.json({
       success: true,

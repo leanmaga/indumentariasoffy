@@ -21,9 +21,6 @@ export default function VerifyEmailPage() {
       setError("No se proporcionó un token de verificación válido");
       return;
     }
-
-    console.log("Verificando token en frontend:", token);
-
     const verifyToken = async () => {
       try {
         const response = await fetch("/api/auth/verify-token", {
@@ -37,13 +34,15 @@ export default function VerifyEmailPage() {
         const data = await response.json();
 
         if (!response.ok) {
-          throw new Error(data.message || "Error al verificar el correo electrónico");
+          throw new Error(
+            data.message || "Error al verificar el correo electrónico"
+          );
         }
 
         setSuccess(true);
         setEmail(data.email || "");
         toast.success("¡Correo electrónico verificado con éxito!");
-        
+
         // Redireccionar después de 5 segundos
         setTimeout(() => {
           router.push("/auth/login");
@@ -104,7 +103,11 @@ export default function VerifyEmailPage() {
             ¡Correo verificado!
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
-            Tu correo electrónico {email && <span className="font-medium text-indigo-600">{email}</span>} ha sido verificado con éxito. Ya puedes iniciar sesión en tu cuenta.
+            Tu correo electrónico{" "}
+            {email && (
+              <span className="font-medium text-indigo-600">{email}</span>
+            )}{" "}
+            ha sido verificado con éxito. Ya puedes iniciar sesión en tu cuenta.
           </p>
           <p className="mt-2 text-center text-sm text-gray-600">
             Serás redirigido a la página de inicio de sesión en 5 segundos...
@@ -150,9 +153,7 @@ export default function VerifyEmailPage() {
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
             Error de verificación
           </h2>
-          <p className="mt-2 text-center text-sm text-red-600">
-            {error}
-          </p>
+          <p className="mt-2 text-center text-sm text-red-600">{error}</p>
         </div>
 
         <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
@@ -166,7 +167,9 @@ export default function VerifyEmailPage() {
               </Link>
               <button
                 onClick={() => {
-                  const email = prompt("Ingresa tu correo electrónico para reenviar el enlace de verificación");
+                  const email = prompt(
+                    "Ingresa tu correo electrónico para reenviar el enlace de verificación"
+                  );
                   if (email) {
                     fetch("/api/auth/verify-email", {
                       method: "POST",
@@ -176,13 +179,20 @@ export default function VerifyEmailPage() {
                       .then((res) => res.json())
                       .then((data) => {
                         if (data.success !== false) {
-                          toast.success("Enlace de verificación reenviado. Revisa tu correo.");
+                          toast.success(
+                            "Enlace de verificación reenviado. Revisa tu correo."
+                          );
                         } else {
-                          toast.error(data.message || "Error al reenviar el enlace de verificación");
+                          toast.error(
+                            data.message ||
+                              "Error al reenviar el enlace de verificación"
+                          );
                         }
                       })
                       .catch((err) => {
-                        toast.error("Error al reenviar el enlace de verificación.");
+                        toast.error(
+                          "Error al reenviar el enlace de verificación."
+                        );
                       });
                   }
                 }}

@@ -1,28 +1,28 @@
-'use server';
+"use server";
 
-import nodemailer from 'nodemailer';
-import crypto from 'crypto';
-import User from '@/models/User';
+import nodemailer from "nodemailer";
+import crypto from "crypto";
+import User from "@/models/User";
 import connectDB from "./db";
 
 // Función para obtener la URL base normalizada
 function getBaseUrl() {
   // Obtener la URL base de las variables de entorno
-  const url = process.env.NEXT_PUBLIC_FRONTEND_URL || 'http://localhost:3000';
-  
+  const url = process.env.NEXT_PUBLIC_FRONTEND_URL || "http://localhost:3000";
+
   // Eliminar slash final si existe
-  return url.endsWith('/') ? url.slice(0, -1) : url;
+  return url.endsWith("/") ? url.slice(0, -1) : url;
 }
 
 // Función para crear un transportador de email
 async function createEmailTransporter() {
   // Para desarrollo (pruebas locales)
-  if (process.env.NODE_ENV === 'development') {
+  if (process.env.NODE_ENV === "development") {
     // Crear cuenta de prueba en Ethereal para desarrollo
     const testAccount = await nodemailer.createTestAccount();
-    
+
     return nodemailer.createTransport({
-      host: 'smtp.ethereal.email',
+      host: "smtp.ethereal.email",
       port: 587,
       secure: false,
       auth: {
@@ -31,22 +31,22 @@ async function createEmailTransporter() {
       },
       // Ignorar errores de certificados en desarrollo
       tls: {
-        rejectUnauthorized: false
-      }
+        rejectUnauthorized: false,
+      },
     });
   }
-  
+
   // Para producción
   return nodemailer.createTransport({
-    service: process.env.EMAIL_SERVICE || 'gmail',
+    service: process.env.EMAIL_SERVICE || "gmail",
     auth: {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASS,
     },
     // Solo usar en desarrollo o si confías en el servidor
     tls: {
-      rejectUnauthorized: process.env.NODE_ENV === 'production'
-    }
+      rejectUnauthorized: process.env.NODE_ENV === "production",
+    },
   });
 }
 
@@ -54,45 +54,48 @@ async function createEmailTransporter() {
 export async function sendVerificationEmail(email) {
   try {
     await connectDB();
-    
+
     // Buscar el usuario
     const user = await User.findOne({ email });
-    
+
     if (!user) {
       return { success: false, error: "Usuario no encontrado" };
     }
-    
+
     // Si el usuario ya está verificado
     if (user.isVerified) {
       return { success: false, error: "Este correo ya está verificado" };
     }
-    
+
     // Generar token de verificación
     const verificationToken = crypto.randomBytes(32).toString("hex");
-    
+
     // Establecer fecha de expiración (24 horas)
     const verificationTokenExpires = new Date();
     verificationTokenExpires.setHours(verificationTokenExpires.getHours() + 24);
-    
+
     // Actualizar el usuario con el token
     user.verificationToken = verificationToken;
     user.verificationTokenExpires = verificationTokenExpires;
     await user.save();
-    
+
     // Crear transportador
     const transporter = await createEmailTransporter();
-    
+
     // URL de verificación (usando la función getBaseUrl)
     const verificationUrl = `${getBaseUrl()}/auth/verify-email?token=${verificationToken}`;
-    
+
     // URL del logo
-    const logoUrl = 'https://indumentaria-soffy.vercel.app/_next/image?url=%2Fimages%2Flogo.jpeg&w=96&q=75';
-    
+    const logoUrl =
+      "https://indumentaria-soffy.vercel.app/_next/image?url=%2Fimages%2Flogo.jpeg&w=96&q=75";
+
     // Enviar email con diseño mejorado
     const info = await transporter.sendMail({
-      from: `"IndumentariaSoffy" <${process.env.EMAIL_USER || 'indumentariasoffy@gmail.com'}>`,
+      from: `"IndumentariaSoffy" <${
+        process.env.EMAIL_USER || "indumentariasoffy@gmail.com"
+      }>`,
       to: user.email,
-      subject: 'Verifica tu cuenta en IndumentariaSoffy',
+      subject: "Verifica tu cuenta en IndumentariaSoffy",
       html: `
         <!DOCTYPE html>
         <html lang="es">
@@ -194,15 +197,10 @@ export async function sendVerificationEmail(email) {
         </html>
       `,
     });
-    
-    // En desarrollo, mostrar URL para ver el email
-    if (process.env.NODE_ENV === 'development') {
-      console.log('URL para ver el email:', nodemailer.getTestMessageUrl(info));
-    }
-    
+
     return { success: true, messageId: info.messageId };
   } catch (error) {
-    console.error('Error al enviar email de verificación:', error);
+    console.error("Error al enviar email de verificación:", error);
     return { success: false, error: error.message };
   }
 }
@@ -211,46 +209,56 @@ export async function sendVerificationEmail(email) {
 export async function sendPasswordResetEmail(email) {
   try {
     await connectDB();
-    
+
     // Buscar el usuario
     const user = await User.findOne({ email });
-    
+
     if (!user) {
       // Por seguridad, no revelamos si el email existe o no
-      return { success: true, message: "Si el correo existe, se ha enviado un enlace de recuperación" };
+      return {
+        success: true,
+        message: "Si el correo existe, se ha enviado un enlace de recuperación",
+      };
     }
-    
+
     // Si el usuario usa solo Google Auth y no tiene contraseña tradicional
     if (user.googleAuth && !user.password) {
-      return { success: false, error: "Esta cuenta usa Google para iniciar sesión, no se puede restablecer la contraseña" };
+      return {
+        success: false,
+        error:
+          "Esta cuenta usa Google para iniciar sesión, no se puede restablecer la contraseña",
+      };
     }
-    
+
     // Generar token de restablecimiento
     const resetToken = crypto.randomBytes(32).toString("hex");
-    
+
     // Establecer fecha de expiración (1 hora)
     const resetTokenExpires = new Date();
     resetTokenExpires.setHours(resetTokenExpires.getHours() + 1);
-    
+
     // Actualizar el usuario con el token
     user.resetPasswordToken = resetToken;
     user.resetPasswordExpires = resetTokenExpires;
     await user.save();
-    
+
     // Crear transportador
     const transporter = await createEmailTransporter();
-    
+
     // URL de restablecimiento (usando la función getBaseUrl)
     const resetUrl = `${getBaseUrl()}/auth/reset-password/${resetToken}`;
-    
+
     // URL del logo
-    const logoUrl = 'https://indumentaria-soffy.vercel.app/_next/image?url=%2Fimages%2Flogo.jpeg&w=96&q=75';
-    
+    const logoUrl =
+      "https://indumentaria-soffy.vercel.app/_next/image?url=%2Fimages%2Flogo.jpeg&w=96&q=75";
+
     // Enviar email
     const info = await transporter.sendMail({
-      from: `"IndumentariaSoffy" <${process.env.EMAIL_USER || 'indumentariasoffy@gmail.com'}>`,
+      from: `"IndumentariaSoffy" <${
+        process.env.EMAIL_USER || "indumentariasoffy@gmail.com"
+      }>`,
       to: user.email,
-      subject: 'Restablece tu contraseña',
+      subject: "Restablece tu contraseña",
       html: `
         <!DOCTYPE html>
         <html lang="es">
@@ -352,15 +360,10 @@ export async function sendPasswordResetEmail(email) {
         </html>
       `,
     });
-    
-    // En desarrollo, mostrar URL para ver el email
-    if (process.env.NODE_ENV === 'development') {
-      console.log('URL para ver el email:', nodemailer.getTestMessageUrl(info));
-    }
-    
+
     return { success: true, messageId: info.messageId };
   } catch (error) {
-    console.error('Error al enviar email de restablecimiento:', error);
+    console.error("Error al enviar email de restablecimiento:", error);
     return { success: false, error: error.message };
   }
 }
@@ -369,32 +372,35 @@ export async function sendPasswordResetEmail(email) {
 export async function verifyEmailToken(token) {
   try {
     await connectDB();
-    
+
     // Obtener todos los usuarios para buscar el token
     // Esta es una solución alternativa al problema del select: false
-    const users = await User.find({}).select('+verificationToken +verificationTokenExpires');
-    
-    // Buscar manualmente el usuario que coincida con el token
-    const user = users.find(u => 
-      u.verificationToken === token && 
-      u.verificationTokenExpires > new Date()
+    const users = await User.find({}).select(
+      "+verificationToken +verificationTokenExpires"
     );
-    
+
+    // Buscar manualmente el usuario que coincida con el token
+    const user = users.find(
+      (u) =>
+        u.verificationToken === token && u.verificationTokenExpires > new Date()
+    );
+
     if (!user) {
-      console.log("No se encontró usuario con el token:", token);
-      return { success: false, error: "Token de verificación inválido o expirado" };
+      return {
+        success: false,
+        error: "Token de verificación inválido o expirado",
+      };
     }
-    
+
     // Actualizar el usuario como verificado
     user.isVerified = true;
     user.verificationToken = undefined;
     user.verificationTokenExpires = undefined;
     await user.save();
-    
-    console.log("Usuario verificado exitosamente:", user.email);
+
     return { success: true, email: user.email };
   } catch (error) {
-    console.error('Error al verificar email:', error);
+    console.error("Error al verificar email:", error);
     return { success: false, error: error.message };
   }
 }
@@ -403,34 +409,40 @@ export async function verifyEmailToken(token) {
 export async function resetPasswordWithToken(token, password) {
   try {
     if (!token || !password) {
-      return { success: false, error: "Token y nueva contraseña son requeridos" };
+      return {
+        success: false,
+        error: "Token y nueva contraseña son requeridos",
+      };
     }
-    
+
     if (password.length < 6) {
-      return { success: false, error: "La contraseña debe tener al menos 6 caracteres" };
+      return {
+        success: false,
+        error: "La contraseña debe tener al menos 6 caracteres",
+      };
     }
-    
+
     await connectDB();
-    
+
     // Buscar usuario con el token proporcionado y no expirado
     const user = await User.findOne({
       resetPasswordToken: token,
       resetPasswordExpires: { $gt: Date.now() },
     });
-    
+
     if (!user) {
       return { success: false, error: "Token inválido o expirado" };
     }
-    
+
     // Actualizar la contraseña y eliminar el token
     user.password = password; // El hook pre-save se encargará de hashear
     user.resetPasswordToken = undefined;
     user.resetPasswordExpires = undefined;
     await user.save();
-    
+
     return { success: true };
   } catch (error) {
-    console.error('Error al restablecer la contraseña:', error);
+    console.error("Error al restablecer la contraseña:", error);
     return { success: false, error: error.message };
   }
 }

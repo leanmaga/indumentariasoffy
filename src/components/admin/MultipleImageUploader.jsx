@@ -105,11 +105,7 @@ export default function MultipleImageUploader({
             return;
           }
 
-          console.log("MainWidget event:", result.event);
-
           if (result.event === "success") {
-            console.log("Upload success:", result.info);
-
             // Construir la URL con las transformaciones del recorte si existen
             let imageUrl = result.info.secure_url;
 
@@ -128,8 +124,6 @@ export default function MultipleImageUploader({
                 `/upload${transformation}`
               );
             }
-
-            console.log("Final image URL:", imageUrl);
 
             // Resetear estados de error
             setMainImageError(false);
@@ -232,11 +226,7 @@ export default function MultipleImageUploader({
             return;
           }
 
-          console.log("AddWidget event:", result.event);
-
           if (result.event === "success") {
-            console.log("Additional upload success:", result.info);
-
             // Construir la URL con las transformaciones del recorte si existen
             let imageUrl = result.info.secure_url;
 
@@ -255,8 +245,6 @@ export default function MultipleImageUploader({
                 `/upload${transformation}`
               );
             }
-
-            console.log("Final additional image URL:", imageUrl);
 
             onAddImage(result.info, imageUrl, selectedColor);
             setSelectedColor("");

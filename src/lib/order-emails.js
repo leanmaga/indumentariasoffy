@@ -254,13 +254,6 @@ export async function sendOrderConfirmationToCustomer(order, user) {
       `,
     });
 
-    if (process.env.NODE_ENV === "development") {
-      console.log(
-        "Email de confirmación de orden (cliente):",
-        nodemailer.getTestMessageUrl(info)
-      );
-    }
-
     return { success: true, messageId: info.messageId };
   } catch (error) {
     console.error("Error enviando confirmación de orden al cliente:", error);
@@ -392,13 +385,6 @@ export async function sendNewOrderNotificationToAdmin(order, user) {
         </html>
       `,
     });
-
-    if (process.env.NODE_ENV === "development") {
-      console.log(
-        "Email de nueva orden (admin):",
-        nodemailer.getTestMessageUrl(info)
-      );
-    }
 
     return { success: true, messageId: info.messageId };
   } catch (error) {
@@ -597,13 +583,6 @@ export async function sendPaymentConfirmationToCustomer(
       `,
     });
 
-    if (process.env.NODE_ENV === "development") {
-      console.log(
-        "Email de pago confirmado (cliente):",
-        nodemailer.getTestMessageUrl(info)
-      );
-    }
-
     return { success: true, messageId: info.messageId };
   } catch (error) {
     console.error("Error enviando confirmación de pago al cliente:", error);
@@ -722,13 +701,6 @@ export async function sendPaymentNotificationToAdmin(
         </html>
       `,
     });
-
-    if (process.env.NODE_ENV === "development") {
-      console.log(
-        "Email de pago recibido (admin):",
-        nodemailer.getTestMessageUrl(info)
-      );
-    }
 
     return { success: true, messageId: info.messageId };
   } catch (error) {

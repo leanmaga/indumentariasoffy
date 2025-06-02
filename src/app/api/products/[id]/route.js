@@ -43,9 +43,6 @@ export async function PUT(request, { params }) {
     const { id } = await params; // IMPORTANTE: await params
     const data = await request.json();
 
-    console.log("📝 Updating product:", id); // Para debugging
-    console.log("📥 Update data:", data); // Para debugging
-
     await connectDB();
 
     // Verificar si el producto existe
@@ -210,15 +207,11 @@ export async function PUT(request, { params }) {
         productData.soleType = data.soleType || "";
     }
 
-    console.log("📦 Final update data for your model:", productData); // Para debugging
-
     // Actualizar el producto con findByIdAndUpdate
     const updatedProduct = await Product.findByIdAndUpdate(id, productData, {
       new: true, // Devuelve el documento actualizado
       runValidators: true, // Ejecuta las validaciones del modelo
     });
-
-    console.log("✅ Product updated successfully:", updatedProduct._id); // Para debugging
 
     return NextResponse.json({
       message: "Producto actualizado correctamente",
@@ -267,8 +260,6 @@ export async function DELETE(request, { params }) {
 
     const { id } = await params; // IMPORTANTE: await params
 
-    console.log("🗑️ Deleting product:", id); // Para debugging
-
     await connectDB();
 
     const product = await Product.findByIdAndDelete(id);
@@ -278,8 +269,6 @@ export async function DELETE(request, { params }) {
         { status: 404 }
       );
     }
-
-    console.log("✅ Product deleted successfully:", id); // Para debugging
 
     return NextResponse.json({
       message: "Producto eliminado con éxito",

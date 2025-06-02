@@ -8,7 +8,7 @@ import { sendVerificationEmail } from "@/lib/email-actions";
 export async function POST(request) {
   try {
     const { name, email, password, phone } = await request.json();
-    
+
     // Validaciones básicas
     if (!name || !email || !password || !phone) {
       return NextResponse.json(
@@ -16,22 +16,19 @@ export async function POST(request) {
         { status: 400 }
       );
     }
-    
+
     await connectDB();
-    
+
     // Verificar si el usuario ya existe
     const existingUser = await User.findOne({ email });
-    
+
     if (existingUser) {
       // Si el usuario existe con Google Auth pero sin contraseña
       if (existingUser.googleAuth && !existingUser.password) {
         // Hashear la contraseña
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
-        
-        console.log("Actualizando usuario de Google con nueva contraseña");
-        console.log("Contraseña hash longitud:", hashedPassword.length);
-        
+
         // Actualizar el usuario con la contraseña y teléfono
         await User.findByIdAndUpdate(existingUser._id, {
           $set: {
@@ -39,7 +36,7 @@ export async function POST(request) {
             phone: phone,
           },
         });
-        
+
         return NextResponse.json({
           message: "Información actualizada correctamente",
           user: {
@@ -56,14 +53,11 @@ export async function POST(request) {
         );
       }
     }
-    
+
     // Hashear la contraseña
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
-    
-    console.log("Registrando nuevo usuario:", email);
-    console.log("Contraseña hash longitud:", hashedPassword.length);
-    
+
     // Crear nuevo usuario (sin verificar inicialmente)
     const newUser = await User.create({
       name,
@@ -73,17 +67,21 @@ export async function POST(request) {
       role: "user",
       isVerified: false, // Usuario no verificado por defecto
     });
-    
+
     // Enviar email de verificación utilizando nuestra función mejorada
     const emailResult = await sendVerificationEmail(email);
-    
+
     if (!emailResult.success) {
-      console.error("Error al enviar email de verificación:", emailResult.error);
+      console.error(
+        "Error al enviar email de verificación:",
+        emailResult.error
+      );
       // Continuamos con el registro aunque falle el email
     }
-    
+
     return NextResponse.json({
-      message: "Usuario registrado correctamente. Por favor, verifica tu correo electrónico.",
+      message:
+        "Usuario registrado correctamente. Por favor, verifica tu correo electrónico.",
       user: {
         id: newUser._id,
         name: newUser.name,

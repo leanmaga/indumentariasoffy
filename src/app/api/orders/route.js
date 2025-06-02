@@ -59,8 +59,6 @@ export async function POST(request) {
       });
 
       if (existingOrder) {
-        console.log(`♻️ Reutilizando orden existente: ${existingOrder._id}`);
-
         if (orderData.paymentMethod === "mercadopago") {
           try {
             const preferenceResponse = await createPaymentPreference(
@@ -107,10 +105,6 @@ export async function POST(request) {
     }).sort({ createdAt: -1 });
 
     if (recentPendingOrder) {
-      console.log(
-        `♻️ Actualizando orden pendiente reciente: ${recentPendingOrder._id}`
-      );
-
       recentPendingOrder.items = orderData.items;
       recentPendingOrder.totalAmount = orderData.totalAmount;
       recentPendingOrder.shippingInfo = orderData.shippingInfo;
@@ -198,14 +192,10 @@ export async function POST(request) {
     });
 
     await order.save();
-    console.log(`🆕 Nueva orden creada: ${order._id}`);
 
     // Agregar la orden al usuario
     user.orders.push(order._id);
     await user.save();
-
-    // 🆕 ENVIAR EMAILS DE CONFIRMACIÓN DE ORDEN
-    console.log("📧 Enviando emails de confirmación de orden...");
 
     try {
       // Email de confirmación al cliente
@@ -214,29 +204,11 @@ export async function POST(request) {
         user
       );
 
-      if (customerEmailResult.success) {
-        console.log("✅ Email de confirmación enviado al cliente");
-      } else {
-        console.error(
-          "❌ Error enviando email al cliente:",
-          customerEmailResult.error
-        );
-      }
-
       // Email de notificación al administrador
       const adminEmailResult = await sendNewOrderNotificationToAdmin(
         order,
         user
       );
-
-      if (adminEmailResult.success) {
-        console.log("✅ Email de notificación enviado al admin");
-      } else {
-        console.error(
-          "❌ Error enviando email al admin:",
-          adminEmailResult.error
-        );
-      }
     } catch (emailError) {
       console.error("❌ Error general enviando emails:", emailError);
       // No fallar la creación de la orden por errores de email

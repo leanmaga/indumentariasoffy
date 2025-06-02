@@ -1,6 +1,4 @@
-// lib/cache.js - VERSIÓN MEJORADA CON CLEANUP AUTOMÁTICO
-console.log("🎯 Inicializando cache solo en memoria (Redis desactivado)");
-
+// src/lib/cache.js
 // Cache en memoria únicamente
 const memoryCache = new Map();
 const MEMORY_CACHE_MAX_SIZE = 1000;
@@ -16,13 +14,7 @@ setInterval(() => {
       deletedCount++;
     }
   }
-
-  if (deletedCount > 0) {
-    console.log(
-      `🧹 Cache cleanup: ${deletedCount} entradas expiradas eliminadas`
-    );
-  }
-}, 5 * 60 * 1000); // 5 minutos
+}, 5 * 60 * 1000);
 
 class ReviewCache {
   // Claves de cache organizadas
@@ -114,9 +106,6 @@ class ReviewCache {
 
     if (oldestKey) {
       memoryCache.delete(oldestKey);
-      console.log(
-        `🗑️ Cache eviction: eliminada clave más antigua ${oldestKey}`
-      );
     }
   }
 
@@ -156,9 +145,6 @@ class ReviewCache {
     try {
       const existed = memoryCache.has(key);
       memoryCache.delete(key);
-      if (existed) {
-        console.log(`🗑️ Cache key deleted: ${key}`);
-      }
     } catch (error) {
       console.error("Error deleting cache:", error.message);
     }
@@ -176,12 +162,6 @@ class ReviewCache {
           deletedCount++;
         }
       }
-
-      if (deletedCount > 0) {
-        console.log(
-          `🗑️ Pattern deletion: ${deletedCount} keys deleted for pattern: ${pattern}`
-        );
-      }
     } catch (error) {
       console.error("Error deleting pattern:", error.message);
     }
@@ -198,7 +178,6 @@ class ReviewCache {
         this.del(this.keys.topProducts),
         this.del(this.keys.globalStats),
       ]);
-      console.log(`🔄 Product cache invalidated: ${productId}`);
     } catch (error) {
       console.error("Error invalidating product cache:", error.message);
     }
@@ -208,7 +187,6 @@ class ReviewCache {
   static async invalidateUser(userId) {
     try {
       await this.delPattern(`permissions:${userId}:*`);
-      console.log(`🔄 User cache invalidated: ${userId}`);
     } catch (error) {
       console.error("Error invalidating user cache:", error.message);
     }
@@ -222,7 +200,6 @@ class ReviewCache {
         this.del(this.keys.globalStats),
         this.delPattern("stats:daily:*"),
       ]);
-      console.log("🔄 Global stats cache invalidated");
     } catch (error) {
       console.error("Error invalidating global stats:", error.message);
     }
@@ -274,9 +251,6 @@ class ReviewCache {
       errors: 0,
       startTime: Date.now(),
     };
-    console.log(
-      `🧹 Cache completamente limpiado (${size} entradas eliminadas)`
-    );
   }
 
   // 🆕 MÉTODO PARA OBTENER TODAS LAS CLAVES
@@ -410,9 +384,6 @@ export const debugCache = () => {
   const status = ReviewCache.getStatus();
   const detailed = ReviewCache.getDetailedInfo();
 
-  console.log("🔍 Estado del cache:", status);
-  console.log("📊 Estadísticas detalladas:", detailed);
-
   return { status, detailed };
 };
 
@@ -425,7 +396,5 @@ export const getCacheStatusForAPI = () => {
     performance: ReviewCache.getStats(),
   };
 };
-
-console.log("✅ Cache solo en memoria inicializado correctamente");
 
 export default ReviewCache;

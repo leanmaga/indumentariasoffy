@@ -47,8 +47,6 @@ export async function POST(request) {
       );
     }
 
-    console.log(`🔧 Bulk action: ${action} on ${reviewIds.length} reviews`);
-
     await connectDB();
 
     let result = { affected: 0, errors: [] };
@@ -76,10 +74,6 @@ export async function POST(request) {
           { status: 400 }
         );
     }
-
-    console.log(
-      `✅ Bulk action completed: ${result.affected} affected, ${result.errors.length} errors`
-    );
 
     return NextResponse.json({
       success: true,

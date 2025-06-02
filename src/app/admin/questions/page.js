@@ -40,7 +40,6 @@ const AdminQuestionsPage = () => {
 
       // Evitar llamadas muy frecuentes (mínimo 2 segundos entre calls)
       if (now - lastFetchRef.current < 2000) {
-        console.log("⏭️ Saltando fetch (muy reciente)");
         return;
       }
 
@@ -59,8 +58,6 @@ const AdminQuestionsPage = () => {
           limit: "10",
         });
 
-        console.log(`🔄 Fetching questions: ${filter}, page: ${currentPage}`);
-
         const response = await fetch(`/api/admin/questions?${params}`);
         const data = await response.json();
 
@@ -68,7 +65,6 @@ const AdminQuestionsPage = () => {
           setQuestions(data.questions);
           setStats(data.stats);
           setTotalPages(data.pagination.total);
-          console.log(`✅ Loaded ${data.questions.length} questions`);
         } else {
           console.error("❌ Error en respuesta:", data);
           toast.error("Error al cargar preguntas");
@@ -86,7 +82,6 @@ const AdminQuestionsPage = () => {
   // Effect principal - solo fetch inicial y cuando cambian los filtros
   useEffect(() => {
     if (session?.user?.role === "admin") {
-      console.log("🎯 Fetching due to filter/page change");
       fetchQuestions(true);
     }
   }, [session, filter, currentPage]);
@@ -102,11 +97,8 @@ const AdminQuestionsPage = () => {
 
     // Solo hacer polling si hay preguntas pendientes Y la página está activa
     if (stats.pending > 0 && isActiveRef.current) {
-      console.log("⏰ Iniciando polling suave (cada 30 segundos)");
-
       pollingIntervalRef.current = setInterval(() => {
         if (isActiveRef.current && document.visibilityState === "visible") {
-          console.log("🔄 Polling automático");
           fetchQuestions(false); // Sin loading spinner
         }
       }, 30000); // 30 segundos en lugar de constante
@@ -124,12 +116,6 @@ const AdminQuestionsPage = () => {
   useEffect(() => {
     const handleVisibilityChange = () => {
       isActiveRef.current = document.visibilityState === "visible";
-
-      if (isActiveRef.current) {
-        console.log("👁️ Página visible - habilitando polling");
-      } else {
-        console.log("😴 Página oculta - deshabilitando polling");
-      }
     };
 
     document.addEventListener("visibilitychange", handleVisibilityChange);
@@ -149,8 +135,6 @@ const AdminQuestionsPage = () => {
 
     setSubmitting(true);
     try {
-      console.log(`📤 Enviando respuesta a pregunta ${questionId}`);
-
       const response = await fetch(
         `/api/admin/questions/${questionId}/respond`,
         {

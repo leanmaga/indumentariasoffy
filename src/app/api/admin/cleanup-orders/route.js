@@ -48,9 +48,6 @@ export async function POST(request) {
       },
     ]);
 
-    console.log(`🧹 Limpieza ejecutada por ${session.user.email}:`);
-    console.log(`- Órdenes canceladas: ${pendingResult.modifiedCount}`);
-
     return NextResponse.json({
       success: true,
       results: {

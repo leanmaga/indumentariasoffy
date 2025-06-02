@@ -30,8 +30,6 @@ export async function POST() {
       const accessToken = config.getDecryptedAccessToken();
 
       if (accessToken) {
-        console.log("Revocando token en MercadoPago...");
-
         const revokeResponse = await fetch(
           "https://api.mercadopago.com/oauth/token",
           {
@@ -47,14 +45,6 @@ export async function POST() {
             }),
           }
         );
-
-        if (revokeResponse.ok) {
-          console.log("✅ Token revocado exitosamente en MercadoPago");
-        } else {
-          console.warn(
-            "⚠️ No se pudo revocar el token en MercadoPago, pero continuando..."
-          );
-        }
       }
     } catch (revokeError) {
       console.warn("Error al revocar token (continuando):", revokeError);
@@ -63,11 +53,6 @@ export async function POST() {
 
     // 3️⃣ ELIMINAR de nuestra base de datos
     await MercadoPagoConfig.findOneAndDelete({ isActive: true });
-
-    console.log(
-      "✅ Configuración de MercadoPago desvinculada completamente por:",
-      session.user.email
-    );
 
     return NextResponse.json({
       success: true,

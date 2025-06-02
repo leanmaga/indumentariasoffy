@@ -80,7 +80,6 @@ const ProductForm = ({ product = null }) => {
 
   // 🔧 FUNCIONES CORREGIDAS - Manejar URLs de Cloudinary directamente
   const handleMainImageChange = (info, imageUrl, color) => {
-    console.log("📸 Main image from Cloudinary:", { info, imageUrl, color });
     setMainImageUrl(imageUrl);
     setMainImageInfo(info);
 
@@ -95,11 +94,6 @@ const ProductForm = ({ product = null }) => {
   };
 
   const handleAddImage = (info, imageUrl, color) => {
-    console.log("📸 Additional image from Cloudinary:", {
-      info,
-      imageUrl,
-      color,
-    });
     const newImage = {
       imageUrl,
       color: color || "",
@@ -161,11 +155,6 @@ const ProductForm = ({ product = null }) => {
 
   // 🔧 FUNCIÓN ONSUBMIT CORREGIDA - Sin subida de archivos
   const onSubmit = async (data) => {
-    console.log("🚀 Starting form submission...");
-    console.log("📝 Form data:", data);
-    console.log("🖼️ Main image URL:", mainImageUrl);
-    console.log("🖼️ Additional images:", additionalImages);
-
     // Validar antes de enviar
     if (!validateForm(data)) {
       toast.error("Por favor completa todos los campos obligatorios");
@@ -246,13 +235,9 @@ const ProductForm = ({ product = null }) => {
         }),
       }));
 
-      console.log("📦 Final product data:", productData);
-
       // 🔧 ENVIAR A API - Sin subir archivos
       const url = product ? `/api/products/${product._id}` : "/api/products";
       const method = product ? "PUT" : "POST";
-
-      console.log(`📡 Sending ${method} request to ${url}`);
 
       const response = await fetch(url, {
         method,
@@ -262,8 +247,6 @@ const ProductForm = ({ product = null }) => {
         body: JSON.stringify(productData),
       });
 
-      console.log("📡 Response status:", response.status);
-
       if (!response.ok) {
         const error = await response.json();
         console.error("❌ API Error:", error);
@@ -271,7 +254,6 @@ const ProductForm = ({ product = null }) => {
       }
 
       const result = await response.json();
-      console.log("✅ Product saved successfully:", result);
 
       toast.success(
         product
@@ -603,6 +585,7 @@ const ProductForm = ({ product = null }) => {
                 <option value="electronica">Electrónica</option>
                 <option value="hogar">Hogar</option>
                 <option value="deporte">Deporte</option>
+                <option value="otros">Ofertas</option>
                 <option value="otros">Otros</option>
               </select>
               {validationErrors.category && (

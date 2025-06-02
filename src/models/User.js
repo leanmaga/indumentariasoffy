@@ -95,18 +95,13 @@ userSchema.pre("save", async function (next) {
     if (!this.isModified("password")) {
       return next();
     }
-    
+
     // Verificar que no sea un hash ya existente
-    if (this.password.startsWith('$2a$') || this.password.startsWith('$2b$')) {
-      console.log("La contraseña ya está hasheada, no se rehashea");
+    if (this.password.startsWith("$2a$") || this.password.startsWith("$2b$")) {
       return next();
     }
-
-    // Generate salt and hash password
-    console.log("Hasheando contraseña para usuario:", this.email);
     const salt = await bcrypt.genSalt(10);
     this.password = await bcrypt.hash(this.password, salt);
-    console.log("Contraseña hasheada exitosamente, longitud:", this.password.length);
     next();
   } catch (error) {
     console.error("Error hashing password:", error);
@@ -115,13 +110,8 @@ userSchema.pre("save", async function (next) {
 });
 
 // VERSIÓN SIMPLIFICADA: Compare password method
-userSchema.methods.comparePassword = async function(candidatePassword) {
+userSchema.methods.comparePassword = async function (candidatePassword) {
   try {
-    // Para mayor claridad en el debugging
-    console.log("Comparando contraseña para:", this.email);
-    console.log("Contraseña proporcionada longitud:", candidatePassword.length);
-    console.log("Contraseña almacenada longitud:", this.password.length);
-    
     // Usar bcrypt.compare directamente
     return bcrypt.compare(candidatePassword, this.password);
   } catch (error) {

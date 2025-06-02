@@ -82,8 +82,6 @@ export async function GET(request) {
         break;
     }
 
-    console.log("🔍 Query filters:", { matchQuery, sortQuery, page, limit });
-
     // Obtener reviews con populate
     const reviews = await Review.find(matchQuery)
       .populate("user", "name email")
@@ -97,8 +95,6 @@ export async function GET(request) {
 
     // Calcular estadísticas generales
     const stats = await calculateReviewStats();
-
-    console.log("📊 Found reviews:", reviews.length, "Total:", totalCount);
 
     return NextResponse.json({
       success: true,

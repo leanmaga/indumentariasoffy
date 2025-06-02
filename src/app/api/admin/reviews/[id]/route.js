@@ -120,8 +120,6 @@ export async function PUT(request, { params }) {
     }
     if (visible !== undefined) updateData.visible = Boolean(visible);
 
-    console.log("🔄 Updating review:", reviewId, updateData);
-
     const updatedReview = await Review.findByIdAndUpdate(reviewId, updateData, {
       new: true,
       runValidators: true,
@@ -181,8 +179,6 @@ export async function DELETE(request, { params }) {
       );
     }
 
-    console.log("🗑️ Deleting review:", reviewId, "Type:", review.type);
-
     const productId = review.product;
     const reviewType = review.type;
 
@@ -193,8 +189,6 @@ export async function DELETE(request, { params }) {
     if (reviewType === "rating") {
       await updateProductRatingStats(productId);
     }
-
-    console.log("✅ Review deleted successfully");
 
     return NextResponse.json({
       success: true,
@@ -213,8 +207,6 @@ export async function DELETE(request, { params }) {
 // Función auxiliar para actualizar estadísticas de rating de un producto
 async function updateProductRatingStats(productId) {
   try {
-    console.log("📊 Updating product rating stats for:", productId);
-
     // Usar mongoose.Types.ObjectId correctamente
     const objectId = new mongoose.Types.ObjectId(productId);
 
@@ -242,18 +234,12 @@ async function updateProductRatingStats(productId) {
         rating: newRating,
         numReviews: newCount,
       });
-
-      console.log(
-        `✅ Product stats updated: ${newRating} stars, ${newCount} reviews`
-      );
     } else {
       // Si no hay más reviews de rating, resetear a 0
       await Product.findByIdAndUpdate(productId, {
         rating: 0,
         numReviews: 0,
       });
-
-      console.log("✅ Product stats reset to 0 (no more ratings)");
     }
   } catch (error) {
     console.error(`❌ Error updating product ${productId} stats:`, error);

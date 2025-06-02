@@ -24,10 +24,3 @@ export async function handleGoogleSignIn(options = {}) {
     return { error: error.message };
   }
 }
-
-// Función de utilidad para log
-export function logAuthFlow(message, data = {}) {
-  if (process.env.NODE_ENV === "development") {
-    console.log(`[Auth Flow] ${message}`, data);
-  }
-}

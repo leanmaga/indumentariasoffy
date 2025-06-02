@@ -57,6 +57,7 @@ const productSchema = new mongoose.Schema(
         "electronica",
         "hogar",
         "deporte",
+        "ofertas",
         "otros",
       ],
       // default: "otros", // Removido para forzar selección

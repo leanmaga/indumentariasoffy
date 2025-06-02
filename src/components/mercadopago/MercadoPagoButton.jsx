@@ -23,7 +23,6 @@ const MercadoPagoButton = ({
       script.crossOrigin = "anonymous";
 
       script.onload = () => {
-        console.log("MercadoPago SDK loaded successfully");
         setIsSDKLoaded(true);
       };
       script.onerror = (e) => {
@@ -66,8 +65,6 @@ const MercadoPagoButton = ({
             headerColor: "#4F46E5",
           },
         });
-
-        console.log("MercadoPago button rendered successfully");
         setButtonRendered(true);
       } catch (err) {
         console.error("Error rendering MercadoPago button:", err);

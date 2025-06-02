@@ -180,6 +180,7 @@ export default function ProductsAdminPage() {
           <option value="electronica">Electrónica</option>
           <option value="hogar">Hogar</option>
           <option value="deporte">Deporte</option>
+          <option value="ofertas">Ofertas</option>
           <option value="otros">Otros</option>
         </select>
       </div>
@@ -244,12 +245,12 @@ export default function ProductsAdminPage() {
                   filteredProducts.map((product) => (
                     <tr key={product._id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="h-12 w-12 relative">
+                        <div className=" relative">
                           <Image
                             src={product.imageUrl}
                             alt={product.title}
-                            width={200}
-                            height={200}
+                            width={48}
+                            height={48}
                             className="object-cover rounded-md"
                           />
                         </div>

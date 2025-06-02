@@ -6,13 +6,9 @@ import { authOptions } from "@/lib/auth";
 
 export async function POST(request, { params }) {
   try {
-    console.log("👍 POST Helpful - Iniciando...");
-
     const { reviewId } = await params;
-    console.log("📝 Review ID:", reviewId);
 
     if (!reviewId) {
-      console.log("❌ No reviewId provided");
       return NextResponse.json(
         { success: false, error: "ID de review requerido" },
         { status: 400 }
@@ -20,7 +16,6 @@ export async function POST(request, { params }) {
     }
 
     const session = await getServerSession(authOptions);
-    console.log("👤 User ID:", session?.user?.id);
 
     if (!session?.user) {
       return NextResponse.json(
@@ -30,10 +25,8 @@ export async function POST(request, { params }) {
     }
 
     await connectDB();
-    console.log("✅ Database connected");
 
     const review = await Review.findById(reviewId);
-    console.log("📋 Review found:", !!review);
 
     if (!review) {
       return NextResponse.json(
@@ -46,8 +39,6 @@ export async function POST(request, { params }) {
     const alreadyVoted = review.helpfulVotes.some(
       (vote) => vote.user.toString() === session.user.id
     );
-
-    console.log("🗳️ Already voted:", alreadyVoted);
 
     if (alreadyVoted) {
       return NextResponse.json(
@@ -68,8 +59,6 @@ export async function POST(request, { params }) {
     review.helpfulVotes.push({ user: session.user.id });
     review.helpful = review.helpfulVotes.length;
     await review.save();
-
-    console.log("✅ Vote added successfully, new count:", review.helpful);
 
     return NextResponse.json({
       success: true,

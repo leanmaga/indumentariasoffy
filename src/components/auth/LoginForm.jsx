@@ -56,76 +56,83 @@ export default function LoginForm({
     }
   }, [error]);
 
-const onSubmit = async (data) => {
-  setIsLoading(true);
-  setLoginError("");
+  const onSubmit = async (data) => {
+    setIsLoading(true);
+    setLoginError("");
 
-  try {
-    console.log("Intentando login con email:", data.email);
-    
-    const result = await signIn("credentials", {
-      redirect: false,
-      email: data.email,
-      password: data.password,
-    });
+    try {
+      const result = await signIn("credentials", {
+        redirect: false,
+        email: data.email,
+        password: data.password,
+      });
 
-    console.log("Resultado de login:", result);
+      if (result.error) {
+        console.error("Login error:", result.error);
 
-    if (result.error) {
-      console.error("Login error:", result.error);
-      
-      // Verificar si es un usuario no verificado
-      if (result.error.includes("not verified") || result.error.includes("no verificado")) {
-        setLoginError("Tu cuenta no está verificada. Por favor, revisa tu correo y verifica tu cuenta.");
-        toast.error("Cuenta no verificada. Revisa tu correo para verificar tu cuenta.");
-        
-        // Opcional: ofrecer reenviar correo de verificación
-        const shouldResend = window.confirm("¿Deseas que te reenviemos el correo de verificación?");
-        if (shouldResend) {
-          const resendResult = await fetch("/api/auth/verify-email", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ email: data.email }),
-          }).then(res => res.json());
-          
-          if (resendResult.success) {
-            toast.success("Correo de verificación reenviado. Revisa tu bandeja de entrada.");
-          } else {
-            toast.error("Error al reenviar el correo de verificación.");
+        // Verificar si es un usuario no verificado
+        if (
+          result.error.includes("not verified") ||
+          result.error.includes("no verificado")
+        ) {
+          setLoginError(
+            "Tu cuenta no está verificada. Por favor, revisa tu correo y verifica tu cuenta."
+          );
+          toast.error(
+            "Cuenta no verificada. Revisa tu correo para verificar tu cuenta."
+          );
+
+          // Opcional: ofrecer reenviar correo de verificación
+          const shouldResend = window.confirm(
+            "¿Deseas que te reenviemos el correo de verificación?"
+          );
+          if (shouldResend) {
+            const resendResult = await fetch("/api/auth/verify-email", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ email: data.email }),
+            }).then((res) => res.json());
+
+            if (resendResult.success) {
+              toast.success(
+                "Correo de verificación reenviado. Revisa tu bandeja de entrada."
+              );
+            } else {
+              toast.error("Error al reenviar el correo de verificación.");
+            }
           }
-        }
-      } else {
-        setLoginError("Credenciales incorrectas");
-        toast.error("Credenciales incorrectas");
-      }
-      
-      setIsLoading(false);
-    } else {
-      toast.success("Inicio de sesión exitoso");
-
-      // Delay navigation slightly to let toast display
-      setTimeout(() => {
-        if (typeof afterLogin === "function") {
-          afterLogin();
-          setTimeout(() => {
-            router.push(redirect);
-          }, 100);
         } else {
-          router.push(redirect);
+          setLoginError("Credenciales incorrectas");
+          toast.error("Credenciales incorrectas");
         }
-      }, 300);
+
+        setIsLoading(false);
+      } else {
+        toast.success("Inicio de sesión exitoso");
+
+        // Delay navigation slightly to let toast display
+        setTimeout(() => {
+          if (typeof afterLogin === "function") {
+            afterLogin();
+            setTimeout(() => {
+              router.push(redirect);
+            }, 100);
+          } else {
+            router.push(redirect);
+          }
+        }, 300);
+      }
+    } catch (error) {
+      console.error("Login error:", error);
+      setLoginError("Error al iniciar sesión");
+      toast.error("Error al iniciar sesión");
+      setIsLoading(false);
     }
-  } catch (error) {
-    console.error("Login error:", error);
-    setLoginError("Error al iniciar sesión");
-    toast.error("Error al iniciar sesión");
-    setIsLoading(false);
-  }
-};
+  };
 
   // Manejador para el enlace "Olvidé mi contraseña"
   const handleForgotPassword = (e) => {
-    if (isInModal && typeof onForgotPassword === 'function') {
+    if (isInModal && typeof onForgotPassword === "function") {
       e.preventDefault(); // Prevenir la navegación por defecto
       onForgotPassword(); // Llamar a la función proporcionada por el padre
     }
@@ -218,7 +225,7 @@ const onSubmit = async (data) => {
               Recordarme
             </label>
           </div>
-          {isInModal && typeof onForgotPassword === 'function' ? (
+          {isInModal && typeof onForgotPassword === "function" ? (
             // Si estamos en un modal, usar un botón que llame a la función proporcionada
             <button
               type="button"

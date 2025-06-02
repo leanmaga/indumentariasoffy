@@ -66,6 +66,16 @@ function CategoryFilterContent() {
       </button>
       <button
         className={`px-5 py-2 rounded-full border transition-colors text-sm ${
+          currentCategory === "ofertas"
+            ? "border-indigo-500 bg-indigo-500 text-white"
+            : "border-gray-300 hover:border-black text-black"
+        }`}
+        onClick={() => handleCategoryChange("ofertas")}
+      >
+        Ofertas
+      </button>
+      <button
+        className={`px-5 py-2 rounded-full border transition-colors text-sm ${
           currentCategory === "camisetas"
             ? "border-indigo-500 bg-indigo-500 text-white"
             : "border-gray-300 hover:border-black text-black"

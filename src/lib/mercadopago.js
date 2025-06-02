@@ -32,7 +32,6 @@ const getClient = async () => {
       const accessToken = config.getDecryptedAccessToken();
 
       if (accessToken) {
-        console.log("Usando credenciales de producción de la base de datos");
         cachedClient = new MercadoPagoConfig({
           accessToken: accessToken,
           options: {

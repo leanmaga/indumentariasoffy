@@ -81,8 +81,10 @@ export default function ProfilePage() {
               const ordersData = await ordersResponse.json();
               setRecentOrders(ordersData.orders || []);
             } else {
-              // No mostrar error al usuario, simplemente log para depuración
-              console.log("No se pudieron cargar las órdenes recientes");
+              const ordersErrorData = await ordersResponse.json();
+              throw new Error(
+                ordersErrorData.message || "Error al obtener pedidos recientes"
+              );
             }
           } catch (orderError) {
             console.error("Error al obtener pedidos recientes:", orderError);

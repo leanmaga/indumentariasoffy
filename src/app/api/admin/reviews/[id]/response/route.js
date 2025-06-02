@@ -81,29 +81,10 @@ export async function POST(request, { params }) {
       );
     }
 
-    console.log(
-      `💬 Responding to question ${reviewId} by admin ${session.user.id}`
-    );
-
     // Actualizar la pregunta con la respuesta
     review.response = response.trim();
     review.responseDate = new Date();
     await review.save();
-
-    // 🆕 ENVIAR EMAIL DE NOTIFICACIÓN AL USUARIO (opcional)
-    try {
-      // Aquí podrías llamar a una función para enviar email
-      // await sendQuestionAnsweredEmail(review, review.product, review.user);
-      console.log(
-        "📧 Email notification should be sent to:",
-        review.user.email
-      );
-    } catch (emailError) {
-      console.error("Error sending email notification:", emailError);
-      // No fallar la operación por error de email
-    }
-
-    console.log(`✅ Question ${reviewId} answered successfully`);
 
     return NextResponse.json({
       success: true,
@@ -204,17 +185,11 @@ export async function PUT(request, { params }) {
       );
     }
 
-    console.log(
-      `✏️ Editing response for question ${reviewId} by admin ${session.user.id}`
-    );
-
     // Actualizar la respuesta
     const previousResponse = review.response;
     review.response = response.trim();
     review.responseDate = new Date(); // Actualizar fecha de respuesta
     await review.save();
-
-    console.log(`✅ Response for question ${reviewId} updated successfully`);
 
     return NextResponse.json({
       success: true,
@@ -291,16 +266,10 @@ export async function DELETE(request, { params }) {
       );
     }
 
-    console.log(
-      `🗑️ Deleting response for question ${reviewId} by admin ${session.user.id}`
-    );
-
     // Eliminar la respuesta
     review.response = "";
     review.responseDate = undefined;
     await review.save();
-
-    console.log(`✅ Response for question ${reviewId} deleted successfully`);
 
     return NextResponse.json({
       success: true,

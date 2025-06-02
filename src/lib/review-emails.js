@@ -1,8 +1,7 @@
-// lib/review-emails.js - VERSIÓN CORREGIDA
+// lib/review-emails.js - VERSIÓN COMPLETA
 "use server";
 
 import nodemailer from "nodemailer";
-import { ReviewCacheService } from "./cache";
 
 // Función para obtener la URL base normalizada
 function getBaseUrl() {
@@ -10,12 +9,11 @@ function getBaseUrl() {
   return url.endsWith("/") ? url.slice(0, -1) : url;
 }
 
-// Función para crear el transportador de email - CORREGIDA
+// Función para crear el transportador de email
 async function createEmailTransporter() {
   if (process.env.NODE_ENV === "development") {
     const testAccount = await nodemailer.createTestAccount();
 
-    // ✅ CORREGIDO: createTransport (sin 'r')
     return nodemailer.createTransport({
       host: "smtp.ethereal.email",
       port: 587,
@@ -30,7 +28,6 @@ async function createEmailTransporter() {
     });
   }
 
-  // ✅ CORREGIDO: createTransport (sin 'r')
   return nodemailer.createTransport({
     service: process.env.EMAIL_SERVICE || "gmail",
     auth: {
@@ -59,7 +56,169 @@ const formatDate = (date) => {
   }).format(new Date(date));
 };
 
-// EMAIL 1: Notificar al usuario que su pregunta fue respondida
+// EMAIL 1: Notificar al admin cuando alguien hace una pregunta
+export async function sendNewQuestionNotificationToAdmin(
+  question,
+  product,
+  user
+) {
+  try {
+    const transporter = await createEmailTransporter();
+    const baseUrl = getBaseUrl();
+    const logoUrl =
+      "https://indumentaria-soffy.vercel.app/_next/image?url=%2Fimages%2Flogo.jpeg&w=96&q=75";
+
+    // URL directa para responder en el panel de admin
+    const adminResponseUrl = `${baseUrl}/admin/questions`;
+    const productUrl = `${baseUrl}/products/${product._id}`;
+
+    const info = await transporter.sendMail({
+      from: `"IndumentariaSoffy Sistema" <${
+        process.env.EMAIL_USER || "indumentariasoffy@gmail.com"
+      }>`,
+      to: process.env.ADMIN_EMAIL || process.env.EMAIL_USER,
+      subject: `❓ Nueva pregunta sobre "${product.title}" de ${user.name}`,
+      html: `
+        <!DOCTYPE html>
+        <html lang="es">
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Nueva Pregunta</title>
+        </head>
+        <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f7f7f7;">
+          <table align="center" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+            
+            <!-- Header -->
+            <tr>
+              <td style="padding: 30px; text-align: center; background-color: #3b82f6; color: white;">
+                <h1 style="margin: 0; font-size: 24px;">❓ NUEVA PREGUNTA RECIBIDA</h1>
+              </td>
+            </tr>
+            
+            <!-- Content -->
+            <tr>
+              <td style="padding: 30px;">
+                <div style="background-color: #eff6ff; padding: 20px; border-radius: 8px; margin-bottom: 20px; text-align: center;">
+                  <h2 style="margin: 0; color: #1e40af;">Pregunta sobre: ${
+                    product.title
+                  }</h2>
+                </div>
+                
+                <!-- Información del cliente -->
+                <h3>👤 Información del Cliente:</h3>
+                <table width="100%" style="margin-bottom: 20px; background-color: #f9f9f9; padding: 15px; border-radius: 8px;">
+                  <tr><td style="padding: 5px 0;"><strong>Nombre:</strong></td><td>${
+                    user.name
+                  }</td></tr>
+                  <tr><td style="padding: 5px 0;"><strong>Email:</strong></td><td>${
+                    user.email
+                  }</td></tr>
+                  <tr><td style="padding: 5px 0;"><strong>Teléfono:</strong></td><td>${
+                    user.phone || "No proporcionado"
+                  }</td></tr>
+                  <tr><td style="padding: 5px 0;"><strong>Fecha:</strong></td><td>${formatDate(
+                    question.createdAt
+                  )}</td></tr>
+                </table>
+                
+                <!-- Producto consultado -->
+                <h3>📦 Producto Consultado:</h3>
+                <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                  <div style="display: flex; align-items: center; gap: 15px;">
+                    <img src="${product.imageUrl}" alt="${product.title}" 
+                         style="width: 100px; height: 100px; object-fit: cover; border-radius: 8px;">
+                    <div>
+                      <h4 style="margin: 0 0 10px 0; color: #1a1a1a;">${
+                        product.title
+                      }</h4>
+                      <p style="margin: 0; color: #10b981; font-weight: 600; font-size: 18px;">
+                        ${formatPrice(product.salePrice)}
+                      </p>
+                      <p style="margin: 5px 0 0 0; color: #6b7280; font-size: 14px;">
+                        Categoría: ${product.category}
+                      </p>
+                      <a href="${productUrl}" style="color: #3b82f6; font-size: 14px; text-decoration: none;">
+                        Ver producto →
+                      </a>
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- La pregunta -->
+                <h3>❓ Pregunta del Cliente:</h3>
+                <div style="background-color: #fef3c7; border-left: 4px solid #f59e0b; padding: 20px; margin-bottom: 30px;">
+                  <p style="margin: 0; color: #92400e; font-size: 16px; line-height: 1.6; font-style: italic;">
+                    "${question.comment}"
+                  </p>
+                </div>
+                
+                <!-- Botones de acción -->
+                <div style="text-align: center; margin-bottom: 30px;">
+                  <a href="${adminResponseUrl}" 
+                     style="display: inline-block; background-color: #3b82f6; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: 600; margin-right: 10px;">
+                    RESPONDER EN ADMIN
+                  </a>
+                  <a href="https://wa.me/5491126907696?text=${encodeURIComponent(
+                    `Hola ${user.name}, sobre tu pregunta de "${product.title}": ${question.comment}`
+                  )}" 
+                     style="display: inline-block; background-color: #10b981; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: 600;">
+                    RESPONDER POR WHATSAPP
+                  </a>
+                </div>
+                
+                <!-- Información adicional -->
+                <div style="background-color: #f0f9ff; padding: 15px; border-radius: 8px; margin-top: 20px;">
+                  <h4 style="color: #1e40af; margin: 0 0 10px 0;">📋 Información adicional:</h4>
+                  <ul style="color: #1e3a8a; margin: 0; padding-left: 20px;">
+                    <li>Cliente ${
+                      question.verified
+                        ? "verificado (ha comprado antes)"
+                        : "nuevo"
+                    }</li>
+                    <li>ID de pregunta: ${question._id}</li>
+                    <li>Responde pronto para mantener buena reputación</li>
+                    <li>El cliente recibirá un email automático cuando respondas</li>
+                  </ul>
+                </div>
+                
+                <!-- Estadísticas -->
+                <div style="background-color: #f9fafb; padding: 15px; border-radius: 8px; margin-top: 20px; text-align: center;">
+                  <p style="margin: 0; color: #6b7280; font-size: 14px;">
+                    💬 <strong>Tip:</strong> Responder rápido mejora la confianza del cliente y puede generar más ventas
+                  </p>
+                </div>
+              </td>
+            </tr>
+            
+            <!-- Footer -->
+            <tr>
+              <td style="padding: 30px; text-align: center; background-color: #f7f7f7; border-top: 1px solid #e5e5e5;">
+                <p style="margin: 0 0 10px 0; font-size: 14px; color: #6b7280;">
+                  Panel de administración: <a href="${baseUrl}/admin" style="color: #3b82f6;">IndumentariaSoffy Admin</a>
+                </p>
+                <p style="margin: 0; font-size: 12px; color: #9ca3af;">
+                  Email automático del sistema de preguntas y respuestas
+                </p>
+              </td>
+            </tr>
+          </table>
+        </body>
+        </html>
+      `,
+    });
+
+    return { success: true, messageId: info.messageId };
+  } catch (error) {
+    console.error(
+      "Error enviando notificación de nueva pregunta al admin:",
+      error
+    );
+    return { success: false, error: error.message };
+  }
+}
+
+// EMAIL 2: Notificar al usuario que su pregunta fue respondida
 export async function sendQuestionAnsweredEmail(question, product, user) {
   try {
     const transporter = await createEmailTransporter();
@@ -113,16 +272,15 @@ export async function sendQuestionAnsweredEmail(question, product, user) {
                 <div style="background-color: #f9f9f9; padding: 20px; border-radius: 8px; margin-bottom: 30px;">
                   <h3 style="color: #1a1a1a; margin: 0 0 15px 0;">Producto consultado:</h3>
                   <div style="display: flex; align-items: center; gap: 15px;">
-                    <img src="${product.imageUrl}" alt="${
-        product.title
-      }" style="width: 80px; height: 80px; object-fit: cover; border-radius: 8px;">
+                    <img src="${product.imageUrl}" alt="${product.title}" 
+                         style="width: 80px; height: 80px; object-fit: cover; border-radius: 8px;">
                     <div>
                       <h4 style="margin: 0 0 5px 0; color: #1a1a1a;">${
                         product.title
                       }</h4>
-                      <p style="margin: 0; color: #10b981; font-weight: 600; font-size: 18px;">${formatPrice(
-                        product.salePrice
-                      )}</p>
+                      <p style="margin: 0; color: #10b981; font-weight: 600; font-size: 18px;">
+                        ${formatPrice(product.salePrice)}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -172,6 +330,18 @@ export async function sendQuestionAnsweredEmail(question, product, user) {
                     Marcar como Útil
                   </a>
                 </div>
+
+                <!-- Invitación a comprar -->
+                <div style="background-color: #f0fdf4; border: 1px solid #bbf7d0; padding: 20px; border-radius: 8px; margin-top: 30px; text-align: center;">
+                  <h3 style="color: #15803d; margin: 0 0 10px 0;">¿Resolvimos tu duda?</h3>
+                  <p style="color: #166534; margin: 0 0 15px 0; font-size: 14px;">
+                    Si estás listo para comprar, te ofrecemos envío gratis y pago seguro
+                  </p>
+                  <a href="${productUrl}" 
+                     style="display: inline-block; background-color: #16a34a; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 600;">
+                    🛒 Comprar Ahora
+                  </a>
+                </div>
               </td>
             </tr>
             
@@ -184,6 +354,10 @@ export async function sendQuestionAnsweredEmail(question, product, user) {
                 <a href="https://www.instagram.com/indumentaria_soffy" style="margin: 0 10px;">
                   <img src="https://i.ibb.co/NNwdYSF/instagram-icon.png" alt="Instagram" width="20" height="20">
                 </a>
+                <p style="margin: 20px 0 0 0; font-size: 12px; color: #999;">
+                  ¿Tienes más preguntas? Contáctanos en 
+                  <a href="mailto:patagoniascript@gmail.com" style="color: #000;">patagoniascript@gmail.com</a>
+                </p>
               </td>
             </tr>
           </table>
@@ -192,96 +366,9 @@ export async function sendQuestionAnsweredEmail(question, product, user) {
       `,
     });
 
-    if (process.env.NODE_ENV === "development") {
-      console.log(
-        "Email de pregunta respondida:",
-        nodemailer.getTestMessageUrl(info)
-      );
-    }
-
     return { success: true, messageId: info.messageId };
   } catch (error) {
     console.error("Error enviando email de pregunta respondida:", error);
-    return { success: false, error: error.message };
-  }
-}
-
-// Resto de las funciones continúan igual...
-// (Las demás funciones no tienen el error de createTransporter)
-
-// EMAIL 2: Solicitar review después de compra (seguimiento)
-export async function sendReviewRequestEmail(
-  order,
-  user,
-  daysAfterDelivery = 3
-) {
-  try {
-    const transporter = await createEmailTransporter();
-    const baseUrl = getBaseUrl();
-    const logoUrl =
-      "https://indumentaria-soffy.vercel.app/_next/image?url=%2Fimages%2Flogo.jpeg&w=96&q=75";
-
-    // Resto del código igual...
-    return { success: true, messageId: "test" };
-  } catch (error) {
-    console.error("Error enviando email de solicitud de review:", error);
-    return { success: false, error: error.message };
-  }
-}
-
-// EMAIL 3: Notificar al admin sobre nueva pregunta
-export async function sendNewQuestionNotificationToAdmin(
-  question,
-  product,
-  user
-) {
-  try {
-    const transporter = await createEmailTransporter();
-    // Resto del código igual...
-    return { success: true, messageId: "test" };
-  } catch (error) {
-    console.error(
-      "Error enviando notificación de nueva pregunta al admin:",
-      error
-    );
-    return { success: false, error: error.message };
-  }
-}
-
-// EMAIL 4: Resumen semanal de reviews para admin
-export async function sendWeeklyReviewSummaryToAdmin(stats) {
-  try {
-    const transporter = await createEmailTransporter();
-    // Resto del código igual...
-    return { success: true, messageId: "test" };
-  } catch (error) {
-    console.error("Error enviando resumen semanal:", error);
-    return { success: false, error: error.message };
-  }
-}
-
-// Función para programar emails de seguimiento
-export async function scheduleReviewFollowUp(
-  orderId,
-  userId,
-  daysAfterDelivery = 3
-) {
-  try {
-    const delay = daysAfterDelivery * 24 * 60 * 60 * 1000;
-
-    await ReviewCacheService.set(
-      `scheduled_email:${orderId}`,
-      { orderId, userId, type: "review_request" },
-      delay / 1000
-    );
-
-    console.log(
-      `📧 Email de seguimiento programado para ${daysAfterDelivery} días: Order ${orderId}`
-    );
-
-    return { success: true };
-  } catch (error) {
-    console.error("Error programando email de seguimiento:", error);
     return { success: false, error: error.message };
   }
 }

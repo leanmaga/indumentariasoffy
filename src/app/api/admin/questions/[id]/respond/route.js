@@ -1,31 +1,26 @@
-// src/app/api/admin/questions/[questionId]/respond/route.js
+// src/app/api/admin/questions/[id]/respond/route.js
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import connectDB from "@/lib/db";
 import Review from "@/models/Review";
-import User from "@/models/User";
 import Product from "@/models/Product";
+import User from "@/models/User";
 import { authOptions } from "@/lib/auth";
 import { sendQuestionAnsweredEmail } from "@/lib/review-emails";
 
 export async function POST(request, { params }) {
   try {
+    const { id: questionId } = await params;
+
     const session = await getServerSession(authOptions);
 
+    // Verificar que sea administrador
     if (!session?.user || session.user.role !== "admin") {
       return NextResponse.json(
-        { success: false, error: "No autorizado" },
+        { success: false, error: "Acceso denegado" },
         { status: 403 }
       );
     }
-
-    console.log("🔍 Params received:", params);
-
-    // Obtener el id correctamente (el parámetro es [id] no [questionId])
-    const awaitedParams = await params;
-    const questionId = awaitedParams.id;
-
-    console.log("📝 Question ID:", questionId);
 
     const { response } = await request.json();
 
@@ -41,9 +36,10 @@ export async function POST(request, { params }) {
 
     await connectDB();
 
+    // Buscar la pregunta
     const question = await Review.findById(questionId)
       .populate("user", "name email")
-      .populate("product", "title imageUrl");
+      .populate("product", "title imageUrl salePrice");
 
     if (!question) {
       return NextResponse.json(
@@ -52,9 +48,18 @@ export async function POST(request, { params }) {
       );
     }
 
+    // Verificar que sea una pregunta (no una calificación)
     if (question.type !== "question") {
       return NextResponse.json(
         { success: false, error: "Solo se pueden responder preguntas" },
+        { status: 400 }
+      );
+    }
+
+    // Verificar que no esté ya respondida
+    if (question.response && question.response.trim() !== "") {
+      return NextResponse.json(
+        { success: false, error: "Esta pregunta ya fue respondida" },
         { status: 400 }
       );
     }
@@ -64,22 +69,21 @@ export async function POST(request, { params }) {
     question.responseDate = new Date();
     await question.save();
 
-    // Enviar email de notificación al usuario (opcional)
+    // Enviar email al usuario que hizo la pregunta
     try {
-      await sendQuestionAnsweredEmail(
+      const emailResult = await sendQuestionAnsweredEmail(
         question,
         question.product,
         question.user
       );
-      console.log("✅ Email de respuesta enviado");
     } catch (emailError) {
-      console.error("❌ Error sending email notification:", emailError);
-      // No fallar la operación por error de email
+      console.error("❌ Error enviando email:", emailError);
+      // No fallar la respuesta por error de email
     }
 
     return NextResponse.json({
       success: true,
-      message: "Respuesta enviada con éxito",
+      message: "Respuesta enviada exitosamente",
       question: {
         _id: question._id,
         response: question.response,
@@ -89,7 +93,10 @@ export async function POST(request, { params }) {
   } catch (error) {
     console.error("❌ Error responding to question:", error);
     return NextResponse.json(
-      { success: false, error: "Error al enviar respuesta: " + error.message },
+      {
+        success: false,
+        error: "Error al responder la pregunta: " + error.message,
+      },
       { status: 500 }
     );
   }

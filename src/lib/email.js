@@ -1,23 +1,23 @@
 // lib/email.js
-import nodemailer from 'nodemailer';
+import nodemailer from "nodemailer";
 
 // Función para obtener la URL base normalizada
 function getBaseUrl() {
   // Obtener la URL base de las variables de entorno
-  const url = process.env.NEXT_PUBLIC_FRONTEND_URL || 'http://localhost:3000';
-  
+  const url = process.env.NEXT_PUBLIC_FRONTEND_URL || "http://localhost:3000";
+
   // Eliminar slash final si existe
-  return url.endsWith('/') ? url.slice(0, -1) : url;
+  return url.endsWith("/") ? url.slice(0, -1) : url;
 }
 
 // Crear un transportador de email - puedes usar un servicio como Gmail o un SMTP propio
 // Para producción, recomiendo servicios como SendGrid, Mailgun, etc.
 export function createEmailTransporter() {
   // Para desarrollo (pruebas locales)
-  if (process.env.NODE_ENV === 'development') {
+  if (process.env.NODE_ENV === "development") {
     // Puedes usar Ethereal para pruebas (emails falsos pero visibles)
     return nodemailer.createTransport({
-      host: 'smtp.ethereal.email',
+      host: "smtp.ethereal.email",
       port: 587,
       secure: false, // true para 465, false para otros puertos
       auth: {
@@ -26,17 +26,17 @@ export function createEmailTransporter() {
       },
     });
   }
-  
+
   // Para producción - ejemplo con Gmail
   // Nota: para Gmail necesitarás una "contraseña de aplicación"
   return nodemailer.createTransport({
-    service: 'gmail',
+    service: "gmail",
     auth: {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASS,
     },
   });
-  
+
   /* 
   // Alternativa con servicio SMTP personalizado
   return nodemailer.createTransport({
@@ -54,14 +54,14 @@ export function createEmailTransporter() {
 // Función para enviar email de verificación
 export async function sendVerificationEmail(user, verificationToken) {
   const transporter = createEmailTransporter();
-  
+
   // URL del frontend para verificar email (usando la función getBaseUrl)
   const verificationUrl = `${getBaseUrl()}/auth/verify-email?token=${verificationToken}`;
-  
+
   const mailOptions = {
     from: `"Tu Tienda" <${process.env.EMAIL_USER}>`,
     to: user.email,
-    subject: 'Verifica tu cuenta',
+    subject: "Verifica tu cuenta",
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h2 style="color: #333;">¡Bienvenido/a a Tu Tienda!</h2>
@@ -76,19 +76,13 @@ export async function sendVerificationEmail(user, verificationToken) {
       </div>
     `,
   };
-  
+
   try {
     const info = await transporter.sendMail(mailOptions);
-    console.log('Email de verificación enviado:', info.messageId);
-    
-    // Para desarrollo, muestra la URL para ver el email (si usas Ethereal)
-    if (process.env.NODE_ENV === 'development') {
-      console.log('URL para ver el email:', nodemailer.getTestMessageUrl(info));
-    }
-    
+
     return { success: true, messageId: info.messageId };
   } catch (error) {
-    console.error('Error al enviar email de verificación:', error);
+    console.error("Error al enviar email de verificación:", error);
     return { success: false, error: error.message };
   }
 }
@@ -96,14 +90,14 @@ export async function sendVerificationEmail(user, verificationToken) {
 // Función para enviar email de restablecimiento de contraseña
 export async function sendPasswordResetEmail(user, resetToken) {
   const transporter = createEmailTransporter();
-  
+
   // URL del frontend para restablecer contraseña (usando la función getBaseUrl)
   const resetUrl = `${getBaseUrl()}/auth/reset-password/${resetToken}`;
-  
+
   const mailOptions = {
     from: `"Tu Tienda" <${process.env.EMAIL_USER}>`,
     to: user.email,
-    subject: 'Restablece tu contraseña',
+    subject: "Restablece tu contraseña",
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h2 style="color: #333;">Restablecimiento de contraseña</h2>
@@ -118,19 +112,13 @@ export async function sendPasswordResetEmail(user, resetToken) {
       </div>
     `,
   };
-  
+
   try {
     const info = await transporter.sendMail(mailOptions);
-    console.log('Email de restablecimiento enviado:', info.messageId);
-    
-    // Para desarrollo, muestra la URL para ver el email (si usas Ethereal)
-    if (process.env.NODE_ENV === 'development') {
-      console.log('URL para ver el email:', nodemailer.getTestMessageUrl(info));
-    }
-    
+
     return { success: true, messageId: info.messageId };
   } catch (error) {
-    console.error('Error al enviar email de restablecimiento:', error);
+    console.error("Error al enviar email de restablecimiento:", error);
     return { success: false, error: error.message };
   }
 }

@@ -23,8 +23,6 @@ export async function GET(request) {
       return NextResponse.redirect(`${baseUrl}/admin/settings?error=no_code`);
     }
 
-    console.log("Código de autorización recibido:", code);
-
     // Intercambiar código por token
     const response = await fetch("https://api.mercadopago.com/oauth/token", {
       method: "POST",
@@ -49,10 +47,6 @@ export async function GET(request) {
         )}`
       );
     }
-
-    console.log("Token obtenido exitosamente");
-    console.log("El token expira en:", data.expires_in, "segundos");
-    console.log("User ID de MercadoPago:", data.user_id);
 
     // Conectar a la base de datos
     await connectDB();
@@ -81,8 +75,6 @@ export async function GET(request) {
       },
       { upsert: true, new: true }
     );
-
-    console.log("Configuración guardada exitosamente");
 
     // Redirigir a una página de éxito
     return NextResponse.redirect(

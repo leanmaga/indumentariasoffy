@@ -79,15 +79,8 @@ export async function POST(request, { params }) {
       );
     }
 
-    console.log(
-      `🚨 Reporting review ${reviewId} by user ${session.user.id} for: ${reportReason}`
-    );
-
     // Reportar usando el método del modelo
     await review.report(reportReason, details, session.user.id);
-
-    // Log para auditoría
-    console.log(`✅ Review ${reviewId} reported successfully`);
 
     return NextResponse.json({
       success: true,
@@ -151,14 +144,8 @@ export async function DELETE(request, { params }) {
       );
     }
 
-    console.log(
-      `🔧 Removing report from review ${reviewId} by admin ${session.user.id}`
-    );
-
     // Quitar reporte usando el método del modelo
     await review.unreport();
-
-    console.log(`✅ Report removed from review ${reviewId}`);
 
     return NextResponse.json({
       success: true,
@@ -297,10 +284,6 @@ export async function PUT(request, { params }) {
       );
     }
 
-    console.log(
-      `🔧 Moderating review ${reviewId}: ${action} by admin ${session.user.id}`
-    );
-
     // Moderar usando el método del modelo
     await review.moderate(action, session.user.id);
 
@@ -308,8 +291,6 @@ export async function PUT(request, { params }) {
     if (action === "approved") {
       await review.unreport();
     }
-
-    console.log(`✅ Review ${reviewId} moderated: ${action}`);
 
     return NextResponse.json({
       success: true,
