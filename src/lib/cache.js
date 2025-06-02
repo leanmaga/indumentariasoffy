@@ -379,14 +379,6 @@ export const ReviewCacheService = {
   },
 };
 
-// 🆕 FUNCIÓN PARA DEBUGGING MEJORADA
-export const debugCache = () => {
-  const status = ReviewCache.getStatus();
-  const detailed = ReviewCache.getDetailedInfo();
-
-  return { status, detailed };
-};
-
 // 🆕 ENDPOINT PARA MONITOREO (crear en /api/admin/cache-status)
 export const getCacheStatusForAPI = () => {
   return {

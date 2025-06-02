@@ -493,16 +493,6 @@ const AdminQuestionsPage = () => {
           )}
         </div>
       </div>
-
-      {/* Debug info en desarrollo */}
-      {process.env.NODE_ENV === "development" && (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-xs">
-          <strong>🔧 Debug:</strong> Polling:{" "}
-          {pollingIntervalRef.current ? "ON" : "OFF"} | Activo:{" "}
-          {isActiveRef.current ? "Sí" : "No"} | Última actualización:{" "}
-          {new Date(lastFetchRef.current).toLocaleTimeString()}
-        </div>
-      )}
     </div>
   );
 };
