@@ -11,24 +11,38 @@ function getBaseUrl() {
 
 // Función para crear el transportador de email
 async function createEmailTransporter() {
-  if (process.env.NODE_ENV === "development") {
-    const testAccount = await nodemailer.createTestAccount();
+  // Verificar que las credenciales estén configuradas
+  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+    console.error(
+      "⚠️ EMAIL_USER y EMAIL_PASS no están configurados en las variables de entorno"
+    );
 
-    return nodemailer.createTransporter({
-      host: "smtp.ethereal.email",
-      port: 587,
-      secure: false,
-      auth: {
-        user: testAccount.user,
-        pass: testAccount.pass,
-      },
-      tls: {
-        rejectUnauthorized: false,
-      },
-    });
+    // En desarrollo, usar Ethereal Email para testing
+    if (process.env.NODE_ENV === "development") {
+      console.log("📧 Usando Ethereal Email para desarrollo (emails falsos)");
+      const testAccount = await nodemailer.createTestAccount();
+
+      const transporter = nodemailer.createTransporter({
+        host: "smtp.ethereal.email",
+        port: 587,
+        secure: false,
+        auth: {
+          user: testAccount.user,
+          pass: testAccount.pass,
+        },
+      });
+
+      console.log("📧 Ethereal Email URL:", nodemailer.getTestMessageUrl);
+      return transporter;
+    }
+
+    throw new Error(
+      "Configuración de email incompleta. Por favor configura EMAIL_USER y EMAIL_PASS"
+    );
   }
 
-  return nodemailer.createTransporter({
+  // Configuración para producción/staging
+  const config = {
     service: process.env.EMAIL_SERVICE || "gmail",
     auth: {
       user: process.env.EMAIL_USER,
@@ -37,7 +51,15 @@ async function createEmailTransporter() {
     tls: {
       rejectUnauthorized: process.env.NODE_ENV === "production",
     },
+  };
+
+  console.log("📧 Configurando email con:", {
+    service: config.service,
+    user: config.auth.user,
+    environment: process.env.NODE_ENV,
   });
+
+  return nodemailer.createTransporter(config);
 }
 
 // Función para formatear precio
