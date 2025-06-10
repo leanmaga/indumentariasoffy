@@ -1,3 +1,4 @@
+// src/app/page.js
 import Link from "next/link";
 import {
   ShoppingBagIcon,
@@ -5,48 +6,14 @@ import {
   CreditCardIcon,
 } from "@heroicons/react/24/outline";
 import FeaturedProducts from "@/components/product/FeaturedProducts";
-import Image from "next/image";
-import { ButtonContact, ButtonProducts, CTAButton } from "@/components/ui";
+import { ButtonContact, ButtonProducts } from "@/components/ui";
+import HeroSection from "@/components/sections/HeroSection";
 
 export default function Home() {
   return (
     <>
-      {/* Hero Section */}
-      <section className="relative h-screen w-full bg-black text-white overflow-hidden">
-        <div className="absolute inset-0 z-0">
-          {/* Imagen de fondo */}
-          <Image
-            src="/images/sexitive1.webp"
-            alt="Hero background"
-            width={1000}
-            height={1000}
-            className="object-cover opacity-50"
-            priority
-          />
-        </div>
-
-        <div className="relative z-10 container mx-auto px-4 h-full flex items-center">
-          <div className="max-w-5xl">
-            {/* Texto principal */}
-            <h1 className="font-drop font-black uppercase leading-none mb-8">
-              <span className="block text-[12vw] xl:text-[10vw] tracking-tighter">
-                PRODUCTOS
-              </span>
-              <span className="block text-[12vw] xl:text-[10vw] tracking-tighter">
-                AL MEJOR PRECIO
-              </span>
-            </h1>
-
-            {/* Subtítulo */}
-            <p className="text-xl md:text-2xl font-medium mb-8 tracking-wider uppercase">
-              Todo lo que buscas en un solo lugar.
-            </p>
-
-            {/* CTA Button */}
-            <CTAButton />
-          </div>
-        </div>
-      </section>
+      {/* Hero Section - Ahora dinámico */}
+      <HeroSection />
 
       {/* Featured Categories */}
       <section className="py-12 bg-white">

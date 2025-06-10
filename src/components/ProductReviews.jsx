@@ -1,4 +1,4 @@
-// src/components/ProductReviews.jsx - COMPONENTE PRINCIPAL INTEGRADO
+// src/components/ProductReviews.jsx
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -125,7 +125,6 @@ const ProductReviews = ({ productId }) => {
     }
   }, [isAuthenticated, status, productId, isLoading]);
 
-  // Función para enviar pregunta
   const handleSubmitQuestion = async () => {
     if (!isAuthenticated) {
       toast.error("Debes iniciar sesión para hacer una pregunta");
@@ -139,6 +138,7 @@ const ProductReviews = ({ productId }) => {
 
     setSubmitting(true);
     try {
+      // Primero guardamos la pregunta
       const response = await fetch(`/api/products/${productId}/reviews`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -151,6 +151,37 @@ const ProductReviews = ({ productId }) => {
       const data = await response.json();
 
       if (data.success) {
+        // Ahora enviamos la notificación por email al administrador
+        try {
+          // Necesitamos obtener la información del producto para el email
+          const productResponse = await fetch(`/api/products/${productId}`);
+          const productData = await productResponse.json();
+
+          if (productData.success) {
+            const emailData = {
+              senderName: session?.user?.name || "Usuario",
+              recipientName: "Administrador",
+              recipientEmail: process.env.NEXT_PUBLIC_ADMIN_EMAIL,
+              productId: productId,
+              productName: productData.product.name,
+              productImage:
+                productData.product.images?.[0] || "/placeholder.jpg",
+              message: questionForm.comment.trim(),
+              messageType: "question",
+            };
+
+            // Enviar email de notificación
+            await fetch("/api/emails/send-message-notification", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(emailData),
+            });
+          }
+        } catch (emailError) {
+          console.error("Error al enviar notificación por email:", emailError);
+          // No mostramos error al usuario porque la pregunta sí se guardó
+        }
+
         toast.success(
           "Pregunta enviada con éxito. Recibirás una notificación cuando sea respondida."
         );

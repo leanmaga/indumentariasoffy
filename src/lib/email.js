@@ -14,7 +14,7 @@ function getBaseUrl() {
 // Para producción, recomiendo servicios como SendGrid, Mailgun, etc.
 export function createEmailTransporter() {
   // Para desarrollo (pruebas locales)
-  if (process.env.NODE_ENV === "development") {
+  if (process.env.NODE_ENV === "production") {
     // Puedes usar Ethereal para pruebas (emails falsos pero visibles)
     return nodemailer.createTransport({
       host: "smtp.ethereal.email",

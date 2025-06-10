@@ -1,65 +1,15 @@
-// lib/order-emails.js
+// lib/order-emails.js - VERSIÓN ACTUALIZADA CON MANEJO DE ERRORES MEJORADO
 "use server";
 
-import nodemailer from "nodemailer";
+import { sendEmailWithRetry } from "./email-config";
 
 // Función para obtener la URL base normalizada
 function getBaseUrl() {
-  const url = process.env.NEXT_PUBLIC_FRONTEND_URL || "http://localhost:3000";
+  const url =
+    process.env.NEXT_PUBLIC_FRONTEND_URL ||
+    process.env.NEXTAUTH_URL ||
+    "http://localhost:3000";
   return url.endsWith("/") ? url.slice(0, -1) : url;
-}
-
-// Función para crear el transportador de email
-async function createEmailTransporter() {
-  // Verificar que las credenciales estén configuradas
-  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-    console.error(
-      "⚠️ EMAIL_USER y EMAIL_PASS no están configurados en las variables de entorno"
-    );
-
-    // En desarrollo, usar Ethereal Email para testing
-    if (process.env.NODE_ENV === "development") {
-      console.log("📧 Usando Ethereal Email para desarrollo (emails falsos)");
-      const testAccount = await nodemailer.createTestAccount();
-
-      const transporter = nodemailer.createTransporter({
-        host: "smtp.ethereal.email",
-        port: 587,
-        secure: false,
-        auth: {
-          user: testAccount.user,
-          pass: testAccount.pass,
-        },
-      });
-
-      console.log("📧 Ethereal Email URL:", nodemailer.getTestMessageUrl);
-      return transporter;
-    }
-
-    throw new Error(
-      "Configuración de email incompleta. Por favor configura EMAIL_USER y EMAIL_PASS"
-    );
-  }
-
-  // Configuración para producción/staging
-  const config = {
-    service: process.env.EMAIL_SERVICE || "gmail",
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS,
-    },
-    tls: {
-      rejectUnauthorized: process.env.NODE_ENV === "production",
-    },
-  };
-
-  console.log("📧 Configurando email con:", {
-    service: config.service,
-    user: config.auth.user,
-    environment: process.env.NODE_ENV,
-  });
-
-  return nodemailer.createTransporter(config);
 }
 
 // Función para formatear precio
@@ -81,11 +31,9 @@ const formatDate = (date) => {
 // EMAIL 1: Confirmación de orden al cliente
 export async function sendOrderConfirmationToCustomer(order, user) {
   try {
-    const transporter = await createEmailTransporter();
     const baseUrl = getBaseUrl();
     const logoUrl =
       "https://indumentaria-soffy.vercel.app/_next/image?url=%2Fimages%2Flogo.jpeg&w=96&q=75";
-
     const orderUrl = `${baseUrl}/profile/orders/${order._id}`;
 
     // Generar HTML de productos
@@ -128,10 +76,7 @@ export async function sendOrderConfirmationToCustomer(order, user) {
         ? "WhatsApp (Pago a coordinar)"
         : "MercadoPago";
 
-    const info = await transporter.sendMail({
-      from: `"IndumentariaSoffy" <${
-        process.env.EMAIL_USER || "indumentariasoffy@gmail.com"
-      }>`,
+    const emailData = {
       to: user.email,
       subject: `Confirmación de Pedido #${order._id
         .toString()
@@ -274,11 +219,11 @@ export async function sendOrderConfirmationToCustomer(order, user) {
         </body>
         </html>
       `,
-    });
+    };
 
-    return { success: true, messageId: info.messageId };
+    return await sendEmailWithRetry(emailData);
   } catch (error) {
-    console.error("Error enviando confirmación de orden al cliente:", error);
+    console.error("❌ Error enviando confirmación de orden al cliente:", error);
     return { success: false, error: error.message };
   }
 }
@@ -286,11 +231,7 @@ export async function sendOrderConfirmationToCustomer(order, user) {
 // EMAIL 2: Notificación de nueva orden al administrador
 export async function sendNewOrderNotificationToAdmin(order, user) {
   try {
-    const transporter = await createEmailTransporter();
     const baseUrl = getBaseUrl();
-    const logoUrl =
-      "https://indumentaria-soffy.vercel.app/_next/image?url=%2Fimages%2Flogo.jpeg&w=96&q=75";
-
     const adminOrderUrl = `${baseUrl}/admin/orders/${order._id}`;
 
     const itemsHtml = order.items
@@ -308,10 +249,7 @@ export async function sendNewOrderNotificationToAdmin(order, user) {
       )
       .join("");
 
-    const info = await transporter.sendMail({
-      from: `"IndumentariaSoffy Sistema" <${
-        process.env.EMAIL_USER || "indumentariasoffy@gmail.com"
-      }>`,
+    const emailData = {
       to: process.env.ADMIN_EMAIL || process.env.EMAIL_USER,
       subject: `🛒 Nueva Orden #${order._id
         .toString()
@@ -406,12 +344,12 @@ export async function sendNewOrderNotificationToAdmin(order, user) {
         </body>
         </html>
       `,
-    });
+    };
 
-    return { success: true, messageId: info.messageId };
+    return await sendEmailWithRetry(emailData);
   } catch (error) {
     console.error(
-      "Error enviando notificación de nueva orden al admin:",
+      "❌ Error enviando notificación de nueva orden al admin:",
       error
     );
     return { success: false, error: error.message };
@@ -425,11 +363,9 @@ export async function sendPaymentConfirmationToCustomer(
   paymentDetails = null
 ) {
   try {
-    const transporter = await createEmailTransporter();
     const baseUrl = getBaseUrl();
     const logoUrl =
       "https://indumentaria-soffy.vercel.app/_next/image?url=%2Fimages%2Flogo.jpeg&w=96&q=75";
-
     const orderUrl = `${baseUrl}/profile/orders/${order._id}`;
 
     const itemsHtml = order.items
@@ -456,10 +392,7 @@ export async function sendPaymentConfirmationToCustomer(
       )
       .join("");
 
-    const info = await transporter.sendMail({
-      from: `"IndumentariaSoffy" <${
-        process.env.EMAIL_USER || "indumentariasoffy@gmail.com"
-      }>`,
+    const emailData = {
       to: user.email,
       subject: `✅ Pago Confirmado - Pedido #${order._id
         .toString()
@@ -603,11 +536,11 @@ export async function sendPaymentConfirmationToCustomer(
         </body>
         </html>
       `,
-    });
+    };
 
-    return { success: true, messageId: info.messageId };
+    return await sendEmailWithRetry(emailData);
   } catch (error) {
-    console.error("Error enviando confirmación de pago al cliente:", error);
+    console.error("❌ Error enviando confirmación de pago al cliente:", error);
     return { success: false, error: error.message };
   }
 }
@@ -619,14 +552,10 @@ export async function sendPaymentNotificationToAdmin(
   paymentDetails = null
 ) {
   try {
-    const transporter = await createEmailTransporter();
     const baseUrl = getBaseUrl();
     const adminOrderUrl = `${baseUrl}/admin/orders/${order._id}`;
 
-    const info = await transporter.sendMail({
-      from: `"IndumentariaSoffy Sistema" <${
-        process.env.EMAIL_USER || "indumentariasoffy@gmail.com"
-      }>`,
+    const emailData = {
       to: process.env.ADMIN_EMAIL || process.env.EMAIL_USER,
       subject: `💰 Pago Recibido - Orden #${order._id
         .toString()
@@ -722,11 +651,11 @@ export async function sendPaymentNotificationToAdmin(
         </body>
         </html>
       `,
-    });
+    };
 
-    return { success: true, messageId: info.messageId };
+    return await sendEmailWithRetry(emailData);
   } catch (error) {
-    console.error("Error enviando notificación de pago al admin:", error);
+    console.error("❌ Error enviando notificación de pago al admin:", error);
     return { success: false, error: error.message };
   }
 }

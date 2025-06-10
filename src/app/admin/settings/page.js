@@ -2,13 +2,15 @@
 "use client";
 
 import MercadoPagoLinkButton from "@/components/admin/MercadoPagoLinkButton";
+import HeroImageUpload from "@/components/admin/HeroImageUpload";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 export default function AdminSettingsPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const [activeTab, setActiveTab] = useState("general");
 
   // Verificar que sea administrador
   useEffect(() => {
@@ -33,90 +35,90 @@ export default function AdminSettingsPage() {
     return null;
   }
 
+  const tabs = [
+    { id: "hero", label: "Imagen Principal", icon: "🖼️" },
+    { id: "payments", label: "Pagos", icon: "💳" },
+  ];
+
   return (
     <div>
       <h1 className="text-2xl font-semibold mb-6">Configuración del Sistema</h1>
 
+      {/* Tabs Navigation */}
+      <div className="border-b border-gray-200 mb-8">
+        <nav className="-mb-px flex space-x-8">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
+                activeTab === tab.id
+                  ? "border-indigo-500 text-indigo-600"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+              }`}
+            >
+              <span>{tab.icon}</span>
+              {tab.label}
+            </button>
+          ))}
+        </nav>
+      </div>
+
+      {/* Tab Content */}
       <div className="space-y-8">
-        {/* Sección de MercadoPago */}
-        <section>
-          <h2 className="text-xl font-medium mb-4">Pagos y Facturación</h2>
-          <MercadoPagoLinkButton />
-        </section>
+        {/* Hero Image Settings */}
+        {activeTab === "hero" && (
+          <section>
+            <HeroImageUpload />
+          </section>
+        )}
 
-        {/* Otras configuraciones para admin */}
-        <section>
-          <h2 className="text-xl font-medium mb-4">Configuración de Tienda</h2>
-          <div className="bg-white p-6 rounded-lg shadow-md">
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Nombre de la Tienda
-                </label>
-                <input
-                  type="text"
-                  defaultValue="IndumentariaSoffy"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                />
-              </div>
+        {/* Payments Settings */}
+        {activeTab === "payments" && (
+          <section>
+            <h2 className="text-xl font-medium mb-4">Pagos y Facturación</h2>
+            <div className="bg-white p-6 rounded-lg shadow-md">
+              <MercadoPagoLinkButton />
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Email de contacto
-                </label>
-                <input
-                  type="email"
-                  defaultValue="info@indumentariasoffy.com"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                />
-              </div>
+              <div className="mt-6 pt-6 border-t border-gray-200">
+                <h3 className="text-lg font-medium mb-4">
+                  Configuración de Pagos
+                </h3>
+                <div className="space-y-4">
+                  <div className="flex items-center">
+                    <input
+                      id="acceptCash"
+                      type="checkbox"
+                      defaultChecked
+                      className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                    />
+                    <label
+                      htmlFor="acceptCash"
+                      className="ml-3 text-sm text-gray-700"
+                    >
+                      Aceptar pagos en efectivo
+                    </label>
+                  </div>
 
-              <button className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">
-                Guardar cambios
-              </button>
-            </div>
-          </div>
-        </section>
-
-        {/* Configuración de notificaciones */}
-        <section>
-          <h2 className="text-xl font-medium mb-4">
-            Notificaciones Administrativas
-          </h2>
-          <div className="bg-white p-6 rounded-lg shadow-md">
-            <div className="space-y-4">
-              <div className="flex items-center">
-                <input
-                  id="newOrderNotifications"
-                  type="checkbox"
-                  defaultChecked
-                  className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-                />
-                <label
-                  htmlFor="newOrderNotifications"
-                  className="ml-3 text-sm text-gray-700"
-                >
-                  Notificar nuevos pedidos por email
-                </label>
-              </div>
-
-              <div className="flex items-center">
-                <input
-                  id="lowStockNotifications"
-                  type="checkbox"
-                  defaultChecked
-                  className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-                />
-                <label
-                  htmlFor="lowStockNotifications"
-                  className="ml-3 text-sm text-gray-700"
-                >
-                  Alertas de stock bajo
-                </label>
+                  <div className="flex items-center">
+                    <input
+                      id="acceptTransfer"
+                      type="checkbox"
+                      defaultChecked
+                      className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                    />
+                    <label
+                      htmlFor="acceptTransfer"
+                      className="ml-3 text-sm text-gray-700"
+                    >
+                      Aceptar transferencias bancarias
+                    </label>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
-        </section>
+          </section>
+        )}
       </div>
     </div>
   );

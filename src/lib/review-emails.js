@@ -11,7 +11,7 @@ function getBaseUrl() {
 
 // Función para crear el transportador de email
 async function createEmailTransporter() {
-  if (process.env.NODE_ENV === "development") {
+  if (process.env.NODE_ENV === "production") {
     const testAccount = await nodemailer.createTestAccount();
 
     return nodemailer.createTransport({

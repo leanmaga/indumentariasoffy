@@ -17,7 +17,7 @@ async function hasUserPurchasedProduct(userId, productId) {
     return !!order;
   } catch (error) {
     // Solo log en desarrollo
-    if (process.env.NODE_ENV === "development") {
+    if (process.env.NODE_ENV === "production") {
       console.error("Error checking purchase:", error);
     }
     return false;
@@ -86,7 +86,7 @@ export async function GET(request, { params }) {
       hasPurchased,
     });
   } catch (error) {
-    if (process.env.NODE_ENV === "development") {
+    if (process.env.NODE_ENV === "production") {
       console.error("❌ Error checking review eligibility:", error);
     }
 

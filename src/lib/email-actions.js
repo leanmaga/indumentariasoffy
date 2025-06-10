@@ -17,7 +17,7 @@ function getBaseUrl() {
 // Función para crear un transportador de email
 async function createEmailTransporter() {
   // Para desarrollo (pruebas locales)
-  if (process.env.NODE_ENV === "development") {
+  if (process.env.NODE_ENV === "production") {
     // Crear cuenta de prueba en Ethereal para desarrollo
     const testAccount = await nodemailer.createTestAccount();
 
