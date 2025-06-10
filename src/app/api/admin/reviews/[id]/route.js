@@ -19,8 +19,9 @@ export async function GET(request, { params }) {
       );
     }
 
-    const awaitedParams = await params;
-    const reviewId = awaitedParams.reviewId;
+    // AWAIT params antes de usarlo
+    const resolvedParams = await params;
+    const reviewId = resolvedParams.reviewId;
 
     if (!reviewId) {
       return NextResponse.json(
@@ -67,8 +68,9 @@ export async function PUT(request, { params }) {
       );
     }
 
-    const awaitedParams = await params;
-    const reviewId = awaitedParams.reviewId;
+    // AWAIT params antes de usarlo
+    const resolvedParams = await params;
+    const reviewId = resolvedParams.reviewId;
 
     if (!reviewId) {
       return NextResponse.json(
@@ -158,8 +160,9 @@ export async function DELETE(request, { params }) {
       );
     }
 
-    const awaitedParams = await params;
-    const reviewId = awaitedParams.reviewId;
+    // AWAIT params antes de usarlo
+    const resolvedParams = await params;
+    const reviewId = resolvedParams.reviewId;
 
     if (!reviewId) {
       return NextResponse.json(
@@ -259,8 +262,9 @@ export async function PATCH(request, { params }) {
       );
     }
 
-    const awaitedParams = await params;
-    const reviewId = awaitedParams.reviewId;
+    // AWAIT params antes de usarlo
+    const resolvedParams = await params;
+    const reviewId = resolvedParams.reviewId;
     const { action, data } = await request.json();
 
     if (!reviewId || !action) {

@@ -1,4 +1,4 @@
-// Crear o añadir a src/lib/utils.js
+src / lib / utils.js;
 
 /**
  * Formatea una fecha en formato legible

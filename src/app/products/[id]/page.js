@@ -11,7 +11,9 @@ import RelatedProducts from "@/components/product/RelatedProducts";
 import ProductImageSlider from "@/components/product/ProductImageSlider";
 
 export async function generateMetadata({ params }) {
-  const product = await getProductById(awaitedParams.id);
+  // AWAIT params before accessing its properties
+  const resolvedParams = await params;
+  const product = await getProductById(resolvedParams.id);
 
   if (!product) {
     return {
@@ -351,9 +353,12 @@ async function ProductContent({ id }) {
 }
 
 export default async function ProductPage({ params }) {
+  // AWAIT params before accessing its properties
+  const resolvedParams = await params;
+
   return (
     <Suspense fallback={<ProductDetailSkeleton />}>
-      <ProductContent id={params.id} />
+      <ProductContent id={resolvedParams.id} />
     </Suspense>
   );
 }
