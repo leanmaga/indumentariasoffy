@@ -154,7 +154,7 @@ export default function AddToCartButton({ product }) {
       </button>
 
       {/* Info de envío - Estilo drop.com */}
-      <div className="mt-4 pt-4 border-t border-gray-100">
+      {/* <div className="mt-4 pt-4 border-t border-gray-100">
         <div className="flex items-center space-x-2 text-sm text-gray-600 mb-2">
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -189,7 +189,7 @@ export default function AddToCartButton({ product }) {
           </svg>
           <span>30 días de garantía en todos los productos</span>
         </div>
-      </div>
+      </div> */}
     </div>
   );
 }
