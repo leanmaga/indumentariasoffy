@@ -13,17 +13,17 @@ export const metadata = {
   icons: {
     icon: [
       {
-        url: "images/favicon-32x32.png",
+        url: "/images/favicon-32x32.png",
         sizes: "32x32",
         type: "image/png",
       },
     ],
     // shortcut icon (alias típico)
-    shortcut: [{ url: "images/favicon.ico" }],
+    shortcut: [{ url: "/images/favicon.ico" }],
     // icono para iOS
     apple: [
       {
-        url: "images/apple-touch-icon.png",
+        url: "/images/apple-touch-icon.png",
         sizes: "180x180",
         type: "image/png",
       },

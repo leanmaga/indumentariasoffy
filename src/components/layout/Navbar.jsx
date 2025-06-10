@@ -95,14 +95,17 @@ const Navbar = () => {
           {/* Logo */}
           <div className="flex-shrink-0">
             <Link href="/" className="flex items-center">
-              <Image
-                src="/images/logo.jpeg"
-                alt="Logo"
-                width={75}
-                height={75}
-                className="object-cover"
-                priority
-              />
+              {/* ✅ CORREGIDO - Contenedor con tamaño fijo y fill */}
+              <div className="relative w-[75px] h-[75px]">
+                <Image
+                  src="/images/logo.jpeg"
+                  alt="Logo"
+                  fill
+                  className="object-cover rounded"
+                  priority
+                  sizes="75px"
+                />
+              </div>
             </Link>
           </div>
 
@@ -160,8 +163,6 @@ const Navbar = () => {
               {/* Carrito - Desktop - Con margen mayor */}
               {!isAdmin && (
                 <div className="mr-8">
-                  {" "}
-                  {/* Aumentado el margen a mr-8 */}
                   <Link
                     href="/cart"
                     className="relative p-2 text-gray-600 hover:text-indigo-600"
@@ -194,13 +195,11 @@ const Navbar = () => {
                 </div>
               ) : (
                 <div className="flex items-center space-x-5">
-                  {" "}
-                  {/* Aumentado space-x-4 a space-x-5 */}
                   {/* Botón + PRODUCTO - Solo admin */}
                   {isAdmin && (
                     <Link
                       href="/admin/products/add"
-                      className="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2 rounded-md text-sm font-medium flex items-center mr-2" /* Añadido mr-2 */
+                      className="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2 rounded-md text-sm font-medium flex items-center mr-2"
                     >
                       <span className="mr-1">+</span> Producto
                     </Link>
@@ -215,13 +214,13 @@ const Navbar = () => {
                       aria-label="Menu de usuario"
                     >
                       {hasGoogleImage ? (
-                        <div className=" rounded-full overflow-hidden border-2 border-white shadow-sm">
+                        <div className="relative w-9 h-9 rounded-full overflow-hidden border-2 border-white shadow-sm">
                           <Image
                             src={session.user.image}
                             alt={session.user.name || "Usuario"}
-                            width={36}
-                            height={36}
-                            className="object-cover w-full h-full"
+                            fill
+                            className="object-cover"
+                            sizes="36px"
                           />
                         </div>
                       ) : (
@@ -280,8 +279,6 @@ const Navbar = () => {
 
             {/* Versión móvil - Carrito + Hamburguesa */}
             <div className="md:hidden flex items-center space-x-3">
-              {" "}
-              {/* Aumentado a space-x-3 */}
               {/* Carrito en móvil - Siempre visible */}
               {!isAdmin && (
                 <Link
@@ -326,13 +323,16 @@ const Navbar = () => {
                 className="flex items-center"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
-                <Image
-                  src="/images/logo.jpeg"
-                  alt="Logo"
-                  width={65}
-                  height={65}
-                  className="object-cover"
-                />
+                {/* ✅ CORREGIDO - Contenedor con tamaño fijo y fill */}
+                <div className="relative w-[65px] h-[65px]">
+                  <Image
+                    src="/images/logo.jpeg"
+                    alt="Logo"
+                    fill
+                    className="object-cover rounded"
+                    sizes="65px"
+                  />
+                </div>
               </Link>
               <button
                 onClick={() => setIsMobileMenuOpen(false)}
@@ -350,13 +350,13 @@ const Navbar = () => {
                 <div className="mb-6">
                   <div className="flex items-center p-4 bg-gray-50 rounded-lg border border-gray-100">
                     {hasGoogleImage ? (
-                      <div className=" rounded-full overflow-hidden border-2 border-white shadow-sm">
+                      <div className="relative w-10 h-10 rounded-full overflow-hidden border-2 border-white shadow-sm">
                         <Image
                           src={session.user.image}
                           alt={session.user.name || "Usuario"}
-                          width={40}
-                          height={40}
-                          className="object-cover w-full h-full"
+                          fill
+                          className="object-cover"
+                          sizes="40px"
                         />
                       </div>
                     ) : (

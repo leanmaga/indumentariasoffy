@@ -1,4 +1,4 @@
-// app/profile/layout.jsx - ACTUALIZADO CON MENSAJERÍA
+// app/profile/layout.jsx - VERSIÓN SIMPLE SIN POLLING EXCESIVO
 "use client";
 
 import { useSession } from "next-auth/react";
@@ -8,7 +8,7 @@ import Link from "next/link";
 import {
   ChatBubbleLeftRightIcon,
   InboxIcon,
-  BellIcon,
+  ArrowPathIcon,
 } from "@heroicons/react/24/outline";
 
 export default function ProfileLayout({ children }) {
@@ -19,6 +19,8 @@ export default function ProfileLayout({ children }) {
   // Estados para notificaciones
   const [unreadMessages, setUnreadMessages] = useState(0);
   const [unreadQuestions, setUnreadQuestions] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [lastFetch, setLastFetch] = useState(null);
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -26,34 +28,48 @@ export default function ProfileLayout({ children }) {
     }
   }, [status, router, pathname]);
 
-  // Obtener count de mensajes no leídos
+  // ✅ SIMPLE: Solo una carga inicial cuando se autentica
   useEffect(() => {
-    const fetchUnreadCounts = async () => {
-      if (!session?.user) return;
-
-      try {
-        const response = await fetch("/api/messages/unread-count");
-        if (response.ok) {
-          const data = await response.json();
-
-          if (session.user.role === "admin") {
-            setUnreadQuestions(data.pendingQuestions || 0);
-          } else {
-            setUnreadMessages(data.unreadResponses || 0);
-          }
-        }
-      } catch (error) {
-        console.error("Error fetching unread counts:", error);
-      }
-    };
-
-    if (session?.user) {
+    if (session?.user && status === "authenticated") {
+      console.log("🚀 Loading initial unread counts for:", session.user.email);
       fetchUnreadCounts();
-      // Actualizar cada 30 segundos
-      const interval = setInterval(fetchUnreadCounts, 30000);
-      return () => clearInterval(interval);
     }
-  }, [session]);
+  }, [session?.user?.id]); // ✅ Solo cuando cambia el ID del usuario
+
+  // ✅ Función simple de fetch
+  const fetchUnreadCounts = async () => {
+    if (!session?.user || loading) return;
+
+    setLoading(true);
+    try {
+      console.log("📡 Fetching unread counts...");
+
+      const response = await fetch("/api/messages/unread-count");
+      if (response.ok) {
+        const data = await response.json();
+
+        if (session.user.role === "admin") {
+          setUnreadQuestions(data.pendingQuestions || 0);
+          console.log("✅ Admin - Pending questions:", data.pendingQuestions);
+        } else {
+          setUnreadMessages(data.unreadResponses || 0);
+          console.log("✅ User - Unread messages:", data.unreadResponses);
+        }
+
+        setLastFetch(new Date().toLocaleTimeString());
+      }
+    } catch (error) {
+      console.error("❌ Error fetching unread counts:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ✅ Función para refresh manual
+  const handleRefresh = () => {
+    console.log("🔄 Manual refresh triggered");
+    fetchUnreadCounts();
+  };
 
   if (status === "loading") {
     return (
@@ -73,9 +89,35 @@ export default function ProfileLayout({ children }) {
     <div className="bg-gray-50 min-h-screen py-12">
       <div className="container mx-auto px-4">
         <div className="max-w-6xl mx-auto">
-          <h1 className="font-sora-extralight text-2xl font-bold mb-6">
-            Mi Cuenta
-          </h1>
+          <div className="flex justify-between items-center mb-6">
+            <h1 className="font-sora-extralight text-2xl font-bold">
+              Mi Cuenta
+            </h1>
+
+            {/* ✅ NUEVO: Botón de refresh manual */}
+            <button
+              onClick={handleRefresh}
+              disabled={loading}
+              className="flex items-center px-3 py-1 text-sm text-gray-600 hover:text-gray-900 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
+              title="Actualizar contadores"
+            >
+              <ArrowPathIcon
+                className={`h-4 w-4 mr-1 ${loading ? "animate-spin" : ""}`}
+              />
+              {loading ? "Actualizando..." : "Actualizar"}
+            </button>
+          </div>
+
+          {/* ✅ DEBUG temporal (remover después) */}
+          {process.env.NODE_ENV === "development" && (
+            <div className="mb-4 p-2 bg-blue-50 border border-blue-200 rounded text-xs">
+              <strong>DEBUG:</strong> Última actualización:{" "}
+              {lastFetch || "Nunca"} |
+              {isAdmin
+                ? ` Preguntas pendientes: ${unreadQuestions}`
+                : ` Mensajes no leídos: ${unreadMessages}`}
+            </div>
+          )}
 
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             {/* Barra de navegación lateral */}
@@ -105,7 +147,7 @@ export default function ProfileLayout({ children }) {
                     Mis Pedidos
                   </Link>
 
-                  {/* NUEVO: Sección de Mensajes */}
+                  {/* Sección de Mensajes */}
                   <Link
                     href={isAdmin ? "/profile/questions" : "/profile/messages"}
                     className={`font-sora-regular block px-4 py-2 rounded-md text-sm font-medium relative ${
@@ -154,7 +196,7 @@ export default function ProfileLayout({ children }) {
                     Configuración
                   </Link>
 
-                  {/* NUEVO: Sección específica para Admin */}
+                  {/* Sección específica para Admin */}
                   {isAdmin && (
                     <>
                       <hr className="my-3 border-gray-200" />
@@ -182,11 +224,25 @@ export default function ProfileLayout({ children }) {
                 </div>
               </div>
 
-              {/* NUEVO: Widget de actividad reciente */}
+              {/* Widget de actividad reciente */}
               <div className="mt-4 bg-white rounded-lg shadow-sm p-4">
-                <h3 className="text-sm font-semibold text-gray-800 mb-3">
-                  {isAdmin ? "Actividad Reciente" : "Estado"}
-                </h3>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-semibold text-gray-800">
+                    {isAdmin ? "Actividad Reciente" : "Estado"}
+                  </h3>
+
+                  {/* ✅ Mini botón de refresh */}
+                  <button
+                    onClick={handleRefresh}
+                    disabled={loading}
+                    className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-50"
+                    title="Actualizar"
+                  >
+                    <ArrowPathIcon
+                      className={`h-3 w-3 ${loading ? "animate-spin" : ""}`}
+                    />
+                  </button>
+                </div>
 
                 <div className="space-y-3">
                   {isAdmin ? (
@@ -205,10 +261,6 @@ export default function ProfileLayout({ children }) {
                           {unreadQuestions}
                         </span>
                       </div>
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-gray-600">Total hoy</span>
-                        <span className="font-medium text-gray-900">-</span>
-                      </div>
                     </>
                   ) : (
                     <>
@@ -224,13 +276,13 @@ export default function ProfileLayout({ children }) {
                           {unreadMessages}
                         </span>
                       </div>
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-gray-600">
-                          Preguntas enviadas
-                        </span>
-                        <span className="font-medium text-gray-900">-</span>
-                      </div>
                     </>
+                  )}
+
+                  {lastFetch && (
+                    <div className="text-xs text-gray-400 border-t pt-2">
+                      Actualizado: {lastFetch}
+                    </div>
                   )}
                 </div>
               </div>

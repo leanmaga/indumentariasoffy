@@ -592,7 +592,7 @@ export default function ProfilePage() {
             </div>
 
             {/* El resto del contenido para usuarios normales */}
-            {/* ... */}
+
             <div className="p-6">
               <div className="flex flex-col md:flex-row gap-6 items-center md:items-start">
                 <div className="w-28 h-28 relative flex-shrink-0 rounded-full overflow-hidden bg-indigo-50 border-2 border-indigo-100">
