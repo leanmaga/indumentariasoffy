@@ -130,7 +130,6 @@ export default function HeroImageUpload() {
             className="object-cover"
           />
         </div>
-        <p className="text-sm text-gray-500 mt-2">URL actual: {currentImage}</p>
       </div>
 
       {/* Upload Section */}
@@ -231,35 +230,6 @@ export default function HeroImageUpload() {
           </div>
         </div>
       )}
-
-      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-        <p className="text-sm text-yellow-800">
-          <strong>Recomendaciones:</strong> Para mejores resultados, usa una
-          imagen de al menos 1920x1080px. La imagen se mostrará con una opacidad
-          del 50% sobre un fondo negro.
-        </p>
-      </div>
-
-      {/* Preview del resultado final */}
-      <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-        <h4 className="text-md font-semibold mb-2 text-gray-700">
-          Preview del Hero Section
-        </h4>
-        <div className="relative h-32 bg-black rounded-lg overflow-hidden">
-          <Image
-            src={previewImage || currentImage}
-            alt="Preview del hero"
-            fill
-            className="object-cover opacity-50"
-          />
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="text-white text-center">
-              <h1 className="text-xl font-bold">PRODUCTOS</h1>
-              <h1 className="text-xl font-bold">AL MEJOR PRECIO</h1>
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }
