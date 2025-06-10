@@ -114,7 +114,7 @@ export default function HeroImageUpload() {
   return (
     <div className="max-w-4xl mx-auto p-6 bg-white rounded-lg shadow-lg">
       <h2 className="text-2xl font-bold mb-6 text-gray-800">
-        Gestionar Imagen del Hero
+        Gestionar Imagen principal
       </h2>
 
       {/* Imagen Actual */}
@@ -125,7 +125,7 @@ export default function HeroImageUpload() {
         <div className="relative w-full h-64 bg-gray-100 rounded-lg overflow-hidden">
           <Image
             src={currentImage}
-            alt="Imagen actual del hero"
+            alt="Imagen principal"
             fill
             className="object-cover"
           />
