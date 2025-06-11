@@ -28,7 +28,7 @@ export async function createEmailTransporter() {
         // Crear cuenta de prueba de Ethereal
         const testAccount = await nodemailer.createTestAccount();
 
-        return nodemailer.createTransporter({
+        return nodemailer.createTransport({
           host: "smtp.ethereal.email",
           port: 587,
           secure: false,
@@ -59,24 +59,24 @@ export async function createEmailTransporter() {
     // Configurar según el servicio
     switch (requiredEnvVars.EMAIL_SERVICE?.toLowerCase()) {
       case "gmail":
-        return nodemailer.createTransporter({
+        return nodemailer.createTransport({
           service: "gmail",
           ...transportConfig,
           tls: {
-            rejectUnauthorized: true,
+            rejectUnauthorized: false,
           },
         });
 
       case "outlook":
       case "hotmail":
-        return nodemailer.createTransporter({
+        return nodemailer.createTransport({
           service: "hotmail",
           ...transportConfig,
         });
 
       case "smtp":
         // Configuración SMTP personalizada
-        return nodemailer.createTransporter({
+        return nodemailer.createTransport({
           host: process.env.EMAIL_HOST || "smtp.gmail.com",
           port: parseInt(process.env.EMAIL_PORT) || 587,
           secure: process.env.EMAIL_PORT === "465",
@@ -89,11 +89,11 @@ export async function createEmailTransporter() {
       default:
         // Fallback a Gmail por defecto
         console.log("📧 Usando Gmail como servicio por defecto");
-        return nodemailer.createTransporter({
+        return nodemailer.createTransport({
           service: "gmail",
           ...transportConfig,
           tls: {
-            rejectUnauthorized: true,
+            rejectUnauthorized: false,
           },
         });
     }

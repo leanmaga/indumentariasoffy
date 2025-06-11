@@ -659,3 +659,94 @@ export async function sendPaymentNotificationToAdmin(
     return { success: false, error: error.message };
   }
 }
+
+// EMAIL 5: Función para reenviar emails existentes
+export async function resendEmails(
+  order,
+  user,
+  emailTypes = ["customer", "admin"]
+) {
+  try {
+    console.log(
+      `🔄 Reenviando emails para orden: ${order._id}, tipos: ${emailTypes.join(
+        ", "
+      )}`
+    );
+
+    const results = [];
+
+    if (emailTypes.includes("customer")) {
+      const customerResult = await sendOrderConfirmationToCustomer(order, user);
+      results.push({
+        type: "customer_order",
+        success: customerResult.success,
+        messageId: customerResult.messageId,
+        error: customerResult.error,
+        to: user.email,
+      });
+    }
+
+    if (emailTypes.includes("admin")) {
+      const adminResult = await sendNewOrderNotificationToAdmin(order, user);
+      results.push({
+        type: "admin_order",
+        success: adminResult.success,
+        messageId: adminResult.messageId,
+        error: adminResult.error,
+        to: process.env.ADMIN_EMAIL || process.env.EMAIL_USER,
+      });
+    }
+
+    return {
+      success: results.every((r) => r.success),
+      results,
+      orderData: {
+        orderId: order._id,
+        userEmail: user.email,
+        status: order.status,
+        emailTypes: emailTypes,
+      },
+    };
+  } catch (error) {
+    console.error("❌ Error general reenviando emails:", error);
+    return {
+      success: false,
+      error: error.message,
+      results: [],
+    };
+  }
+}
+
+// Función combinada para enviar emails de pago confirmado
+export async function sendPaymentConfirmedEmails(order, user, paymentDetails) {
+  try {
+    console.log(
+      `📧 Enviando emails de pago confirmado para orden: ${order._id}`
+    );
+
+    const customerResult = await sendPaymentConfirmationToCustomer(
+      order,
+      user,
+      paymentDetails
+    );
+    const adminResult = await sendPaymentNotificationToAdmin(
+      order,
+      user,
+      paymentDetails
+    );
+
+    return {
+      success: customerResult.success && adminResult.success,
+      customerResult,
+      adminResult,
+      orderId: order._id,
+    };
+  } catch (error) {
+    console.error("❌ Error enviando emails de pago confirmado:", error);
+    return {
+      success: false,
+      error: error.message,
+      orderId: order._id,
+    };
+  }
+}

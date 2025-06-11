@@ -1,124 +1,437 @@
-// lib/email.js
-import nodemailer from "nodemailer";
+// 📤 EXPORTACIONES (asegurar que todas estén disponibles)
+export {
+  createEmailTransporter,
+  getOrderProductsData,
+  orderConfirmationTemplate,
+  adminOrderNotificationTemplate,
+  sendOrderConfirmationToCustomer,
+  sendNewOrderNotificationToAdmin,
+  sendPaymentConfirmationToCustomer,
+  sendPaymentNotificationToAdmin,
+  sendPaymentConfirmedEmails,
+  resendEmails,
+}; // lib/order-emails.js
+import { createEmailTransporter } from "./email";
+import {
+  orderConfirmationTemplate,
+  adminOrderNotificationTemplate,
+} from "./emailTemplates";
+import Product from "@/models/Product";
 
-// Función para obtener la URL base normalizada
-function getBaseUrl() {
-  // Obtener la URL base de las variables de entorno
-  const url = process.env.NEXT_PUBLIC_FRONTEND_URL || "http://localhost:3000";
+// Función para obtener productos poblados de una orden
+async function getOrderProductsData(orderItems) {
+  const productIds = orderItems.map((item) => item.product);
+  const products = await Product.find({ _id: { $in: productIds } });
 
-  // Eliminar slash final si existe
-  return url.endsWith("/") ? url.slice(0, -1) : url;
+  return orderItems.map((item) => {
+    const productData = products.find(
+      (p) => p._id.toString() === item.product.toString()
+    );
+    return {
+      id: item.product,
+      name: item.title,
+      quantity: item.quantity,
+      price: item.price,
+      image: item.imageUrl,
+      subtotal: item.quantity * item.price,
+      // Agregar datos adicionales del producto si existen
+      ...productData?.toObject(),
+    };
+  });
 }
 
-// Crear un transportador de email - puedes usar un servicio como Gmail o un SMTP propio
-// Para producción, recomiendo servicios como SendGrid, Mailgun, etc.
-export function createEmailTransporter() {
-  // Para desarrollo (pruebas locales)
-  if (process.env.NODE_ENV === "production") {
-    // Puedes usar Ethereal para pruebas (emails falsos pero visibles)
-    return nodemailer.createTransport({
-      host: "smtp.ethereal.email",
-      port: 587,
-      secure: false, // true para 465, false para otros puertos
-      auth: {
-        user: process.env.EMAIL_USER, // Genera una cuenta en ethereal.email
-        pass: process.env.EMAIL_PASS,
+// Función para enviar email de confirmación al cliente (cuando se confirma el pago)
+async function sendPaymentConfirmationToCustomer(
+  order,
+  user,
+  paymentInfo = null
+) {
+  try {
+    console.log(`📧 Enviando confirmación de PAGO al cliente: ${user.email}`);
+
+    const transporter = createEmailTransporter();
+
+    // Obtener datos completos de los productos
+    const productsData = await getOrderProductsData(order.items);
+
+    // Preparar datos para el template
+    const orderData = {
+      orderId: order._id.toString(),
+      userName: user.name || order.shippingInfo.name,
+      userEmail: user.email,
+      products: productsData,
+      total: order.totalAmount,
+      orderDate: order.createdAt,
+      status: order.status,
+      paymentMethod: order.paymentMethod,
+      paymentInfo: paymentInfo
+        ? {
+            id: paymentInfo.id,
+            status: paymentInfo.status,
+            method: paymentInfo.payment_method_id,
+            type: paymentInfo.payment_type_id,
+          }
+        : null,
+      shippingAddress: {
+        street: order.shippingInfo.address,
+        city: order.shippingInfo.city,
+        state: "Buenos Aires",
+        zipCode: order.shippingInfo.postalCode,
+        country: "Argentina",
       },
+    };
+
+    // Generar el HTML del email (usar template de confirmación de pago)
+    const emailHtml = orderConfirmationTemplate(orderData);
+
+    // Configurar el email
+    const mailOptions = {
+      from: `"Tu Tienda" <${process.env.EMAIL_USER}>`,
+      to: user.email,
+      subject: `✅ Pago Confirmado - Orden #${order._id.toString().slice(-8)}`,
+      html: emailHtml,
+    };
+
+    // Enviar el email
+    const info = await transporter.sendMail(mailOptions);
+
+    console.log("✅ Email de confirmación de pago enviado al cliente:", {
+      messageId: info.messageId,
+      to: user.email,
+      orderId: order._id,
     });
-  }
 
-  // Para producción - ejemplo con Gmail
-  // Nota: para Gmail necesitarás una "contraseña de aplicación"
-  return nodemailer.createTransport({
-    service: "gmail",
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS,
-    },
-  });
-
-  /* 
-  // Alternativa con servicio SMTP personalizado
-  return nodemailer.createTransport({
-    host: process.env.EMAIL_HOST,
-    port: process.env.EMAIL_PORT,
-    secure: process.env.EMAIL_PORT === 465,
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS,
-    },
-  });
-  */
-}
-
-// Función para enviar email de verificación
-export async function sendVerificationEmail(user, verificationToken) {
-  const transporter = createEmailTransporter();
-
-  // URL del frontend para verificar email (usando la función getBaseUrl)
-  const verificationUrl = `${getBaseUrl()}/auth/verify-email?token=${verificationToken}`;
-
-  const mailOptions = {
-    from: `"Tu Tienda" <${process.env.EMAIL_USER}>`,
-    to: user.email,
-    subject: "Verifica tu cuenta",
-    html: `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #333;">¡Bienvenido/a a Tu Tienda!</h2>
-        <p>Gracias por registrarte. Por favor, verifica tu dirección de correo electrónico haciendo clic en el siguiente enlace:</p>
-        <p style="margin: 20px 0;">
-          <a href="${verificationUrl}" style="background-color: #000; color: #fff; padding: 10px 20px; text-decoration: none; border-radius: 4px;">Verificar mi correo electrónico</a>
-        </p>
-        <p>O copia y pega este enlace en tu navegador:</p>
-        <p style="color: #666;">${verificationUrl}</p>
-        <p>Este enlace expirará en 24 horas.</p>
-        <p>Si no has solicitado esta verificación, puedes ignorar este correo.</p>
-      </div>
-    `,
-  };
-
-  try {
-    const info = await transporter.sendMail(mailOptions);
-
-    return { success: true, messageId: info.messageId };
+    return {
+      success: true,
+      messageId: info.messageId,
+      type: "payment_confirmation_customer",
+    };
   } catch (error) {
-    console.error("Error al enviar email de verificación:", error);
-    return { success: false, error: error.message };
+    console.error(
+      "❌ Error enviando email de confirmación de pago al cliente:",
+      error
+    );
+    return {
+      success: false,
+      error: error.message,
+      type: "payment_confirmation_customer",
+    };
   }
 }
 
-// Función para enviar email de restablecimiento de contraseña
-export async function sendPasswordResetEmail(user, resetToken) {
-  const transporter = createEmailTransporter();
-
-  // URL del frontend para restablecer contraseña (usando la función getBaseUrl)
-  const resetUrl = `${getBaseUrl()}/auth/reset-password/${resetToken}`;
-
-  const mailOptions = {
-    from: `"Tu Tienda" <${process.env.EMAIL_USER}>`,
-    to: user.email,
-    subject: "Restablece tu contraseña",
-    html: `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #333;">Restablecimiento de contraseña</h2>
-        <p>Has solicitado restablecer tu contraseña. Haz clic en el siguiente enlace para crear una nueva contraseña:</p>
-        <p style="margin: 20px 0;">
-          <a href="${resetUrl}" style="background-color: #000; color: #fff; padding: 10px 20px; text-decoration: none; border-radius: 4px;">Restablecer mi contraseña</a>
-        </p>
-        <p>O copia y pega este enlace en tu navegador:</p>
-        <p style="color: #666;">${resetUrl}</p>
-        <p>Este enlace expirará en 1 hora.</p>
-        <p>Si no has solicitado este restablecimiento, puedes ignorar este correo.</p>
-      </div>
-    `,
-  };
-
+// Función para enviar notificación de pago al administrador
+async function sendPaymentNotificationToAdmin(order, user, paymentInfo = null) {
   try {
+    // Email del administrador (desde variables de entorno)
+    const adminEmail = process.env.ADMIN_EMAIL || process.env.EMAIL_USER;
+
+    if (!adminEmail) {
+      console.warn("⚠️ No se encontró email de administrador configurado");
+      return {
+        success: false,
+        error: "Admin email not configured",
+        type: "payment_notification_admin",
+      };
+    }
+
+    console.log(`📧 Enviando notificación de PAGO al admin: ${adminEmail}`);
+
+    const transporter = createEmailTransporter();
+
+    // Obtener datos completos de los productos
+    const productsData = await getOrderProductsData(order.items);
+
+    // Preparar datos para el template
+    const orderData = {
+      orderId: order._id.toString(),
+      userName: user.name || order.shippingInfo.name,
+      userEmail: user.email,
+      products: productsData,
+      total: order.totalAmount,
+      orderDate: order.createdAt,
+      status: order.status,
+      paymentMethod: order.paymentMethod,
+      paymentInfo: paymentInfo
+        ? {
+            id: paymentInfo.id,
+            status: paymentInfo.status,
+            method: paymentInfo.payment_method_id,
+            type: paymentInfo.payment_type_id,
+          }
+        : null,
+      shippingAddress: {
+        street: order.shippingInfo.address,
+        city: order.shippingInfo.city,
+        state: "Buenos Aires",
+        zipCode: order.shippingInfo.postalCode,
+        country: "Argentina",
+      },
+    };
+
+    // Generar el HTML del email
+    const emailHtml = adminOrderNotificationTemplate(orderData);
+
+    // Configurar el email
+    const mailOptions = {
+      from: `"Sistema Tienda" <${process.env.EMAIL_USER}>`,
+      to: adminEmail,
+      subject: `💰 Pago Confirmado - Orden #${order._id.toString().slice(-8)}`,
+      html: emailHtml,
+    };
+
+    // Enviar el email
     const info = await transporter.sendMail(mailOptions);
 
-    return { success: true, messageId: info.messageId };
+    console.log("✅ Email de notificación de pago enviado al admin:", {
+      messageId: info.messageId,
+      to: adminEmail,
+      orderId: order._id,
+    });
+
+    return {
+      success: true,
+      messageId: info.messageId,
+      type: "payment_notification_admin",
+    };
   } catch (error) {
-    console.error("Error al enviar email de restablecimiento:", error);
-    return { success: false, error: error.message };
+    console.error("❌ Error enviando notificación de pago al admin:", error);
+    return {
+      success: false,
+      error: error.message,
+      type: "payment_notification_admin",
+    };
+  }
+}
+
+// Función para enviar email de confirmación al cliente (creación de orden)
+async function sendOrderConfirmationToCustomer(order, user) {
+  try {
+    console.log(`📧 Enviando confirmación de orden al cliente: ${user.email}`);
+
+    const transporter = createEmailTransporter();
+
+    // Obtener datos completos de los productos
+    const productsData = await getOrderProductsData(order.items);
+
+    // Preparar datos para el template
+    const orderData = {
+      orderId: order._id.toString(),
+      userName: user.name || order.shippingInfo.name,
+      userEmail: user.email,
+      products: productsData,
+      total: order.totalAmount,
+      orderDate: order.createdAt,
+      status: order.status,
+      paymentMethod: order.paymentMethod,
+      shippingAddress: {
+        street: order.shippingInfo.address,
+        city: order.shippingInfo.city,
+        state: "Buenos Aires", // Ajustar según tu lógica
+        zipCode: order.shippingInfo.postalCode,
+        country: "Argentina",
+      },
+    };
+
+    // Generar el HTML del email
+    const emailHtml = orderConfirmationTemplate(orderData);
+
+    // Configurar el email
+    const mailOptions = {
+      from: `"Tu Tienda" <${process.env.EMAIL_USER}>`,
+      to: user.email,
+      subject: `Confirmación de Orden #${order._id.toString().slice(-8)}`,
+      html: emailHtml,
+    };
+
+    // Enviar el email
+    const info = await transporter.sendMail(mailOptions);
+
+    console.log("✅ Email de confirmación enviado al cliente:", {
+      messageId: info.messageId,
+      to: user.email,
+      orderId: order._id,
+    });
+
+    return {
+      success: true,
+      messageId: info.messageId,
+      type: "customer_confirmation",
+    };
+  } catch (error) {
+    console.error("❌ Error enviando email de confirmación al cliente:", error);
+    return {
+      success: false,
+      error: error.message,
+      type: "customer_confirmation",
+    };
+  }
+}
+
+// Función para enviar notificación al administrador (creación de orden)
+async function sendNewOrderNotificationToAdmin(order, user) {
+  try {
+    // Email del administrador (desde variables de entorno)
+    const adminEmail = process.env.ADMIN_EMAIL || process.env.EMAIL_USER;
+
+    if (!adminEmail) {
+      console.warn("⚠️ No se encontró email de administrador configurado");
+      return {
+        success: false,
+        error: "Admin email not configured",
+        type: "admin_notification",
+      };
+    }
+
+    console.log(
+      `📧 Enviando notificación de nueva orden al admin: ${adminEmail}`
+    );
+
+    const transporter = createEmailTransporter();
+
+    // Obtener datos completos de los productos
+    const productsData = await getOrderProductsData(order.items);
+
+    // Preparar datos para el template
+    const orderData = {
+      orderId: order._id.toString(),
+      userName: user.name || order.shippingInfo.name,
+      userEmail: user.email,
+      products: productsData,
+      total: order.totalAmount,
+      orderDate: order.createdAt,
+      status: order.status,
+      paymentMethod: order.paymentMethod,
+      shippingAddress: {
+        street: order.shippingInfo.address,
+        city: order.shippingInfo.city,
+        state: "Buenos Aires",
+        zipCode: order.shippingInfo.postalCode,
+        country: "Argentina",
+      },
+    };
+
+    // Generar el HTML del email
+    const emailHtml = adminOrderNotificationTemplate(orderData);
+
+    // Configurar el email
+    const mailOptions = {
+      from: `"Sistema Tienda" <${process.env.EMAIL_USER}>`,
+      to: adminEmail,
+      subject: `🛒 Nueva Orden Recibida #${order._id.toString().slice(-8)}`,
+      html: emailHtml,
+    };
+
+    // Enviar el email
+    const info = await transporter.sendMail(mailOptions);
+
+    console.log("✅ Email de notificación enviado al admin:", {
+      messageId: info.messageId,
+      to: adminEmail,
+      orderId: order._id,
+    });
+
+    return {
+      success: true,
+      messageId: info.messageId,
+      type: "admin_notification",
+    };
+  } catch (error) {
+    console.error("❌ Error enviando notificación al admin:", error);
+    return {
+      success: false,
+      error: error.message,
+      type: "admin_notification",
+    };
+  }
+}
+
+// Función para enviar emails cuando el pago se confirma (usa las funciones correctas)
+async function sendPaymentConfirmedEmails(order, user) {
+  try {
+    console.log(
+      `💳 Enviando emails de pago confirmado para orden: ${order._id}`
+    );
+
+    const results = [];
+
+    // Email al cliente usando la función de confirmación de pago
+    const customerResult = await sendPaymentConfirmationToCustomer(order, user);
+    results.push(customerResult);
+
+    // Email al administrador usando la función de notificación de pago
+    const adminResult = await sendPaymentNotificationToAdmin(order, user);
+    results.push(adminResult);
+
+    return {
+      success: results.every((r) => r.success),
+      results,
+      orderData: {
+        orderId: order._id,
+        userEmail: user.email,
+        status: order.status,
+      },
+    };
+  } catch (error) {
+    console.error(
+      "❌ Error general enviando emails de pago confirmado:",
+      error
+    );
+    return {
+      success: false,
+      error: error.message,
+      results: [],
+    };
+  }
+}
+
+// Función para reenviar emails de orden (útil para casos de error)
+async function resendOrderEmails(orderId, emailTypes = ["customer", "admin"]) {
+  try {
+    console.log(`🔄 Reenviando emails para orden: ${orderId}`);
+
+    // Buscar la orden con el usuario
+    const Order = (await import("@/models/Order")).default;
+    const User = (await import("@/models/User")).default;
+
+    const order = await Order.findById(orderId);
+    if (!order) {
+      throw new Error("Orden no encontrada");
+    }
+
+    const user = await User.findById(order.user);
+    if (!user) {
+      throw new Error("Usuario no encontrado");
+    }
+
+    const results = [];
+
+    if (emailTypes.includes("customer")) {
+      // Para reenvío, usar función de confirmación de orden (no de pago)
+      const customerResult = await sendOrderConfirmationToCustomer(order, user);
+      results.push(customerResult);
+    }
+
+    if (emailTypes.includes("admin")) {
+      // Para reenvío, usar función de notificación de nueva orden (no de pago)
+      const adminResult = await sendNewOrderNotificationToAdmin(order, user);
+      results.push(adminResult);
+    }
+
+    return {
+      success: results.every((r) => r.success),
+      results,
+      orderData: {
+        orderId: order._id,
+        userEmail: user.email,
+        status: order.status,
+      },
+    };
+  } catch (error) {
+    console.error("❌ Error reenviando emails:", error);
+    return {
+      success: false,
+      error: error.message,
+      results: [],
+    };
   }
 }

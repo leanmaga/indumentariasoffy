@@ -7,6 +7,11 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import toast from "react-hot-toast";
 import { useSession } from "next-auth/react";
+// 🆕 IMPORTAR FUNCIONES DE EMAIL
+import {
+  sendOrderConfirmationToCustomer,
+  sendNewOrderNotificationToAdmin,
+} from "@/lib/order-emails";
 
 export default function WhatsAppButton({
   userData,
@@ -100,6 +105,59 @@ export default function WhatsAppButton({
       }
 
       const result = await response.json();
+
+      // 🆕 ===== ENVIAR EMAILS AUTOMÁTICAMENTE =====
+      console.log("📧 Enviando emails para orden WhatsApp:", result.orderId);
+
+      try {
+        // Crear objetos compatibles con las funciones de email
+        const orderForEmail = {
+          _id: result.orderId,
+          items: orderItems,
+          totalAmount: total,
+          status: "whatsapp_pendiente",
+          paymentMethod: "whatsapp",
+          shippingInfo: orderData.shippingInfo,
+          createdAt: new Date(),
+          whatsappOrder: true,
+        };
+
+        const userForEmail = {
+          _id: session.user?.id || session.user?.email,
+          name: userData.name,
+          email: userData.email,
+          phone: userData.phone,
+        };
+
+        // Enviar email de confirmación al cliente
+        const customerEmailResult = await sendOrderConfirmationToCustomer(
+          orderForEmail,
+          userForEmail
+        );
+
+        // Enviar email de notificación al admin
+        const adminEmailResult = await sendNewOrderNotificationToAdmin(
+          orderForEmail,
+          userForEmail
+        );
+
+        console.log("✅ Resultados de emails WhatsApp:", {
+          customer: customerEmailResult.success,
+          admin: adminEmailResult.success,
+        });
+
+        // Mostrar notificación de emails enviados
+        if (customerEmailResult.success && adminEmailResult.success) {
+          toast.success("📧 Emails de confirmación enviados");
+        } else if (customerEmailResult.success || adminEmailResult.success) {
+          toast("📧 Algunos emails enviados", { icon: "⚠️" });
+        }
+      } catch (emailError) {
+        console.error("❌ Error enviando emails de WhatsApp:", emailError);
+        // No mostrar error al usuario, solo log interno
+        console.log("🔄 Orden creada correctamente, emails fallaron");
+      }
+      // ===== FIN ENVÍO EMAILS =====
 
       // Guardar datos del pedido en localStorage
       localStorage.setItem(

@@ -168,24 +168,24 @@ export const getPaymentStatus = async (paymentId) => {
   }
 };
 
-// Buscar pagos por referencia externa
-export const getPaymentsByExternalReference = async (externalReference) => {
-  try {
-    const client = await getClient();
-    const payment = new Payment(client);
+// // Buscar pagos por referencia externa
+// export const getPaymentsByExternalReference = async (externalReference) => {
+//   try {
+//     const client = await getClient();
+//     const payment = new Payment(client);
 
-    const searchResult = await payment.search({
-      options: {
-        external_reference: externalReference,
-      },
-    });
+//     const searchResult = await payment.search({
+//       options: {
+//         external_reference: externalReference,
+//       },
+//     });
 
-    return searchResult.results || [];
-  } catch (error) {
-    console.error("Error al buscar pagos por referencia externa:", error);
-    throw new Error(`Error al buscar pagos: ${error.message}`);
-  }
-};
+//     return searchResult.results || [];
+//   } catch (error) {
+//     console.error("Error al buscar pagos por referencia externa:", error);
+//     throw new Error(`Error al buscar pagos: ${error.message}`);
+//   }
+// };
 
 // Función para verificar si las credenciales están configuradas
 export const checkMercadoPagoStatus = async () => {
@@ -221,3 +221,87 @@ export const checkMercadoPagoStatus = async () => {
     };
   }
 };
+
+export async function getPaymentById(paymentId) {
+  try {
+    console.log(`🔍 Obteniendo pago por ID: ${paymentId}`);
+
+    const response = await fetch(
+      `https://api.mercadopago.com/v1/payments/${paymentId}`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${process.env.MP_ACCESS_TOKEN}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error("❌ Error response from MercadoPago:", errorData);
+      throw new Error(
+        `Error ${response.status}: ${
+          errorData.message || "Error obteniendo pago"
+        }`
+      );
+    }
+
+    const paymentData = await response.json();
+
+    console.log("✅ Pago obtenido exitosamente:", {
+      id: paymentData.id,
+      status: paymentData.status,
+      external_reference: paymentData.external_reference,
+      amount: paymentData.transaction_amount,
+    });
+
+    return paymentData;
+  } catch (error) {
+    console.error(`❌ Error obteniendo pago ${paymentId}:`, error);
+    throw error;
+  }
+}
+
+// Función alternativa para obtener pagos por external_reference (ya existe en tu código)
+// Esta función ya la tienes, pero la incluyo por completitud
+export async function getPaymentsByExternalReference(externalReference) {
+  try {
+    console.log(
+      `🔍 Buscando pagos por external_reference: ${externalReference}`
+    );
+
+    const response = await fetch(
+      `https://api.mercadopago.com/v1/payments/search?external_reference=${externalReference}`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${process.env.MP_ACCESS_TOKEN}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error("❌ Error response from MercadoPago:", errorData);
+      throw new Error(
+        `Error ${response.status}: ${
+          errorData.message || "Error buscando pagos"
+        }`
+      );
+    }
+
+    const data = await response.json();
+
+    console.log("✅ Búsqueda de pagos completada:", {
+      found: data.results?.length || 0,
+      external_reference: externalReference,
+    });
+
+    return data.results || [];
+  } catch (error) {
+    console.error(`❌ Error buscando pagos para ${externalReference}:`, error);
+    throw error;
+  }
+}
