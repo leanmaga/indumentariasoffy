@@ -1,126 +1,128 @@
 // src/hooks/useSiteConfig.js
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 
-export function useSiteConfig() {
-  const [config, setConfig] = useState({
-    storeName: "Indumentaria Soffy",
-    contactEmail: "patagoniascript@indumentariasoffy.com",
-    storeDescription: "Encuentra los mejores productos al mejor precio.",
-    heroImageUrl: "/default-hero.jpg",
-  });
-  const [isLoading, setIsLoading] = useState(true);
+// Cache global para evitar múltiples requests
+const imageCache = {
+  heroImage: null,
+  timestamp: null,
+  isLoading: false,
+};
 
-  useEffect(() => {
-    fetchConfig();
-  }, []);
+// Tiempo de caché en milisegundos (5 minutos)
+const CACHE_DURATION = 5 * 60 * 1000;
 
-  const fetchConfig = async () => {
-    try {
-      // Obtener configuración general y hero en paralelo
-      const [generalResponse, heroResponse] = await Promise.all([
-        fetch("/api/admin/general-settings"),
-        fetch("/api/admin/hero-image"),
-      ]);
+export function useHeroImage() {
+  const [heroImageUrl, setHeroImageUrl] = useState("/default-hero.webp");
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
 
-      const [generalData, heroData] = await Promise.all([
-        generalResponse.json(),
-        heroResponse.json(),
-      ]);
+  const fetchHeroImage = useCallback(async (force = false) => {
+    const now = Date.now();
 
-      if (generalResponse.ok && heroResponse.ok) {
-        setConfig({
-          storeName: generalData.storeName || "Indumentaria Soffy",
-          contactEmail:
-            generalData.contactEmail || "patagoniascript@indumentariasoffy.com",
-          storeDescription:
-            generalData.storeDescription ||
-            "Encuentra los mejores productos al mejor precio.",
-          heroImageUrl: heroData.imageUrl || "/default-hero.jpg",
-        });
-      } else {
-        // Si hay error, usar solo los datos que funcionen
-        if (generalResponse.ok) {
-          setConfig((prev) => ({
-            ...prev,
-            storeName: generalData.storeName || prev.storeName,
-            contactEmail: generalData.contactEmail || prev.contactEmail,
-            storeDescription:
-              generalData.storeDescription || prev.storeDescription,
-          }));
-        }
-        if (heroResponse.ok) {
-          setConfig((prev) => ({
-            ...prev,
-            heroImageUrl: heroData.imageUrl || prev.heroImageUrl,
-          }));
-        }
-      }
-    } catch (error) {
-      console.error("Error al cargar configuración del sitio:", error);
-    } finally {
+    // Verificar si tenemos datos en caché y son válidos
+    if (
+      !force &&
+      imageCache.heroImage &&
+      imageCache.timestamp &&
+      now - imageCache.timestamp < CACHE_DURATION
+    ) {
+      setHeroImageUrl(imageCache.heroImage);
       setIsLoading(false);
+      return;
     }
-  };
 
-  return { config, isLoading, refetch: fetchConfig };
-}
+    // Evitar múltiples requests simultáneos
+    if (imageCache.isLoading) {
+      return;
+    }
 
-// Hook específico solo para configuración general (más ligero)
-export function useGeneralSettings() {
-  const [settings, setSettings] = useState({
-    storeName: "",
-    contactEmail: "",
-    storeDescription: "",
-  });
-  const [isLoading, setIsLoading] = useState(true);
+    imageCache.isLoading = true;
+    setIsLoading(true);
+    setError(null);
 
-  useEffect(() => {
-    fetchSettings();
-  }, []);
-
-  const fetchSettings = async () => {
     try {
-      const response = await fetch("/api/admin/general-settings");
+      const response = await fetch("/api/admin/hero-image", {
+        method: "GET",
+        // Añadir headers para evitar caché del navegador cuando queremos datos frescos
+        headers: force
+          ? {
+              "Cache-Control": "no-cache",
+              Pragma: "no-cache",
+            }
+          : {},
+      });
+
+      if (!response.ok) {
+        throw new Error("Error al cargar la imagen");
+      }
+
       const data = await response.json();
 
-      if (response.ok) {
-        setSettings(data);
-      }
-    } catch (error) {
-      console.error("Error al cargar configuración general:", error);
+      // Actualizar caché
+      imageCache.heroImage = data.imageUrl;
+      imageCache.timestamp = now;
+
+      setHeroImageUrl(data.imageUrl);
+    } catch (err) {
+      console.error("Error fetching hero image:", err);
+      setError(err.message);
+      // En caso de error, mantener la imagen por defecto
+      setHeroImageUrl("/default-hero.webp");
     } finally {
       setIsLoading(false);
+      imageCache.isLoading = false;
     }
-  };
+  }, []);
 
-  return { settings, isLoading, refetch: fetchSettings };
-}
-
-// Hook específico para la imagen hero
-export function useHeroImage() {
-  const [heroImageUrl, setHeroImageUrl] = useState("/default-hero.jpg");
-  const [isLoading, setIsLoading] = useState(true);
+  // Función para invalidar caché (útil después de subir nueva imagen)
+  const invalidateCache = useCallback(() => {
+    imageCache.heroImage = null;
+    imageCache.timestamp = null;
+    fetchHeroImage(true);
+  }, [fetchHeroImage]);
 
   useEffect(() => {
     fetchHeroImage();
-  }, []);
 
-  const fetchHeroImage = async () => {
-    try {
-      const response = await fetch("/api/admin/hero-image");
-      const data = await response.json();
-
-      if (response.ok) {
-        setHeroImageUrl(data.imageUrl);
+    // Escuchar eventos de actualización de imagen
+    const handleImageUpdate = (event) => {
+      if (event.detail?.imageUrl) {
+        // Actualizar inmediatamente con la nueva URL
+        setHeroImageUrl(event.detail.imageUrl);
+        // También actualizar el caché
+        imageCache.heroImage = event.detail.imageUrl;
+        imageCache.timestamp = Date.now();
       }
-    } catch (error) {
-      console.error("Error al cargar imagen hero:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    };
 
-  return { heroImageUrl, isLoading, refetch: fetchHeroImage };
+    window.addEventListener("heroImageUpdated", handleImageUpdate);
+
+    // Conectar con el sistema de invalidación global del upload component
+    if (typeof window !== "undefined") {
+      // Importar dinámicamente para evitar problemas de SSR
+      import("@/components/admin/HeroImageUpload")
+        .then((module) => {
+          if (module.setHeroCacheInvalidator) {
+            module.setHeroCacheInvalidator(invalidateCache);
+          }
+        })
+        .catch(() => {
+          // Silenciar error si el componente no está disponible
+        });
+    }
+
+    return () => {
+      window.removeEventListener("heroImageUpdated", handleImageUpdate);
+    };
+  }, [fetchHeroImage, invalidateCache]);
+
+  return {
+    heroImageUrl,
+    isLoading,
+    error,
+    refetch: () => fetchHeroImage(true),
+    invalidateCache,
+  };
 }

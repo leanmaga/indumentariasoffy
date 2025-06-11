@@ -23,7 +23,12 @@ export async function POST(request) {
         key: "hero_image_public_id",
       });
       if (oldConfig && oldConfig.value) {
-        await deleteImage(oldConfig.value);
+        try {
+          await deleteImage(oldConfig.value);
+        } catch (deleteError) {
+          console.warn("Error al eliminar imagen anterior:", deleteError);
+          // No fallar si no se puede eliminar la imagen anterior
+        }
       }
     }
 
@@ -36,6 +41,7 @@ export async function POST(request) {
       {
         value: imageUrl,
         description: "URL de la imagen principal del hero",
+        updatedAt: new Date(),
       },
       { upsert: true }
     );
@@ -46,38 +52,83 @@ export async function POST(request) {
       {
         value: publicId,
         description: "Public ID de Cloudinary para la imagen hero",
+        updatedAt: new Date(),
       },
       { upsert: true }
     );
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
       imageUrl,
       message: "Imagen del hero actualizada correctamente",
+      timestamp: Date.now(),
     });
+
+    // Headers para evitar caché de esta respuesta
+    response.headers.set(
+      "Cache-Control",
+      "no-store, no-cache, must-revalidate, proxy-revalidate"
+    );
+    response.headers.set("Pragma", "no-cache");
+    response.headers.set("Expires", "0");
+
+    return response;
   } catch (error) {
     console.error("Error al actualizar imagen del hero:", error);
     return NextResponse.json(
-      { error: "Error interno del servidor" },
+      { error: "Error interno del servidor", details: error.message },
       { status: 500 }
     );
   }
 }
 
-export async function GET() {
+export async function GET(request) {
   try {
     await connectDB();
 
     const config = await SiteConfig.findOne({ key: "hero_image_url" });
+    const imageUrl = config?.value || "/default-hero.webp";
 
-    return NextResponse.json({
-      imageUrl: config?.value || "/default-hero.jpg",
+    const response = NextResponse.json({
+      imageUrl,
+      timestamp: Date.now(),
+      cached: !!config,
     });
+
+    // Headers de caché más agresivos para GET
+    // Cachear por 5 minutos, pero permitir revalidación
+    response.headers.set(
+      "Cache-Control",
+      "public, max-age=300, stale-while-revalidate=60"
+    );
+
+    // ETag para validación condicional
+    if (config?.updatedAt) {
+      const etag = `"${config.updatedAt.getTime()}"`;
+      response.headers.set("ETag", etag);
+
+      // Verificar If-None-Match
+      const ifNoneMatch = request.headers.get("If-None-Match");
+      if (ifNoneMatch === etag) {
+        return new Response(null, { status: 304 });
+      }
+    }
+
+    return response;
   } catch (error) {
     console.error("Error al obtener imagen del hero:", error);
-    return NextResponse.json(
-      { error: "Error interno del servidor" },
-      { status: 500 }
+
+    // En caso de error, devolver imagen por defecto pero sin caché
+    const errorResponse = NextResponse.json(
+      {
+        imageUrl: "/default-hero.webp",
+        error: "Error al cargar imagen personalizada",
+        timestamp: Date.now(),
+      },
+      { status: 200 } // 200 porque tenemos fallback
     );
+
+    errorResponse.headers.set("Cache-Control", "no-cache");
+    return errorResponse;
   }
 }

@@ -1,14 +1,23 @@
-// src/components/admin/HeroImageUpload.js - Ajustado para App Router
+// src/components/admin/HeroImageUpload.js
 "use client";
 
 import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 
+// Función global para invalidar caché de imagen hero
+// Esto permitirá que otros componentes actualicen el caché
+let globalCacheInvalidator = null;
+
+export const setHeroCacheInvalidator = (invalidator) => {
+  globalCacheInvalidator = invalidator;
+};
+
 export default function HeroImageUpload() {
-  const [currentImage, setCurrentImage] = useState("/default-hero.jpg");
+  const [currentImage, setCurrentImage] = useState("/default-hero.webp");
   const [isUploading, setIsUploading] = useState(false);
   const [previewImage, setPreviewImage] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [uploadSuccess, setUploadSuccess] = useState(false);
   const fileInputRef = useRef(null);
 
   // Cargar imagen actual al montar el componente
@@ -18,7 +27,8 @@ export default function HeroImageUpload() {
 
   const fetchCurrentImage = async () => {
     try {
-      const response = await fetch("/api/admin/hero-image");
+      // Añadir timestamp para evitar caché del navegador
+      const response = await fetch(`/api/admin/hero-image?t=${Date.now()}`);
       const data = await response.json();
       setCurrentImage(data.imageUrl);
     } catch (error) {
@@ -50,12 +60,17 @@ export default function HeroImageUpload() {
       setPreviewImage(e.target.result);
     };
     reader.readAsDataURL(file);
+
+    // Limpiar mensaje de éxito previo
+    setUploadSuccess(false);
   };
 
   const uploadImage = async () => {
     if (!previewImage) return;
 
     setIsUploading(true);
+    setUploadSuccess(false);
+
     try {
       const response = await fetch("/api/admin/hero-image", {
         method: "POST",
@@ -71,15 +86,32 @@ export default function HeroImageUpload() {
       const data = await response.json();
 
       if (data.success) {
+        // Actualizar imagen actual
         setCurrentImage(data.imageUrl);
         setPreviewImage(null);
+        setUploadSuccess(true);
+
+        // Limpiar input
         if (fileInputRef.current) {
           fileInputRef.current.value = "";
         }
-        alert("Imagen del hero actualizada correctamente");
 
-        // Opcional: Recargar la página principal para ver los cambios inmediatamente
-        // window.location.reload();
+        // Invalidar caché global si está disponible
+        if (globalCacheInvalidator) {
+          globalCacheInvalidator();
+        }
+
+        // También disparar evento personalizado para notificar a otros componentes
+        window.dispatchEvent(
+          new CustomEvent("heroImageUpdated", {
+            detail: { imageUrl: data.imageUrl },
+          })
+        );
+
+        // Auto-hide success message después de 3 segundos
+        setTimeout(() => {
+          setUploadSuccess(false);
+        }, 3000);
       } else {
         alert("Error al subir la imagen: " + data.error);
       }
@@ -93,6 +125,7 @@ export default function HeroImageUpload() {
 
   const cancelPreview = () => {
     setPreviewImage(null);
+    setUploadSuccess(false);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -113,21 +146,40 @@ export default function HeroImageUpload() {
 
   return (
     <div className="max-w-4xl mx-auto p-6 bg-white rounded-lg shadow-lg">
-      <h2 className="text-2xl font-bold mb-6 text-gray-800">
-        Gestionar Imagen principal
-      </h2>
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-2xl font-bold text-gray-800">
+          Gestionar Imagen Principal
+        </h2>
+
+        {/* Mensaje de éxito */}
+        {uploadSuccess && (
+          <div className="flex items-center space-x-2 bg-green-100 border border-green-400 text-green-700 px-4 py-2 rounded-lg">
+            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+              <path
+                fillRule="evenodd"
+                d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                clipRule="evenodd"
+              />
+            </svg>
+            <span className="text-sm font-medium">
+              ¡Imagen actualizada correctamente!
+            </span>
+          </div>
+        )}
+      </div>
 
       {/* Imagen Actual */}
       <div className="mb-8">
         <h3 className="text-lg font-semibold mb-4 text-gray-700">
           Imagen Actual
         </h3>
-        <div className="relative w-full h-64 bg-gray-100 rounded-lg overflow-hidden">
+        <div className="relative w-full h-64 bg-gray-100 rounded-lg overflow-hidden border-2 border-gray-200">
           <Image
             src={currentImage}
             alt="Imagen principal"
             fill
-            className="object-cover"
+            style={{ objectFit: "cover" }}
+            className="transition-opacity duration-300"
           />
         </div>
       </div>
@@ -146,9 +198,15 @@ export default function HeroImageUpload() {
             ref={fileInputRef}
             className="hidden"
             id="heroImageInput"
+            disabled={isUploading}
           />
 
-          <label htmlFor="heroImageInput" className="cursor-pointer block">
+          <label
+            htmlFor="heroImageInput"
+            className={`cursor-pointer block ${
+              isUploading ? "pointer-events-none opacity-50" : ""
+            }`}
+          >
             <div className="text-gray-500 mb-2">
               <svg
                 className="mx-auto h-12 w-12 text-gray-400"
@@ -168,7 +226,7 @@ export default function HeroImageUpload() {
               Haz clic para seleccionar una imagen
             </p>
             <p className="text-xs text-gray-500 mt-1">
-              PNG, JPG, GIF hasta 5MB
+              PNG, JPG, GIF hasta 5MB | Recomendado: 1920x1080px
             </p>
           </label>
         </div>
@@ -180,12 +238,12 @@ export default function HeroImageUpload() {
           <h3 className="text-lg font-semibold mb-4 text-gray-700">
             Vista Previa
           </h3>
-          <div className="relative w-full h-64 bg-gray-100 rounded-lg overflow-hidden mb-4">
+          <div className="relative w-full h-64 bg-gray-100 rounded-lg overflow-hidden mb-4 border-2 border-gray-200">
             <Image
               src={previewImage}
               alt="Vista previa"
               fill
-              className="object-cover"
+              style={{ objectFit: "cover" }}
             />
           </div>
 
@@ -230,6 +288,20 @@ export default function HeroImageUpload() {
           </div>
         </div>
       )}
+
+      {/* Información adicional */}
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <h4 className="text-sm font-medium text-blue-800 mb-2">💡 Consejos:</h4>
+        <ul className="text-sm text-blue-700 space-y-1">
+          <li>
+            • Para mejores resultados, usa imágenes de al menos 1920x1080px
+          </li>
+          <li>• Las imágenes se optimizan automáticamente para web</li>
+          <li>
+            • Los cambios aparecerán inmediatamente en la página principal
+          </li>
+        </ul>
+      </div>
     </div>
   );
 }
