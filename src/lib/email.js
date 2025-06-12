@@ -9,7 +9,7 @@ export {
   sendPaymentConfirmationToCustomer,
   sendPaymentNotificationToAdmin,
   sendPaymentConfirmedEmails,
-  resendEmails,
+  resendOrderEmails,
 }; // lib/order-emails.js
 import { createEmailTransporter } from "./email";
 import {
