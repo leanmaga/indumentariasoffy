@@ -1,13 +1,14 @@
-// src/lib/mercadopago.js
+// src/lib/mercadopago.js - CON CONFIGURACIÓN AUTOMÁTICA
 import { MercadoPagoConfig, Preference, Payment } from "mercadopago";
 import connectDB from "./db";
 import MercadoPagoConfigModel from "@/models/MercadoPagoConfig";
+import { getMercadoPagoConfig } from "./config";
 
 // Cache para el cliente de MercadoPago
 let cachedClient = null;
 let cacheExpiry = null;
 
-// Obtener el cliente de MercadoPago con credenciales dinámicas - ACTUALIZADA
+// Obtener el cliente de MercadoPago con configuración automática
 const getClient = async () => {
   // Verificar si tenemos un cliente en caché válido
   if (cachedClient && cacheExpiry && new Date() < cacheExpiry) {
@@ -22,63 +23,73 @@ const getClient = async () => {
     if (config && config.accessToken) {
       // Verificar si el token no ha expirado
       if (config.expiresAt && new Date() > config.expiresAt) {
-        console.warn("Token de MercadoPago expirado, necesita renovación");
-        // Lanzar error en lugar de continuar con fallback
-        throw new Error(
-          "Token de MercadoPago expirado. Por favor, vuelve a conectar tu cuenta desde el panel de administración."
+        console.warn(
+          "Token de MercadoPago expirado, usando configuración automática"
         );
-      }
+      } else {
+        const accessToken = config.getDecryptedAccessToken();
 
-      const accessToken = config.getDecryptedAccessToken();
+        if (accessToken) {
+          console.log("✅ Usando credenciales de base de datos");
 
-      if (accessToken) {
-        cachedClient = new MercadoPagoConfig({
-          accessToken: accessToken,
-          options: {
-            timeout: 5000,
-            idempotencyKey: "abc", // Opcional
-          },
-        });
+          cachedClient = new MercadoPagoConfig({
+            accessToken: accessToken,
+            options: {
+              timeout: 5000,
+            },
+          });
 
-        // Cache por 5 minutos
-        cacheExpiry = new Date(Date.now() + 5 * 60 * 1000);
-
-        return cachedClient;
+          cacheExpiry = new Date(Date.now() + 5 * 60 * 1000);
+          return cachedClient;
+        }
       }
     }
 
-    // Fallback a variables de entorno SOLO para desarrollo/testing
-    // NOTA: Esto ya no se considera como "configurado" en checkMercadoPagoStatus
-    const accessToken = process.env.MERCADOPAGO_ACCESS_TOKEN;
+    // Fallback a configuración automática por ambiente
+    const mpConfig = getMercadoPagoConfig();
 
-    if (!accessToken) {
+    if (!mpConfig.accessToken) {
       throw new Error(
-        "No se encontraron credenciales de MercadoPago. Por favor, conecta tu cuenta desde el panel de administración."
+        "No se encontraron credenciales de MercadoPago. Configura las variables de entorno necesarias."
       );
     }
 
-    console.warn(
-      "Usando credenciales de variables de entorno (solo para desarrollo/testing)"
+    console.log(
+      `🔧 Usando credenciales de ${mpConfig.environment} (${process.env.NODE_ENV})`
     );
 
+    if (
+      mpConfig.environment === "production" &&
+      process.env.NODE_ENV === "development"
+    ) {
+      console.warn("⚠️ ATENCIÓN: Credenciales de PRODUCCIÓN en desarrollo!");
+      console.warn(
+        "⚠️ Los pagos serán REALES. Para testing seguro, obtén credenciales de sandbox."
+      );
+    }
+
     cachedClient = new MercadoPagoConfig({
-      accessToken: accessToken,
+      accessToken: mpConfig.accessToken,
+      options: {
+        timeout: 5000,
+      },
     });
 
-    // Cache por 5 minutos
     cacheExpiry = new Date(Date.now() + 5 * 60 * 1000);
-
     return cachedClient;
   } catch (error) {
-    console.error("Error al obtener cliente de MercadoPago:", error);
+    console.error("❌ Error al obtener cliente de MercadoPago:", error);
     throw error;
   }
 };
 
-// Crear preferencia de pago
+// Crear preferencia de pago - FUNCIÓN OPTIMIZADA
 export const createPaymentPreference = async (orderData) => {
   try {
+    console.log("🏗️ Creando preferencia de pago para orden:", orderData._id);
+
     const client = await getClient();
+    const mpConfig = getMercadoPagoConfig();
 
     // Verificar que orderData tenga los campos requeridos
     if (!orderData.items || !orderData.items.length || !orderData._id) {
@@ -87,68 +98,127 @@ export const createPaymentPreference = async (orderData) => {
 
     // Preparar items para MercadoPago
     const items = orderData.items.map((item) => ({
-      id: item.product.toString(),
-      title: item.title,
-      quantity: item.quantity,
-      unit_price: item.price,
+      id: item.product?.toString() || "unknown",
+      title: item.title || "Producto",
+      quantity: parseInt(item.quantity) || 1,
+      unit_price: parseFloat(item.price) || 0,
       currency_id: "ARS",
-      picture_url: item.imageUrl,
+      picture_url: item.imageUrl || "",
+      description: `${item.title} - Cantidad: ${item.quantity}`,
     }));
 
-    // Obtener URL base con fallback
+    // Obtener URL base
     const baseUrl =
-      process.env.NEXTAUTH_URL ||
       process.env.NEXT_PUBLIC_BASE_URL ||
       process.env.NEXT_PUBLIC_FRONTEND_URL ||
+      process.env.NEXTAUTH_URL ||
       "http://localhost:3000";
 
-    // URLs de retorno
+    console.log("🌐 URL base para redirecciones:", baseUrl);
+
+    const cleanBaseUrl = baseUrl.endsWith("/") ? baseUrl.slice(0, -1) : baseUrl;
     const backUrls = {
-      success: `${baseUrl}/checkout/success?orderId=${orderData._id}`,
-      failure: `${baseUrl}/checkout/failure?orderId=${orderData._id}`,
-      pending: `${baseUrl}/checkout/pending?orderId=${orderData._id}`,
+      success: `${cleanBaseUrl}/checkout/success?payment_status=approved&external_reference=${orderData._id}`,
+      failure: `${cleanBaseUrl}/checkout/failure?payment_status=rejected&external_reference=${orderData._id}`,
+      pending: `${cleanBaseUrl}/checkout/pending?payment_status=pending&external_reference=${orderData._id}`,
     };
+
+    // Preparar datos del pagador
+    const payerData = {
+      name: orderData.shippingInfo?.name || "Cliente",
+      email: orderData.shippingInfo?.email || "cliente@email.com",
+    };
+
+    // Solo agregar teléfono si está disponible y es válido
+    if (orderData.shippingInfo?.phone) {
+      const cleanPhone = orderData.shippingInfo.phone.replace(/\D/g, "");
+      if (cleanPhone.length >= 8) {
+        payerData.phone = {
+          area_code: "11",
+          number: cleanPhone.substring(cleanPhone.length - 8),
+        };
+      }
+    }
+
+    // Solo agregar dirección si está completa
+    if (orderData.shippingInfo?.address && orderData.shippingInfo?.postalCode) {
+      payerData.address = {
+        street_name: orderData.shippingInfo.address,
+        zip_code: orderData.shippingInfo.postalCode,
+      };
+    }
 
     // Crear preferencia
     const preferenceData = {
       items: items,
       back_urls: backUrls,
-      auto_return: "approved", // Puedes habilitarlo ahora que tienes URLs correctas
       external_reference: orderData._id.toString(),
       notification_url: `${baseUrl}/api/mercadopago/webhook`,
-      payer: {
-        name: orderData.shippingInfo.name,
-        email: orderData.shippingInfo.email,
-        phone: {
-          number: orderData.shippingInfo.phone,
-        },
-        address: {
-          street_name: orderData.shippingInfo.address,
-          zip_code: orderData.shippingInfo.postalCode,
-        },
-      },
+
+      payer: payerData,
+
       payment_methods: {
-        excluded_payment_types: [
-          {
-            id: "ticket", // Excluir pagos en efectivo si lo deseas
-          },
-        ],
-        installments: 12, // Máximo de cuotas
+        installments: 12,
+        default_installments: 1,
       },
+
+      metadata: {
+        order_id: orderData._id.toString(),
+        customer_email: orderData.shippingInfo?.email || "unknown",
+        environment: mpConfig.environment,
+      },
+
       statement_descriptor: "IndumentariaSoffy",
       expires: true,
       expiration_date_to: new Date(
-        Date.now() + 1000 * 60 * 60 * 24
-      ).toISOString(), // 24 horas
+        Date.now() + 24 * 60 * 60 * 1000
+      ).toISOString(),
       binary_mode: false,
     };
+
+    console.log("📝 Datos de preferencia preparados:", {
+      items: items.length,
+      total: items.reduce(
+        (sum, item) => sum + item.unit_price * item.quantity,
+        0
+      ),
+      external_reference: preferenceData.external_reference,
+      payer_email: preferenceData.payer.email,
+      environment: mpConfig.environment,
+    });
 
     const preference = new Preference(client);
     const response = await preference.create({ body: preferenceData });
 
+    console.log("✅ Preferencia creada exitosamente:", {
+      id: response.id,
+      init_point: response.init_point,
+      sandbox_init_point: response.sandbox_init_point,
+      environment: mpConfig.environment,
+    });
+
+    // Validar respuesta
+    if (!response.id) {
+      throw new Error("MercadoPago no devolvió un ID de preferencia válido");
+    }
+
+    if (!response.init_point && !response.sandbox_init_point) {
+      throw new Error("MercadoPago no devolvió URLs de checkout válidas");
+    }
+
     return response;
   } catch (error) {
-    console.error("Error al crear preferencia en MercadoPago:", error);
+    console.error("❌ Error detallado al crear preferencia:", {
+      message: error.message,
+      response: error.response?.data || "No response data",
+      status: error.response?.status || "No status",
+      orderData: {
+        id: orderData._id,
+        itemsCount: orderData.items?.length,
+        total: orderData.totalAmount,
+      },
+    });
+
     throw new Error(
       `Error al crear preferencia en MercadoPago: ${error.message}`
     );
@@ -168,49 +238,33 @@ export const getPaymentStatus = async (paymentId) => {
   }
 };
 
-// // Buscar pagos por referencia externa
-// export const getPaymentsByExternalReference = async (externalReference) => {
-//   try {
-//     const client = await getClient();
-//     const payment = new Payment(client);
-
-//     const searchResult = await payment.search({
-//       options: {
-//         external_reference: externalReference,
-//       },
-//     });
-
-//     return searchResult.results || [];
-//   } catch (error) {
-//     console.error("Error al buscar pagos por referencia externa:", error);
-//     throw new Error(`Error al buscar pagos: ${error.message}`);
-//   }
-// };
-
-// Función para verificar si las credenciales están configuradas
+// Función para verificar configuración
 export const checkMercadoPagoStatus = async () => {
   try {
     await connectDB();
     const config = await MercadoPagoConfigModel.getActiveConfig();
+    const mpConfig = getMercadoPagoConfig();
 
-    // Solo considerar configurado si hay una configuración activa en la base de datos
-    if (!config) {
+    // Verificar si hay configuración en base de datos
+    if (config && config.accessToken) {
+      const isExpired = config.expiresAt && new Date() > config.expiresAt;
+
       return {
-        isConfigured: false, // Cambio principal: siempre false si no hay config en DB
-        isProduction: false,
-        source: "none",
+        isConfigured: !isExpired,
+        isProduction: config.isProduction,
+        expiresAt: config.expiresAt,
+        source: "database",
+        isExpired: isExpired,
       };
     }
 
-    // Verificar si el token no ha expirado
-    const isExpired = config.expiresAt && new Date() > config.expiresAt;
-
+    // Verificar configuración automática
     return {
-      isConfigured: !isExpired, // Solo configurado si no ha expirado
-      isProduction: config.isProduction,
-      expiresAt: config.expiresAt,
-      source: "database",
-      isExpired: isExpired,
+      isConfigured: !!mpConfig.accessToken,
+      isProduction: mpConfig.environment === "production",
+      source: "environment",
+      environment: mpConfig.environment,
+      canUseTestCards: mpConfig.canUseTestCards,
     };
   } catch (error) {
     console.error("Error al verificar estado de MercadoPago:", error);
@@ -222,61 +276,49 @@ export const checkMercadoPagoStatus = async () => {
   }
 };
 
+// Función para obtener pago por ID
 export async function getPaymentById(paymentId) {
   try {
     console.log(`🔍 Obteniendo pago por ID: ${paymentId}`);
 
-    const response = await fetch(
-      `https://api.mercadopago.com/v1/payments/${paymentId}`,
-      {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${process.env.MP_ACCESS_TOKEN}`,
-          "Content-Type": "application/json",
-        },
-      }
-    );
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.error("❌ Error response from MercadoPago:", errorData);
-      throw new Error(
-        `Error ${response.status}: ${
-          errorData.message || "Error obteniendo pago"
-        }`
-      );
-    }
-
-    const paymentData = await response.json();
+    const client = await getClient();
+    const payment = new Payment(client);
+    const response = await payment.get({ id: paymentId });
 
     console.log("✅ Pago obtenido exitosamente:", {
-      id: paymentData.id,
-      status: paymentData.status,
-      external_reference: paymentData.external_reference,
-      amount: paymentData.transaction_amount,
+      id: response.id,
+      status: response.status,
+      external_reference: response.external_reference,
+      amount: response.transaction_amount,
     });
 
-    return paymentData;
+    return response;
   } catch (error) {
     console.error(`❌ Error obteniendo pago ${paymentId}:`, error);
     throw error;
   }
 }
 
-// Función alternativa para obtener pagos por external_reference (ya existe en tu código)
-// Esta función ya la tienes, pero la incluyo por completitud
+// Función para buscar pagos por external_reference
 export async function getPaymentsByExternalReference(externalReference) {
   try {
     console.log(
       `🔍 Buscando pagos por external_reference: ${externalReference}`
     );
 
+    const mpConfig = getMercadoPagoConfig();
+    const accessToken = mpConfig.accessToken;
+
+    if (!accessToken) {
+      throw new Error("Access token no configurado");
+    }
+
     const response = await fetch(
       `https://api.mercadopago.com/v1/payments/search?external_reference=${externalReference}`,
       {
         method: "GET",
         headers: {
-          Authorization: `Bearer ${process.env.MP_ACCESS_TOKEN}`,
+          Authorization: `Bearer ${accessToken}`,
           "Content-Type": "application/json",
         },
       }

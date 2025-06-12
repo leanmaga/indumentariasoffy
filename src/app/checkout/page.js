@@ -114,8 +114,8 @@ export default function CheckoutPage() {
 
   const total = getTotal();
 
+  // Función onSubmit mejorada - solo la parte relevante
   const onSubmit = async (data) => {
-    // Código de onSubmit sin cambios
     if (isSubmitting || orderCreatedRef.current) {
       return;
     }
@@ -124,8 +124,11 @@ export default function CheckoutPage() {
 
     try {
       if (orderId) {
+        console.log("⚠️ Ya existe una orden creada:", orderId);
         return;
       }
+
+      console.log("🚀 Iniciando proceso de orden...");
 
       const orderData = {
         items: items.map((item) => ({
@@ -148,98 +151,243 @@ export default function CheckoutPage() {
         idempotencyKey: idempotencyKey.current,
       };
 
-      const response = await fetch("/api/orders", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(orderData),
+      console.log("📦 Datos de orden preparados:", {
+        items: orderData.items.length,
+        total: orderData.totalAmount,
+        paymentMethod: orderData.paymentMethod,
       });
 
-      const responseTimeout = setTimeout(() => {
+      // Crear timeout para la solicitud
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => {
+        controller.abort();
         toast.error(
           "La solicitud está tardando demasiado. Por favor, inténtalo de nuevo."
         );
         setIsSubmitting(false);
       }, 30000);
 
+      const response = await fetch("/api/orders", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(orderData),
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
       if (!response.ok) {
-        clearTimeout(responseTimeout);
         const errorData = await response.json();
         throw new Error(errorData.message || "Error processing order");
       }
 
-      clearTimeout(responseTimeout);
       const result = await response.json();
+
+      console.log("✅ Orden creada exitosamente:", {
+        orderId: result.orderId,
+        paymentInfo: !!result.paymentInfo,
+      });
 
       setOrderId(result.orderId);
       orderCreatedRef.current = true;
 
       if (selectedPaymentMethod === "mercadopago" && result.paymentInfo?.id) {
+        console.log("💳 Configurando MercadoPago...", {
+          preferenceId: result.paymentInfo.id,
+          initPoint: result.paymentInfo.init_point,
+          sandboxPoint: result.paymentInfo.sandbox_init_point,
+        });
+
         setPreferenceId(result.paymentInfo.id);
 
+        // Determinar URL de redirección según el entorno
         const redirectUrl =
           process.env.NODE_ENV === "development"
-            ? result.paymentInfo.sandbox_init_point
+            ? result.paymentInfo.sandbox_init_point ||
+              result.paymentInfo.init_point
             : result.paymentInfo.init_point ||
               result.paymentInfo.sandbox_init_point;
 
+        if (!redirectUrl) {
+          throw new Error("No se recibió URL de redirección de MercadoPago");
+        }
+
         setMercadoPagoUrl(redirectUrl);
 
+        // Guardar datos en sessionStorage para recuperación
         sessionStorage.setItem("lastOrderId", result.orderId);
         sessionStorage.setItem("lastPreferenceId", result.paymentInfo.id);
         sessionStorage.setItem("lastMercadoPagoUrl", redirectUrl);
+
+        console.log("💾 Datos guardados en sessionStorage para recuperación");
+
+        // Mostrar mensaje de éxito
+        toast.success("Orden creada. Redirigiendo a MercadoPago...");
+      } else if (selectedPaymentMethod === "whatsapp") {
+        console.log("📱 Orden WhatsApp creada");
+        toast.success("Orden creada para WhatsApp");
+        clearCart();
+        router.push("/checkout/success?method=whatsapp");
       } else {
-        toast.success("Order created successfully");
+        console.log("✅ Orden completada con método:", selectedPaymentMethod);
+        toast.success("Orden creada exitosamente");
         clearCart();
         router.push("/checkout/success");
       }
     } catch (error) {
-      toast.error(error.message || "Error processing payment");
-      console.error("Checkout error:", error);
+      if (error.name === "AbortError") {
+        console.error("❌ Solicitud cancelada por timeout");
+        toast.error("La solicitud fue cancelada. Inténtalo de nuevo.");
+      } else {
+        console.error("❌ Error en checkout:", error);
+        toast.error(error.message || "Error al procesar el pago");
+      }
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  // Componente de renderizado del botón MercadoPago mejorado
+  const renderMercadoPagoButton = () => {
+    if (!preferenceId) return null;
+
+    return (
+      <div className="bg-white p-8 border border-gray-200 rounded-lg">
+        <h1 className="text-2xl font-bold mb-6">Completar Pago</h1>
+
+        <div className="mb-6">
+          <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <svg
+                  className="h-5 w-5 text-green-400"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <p className="text-sm font-medium text-green-800">
+                  ¡Orden creada exitosamente!
+                </p>
+                <p className="text-sm text-green-700">
+                  Orden #{orderId?.substring(0, 8)} - Total: ${total.toFixed(2)}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <p className="mb-6 text-gray-600">
+            Para completar tu compra, haz clic en el botón de MercadoPago a
+            continuación. Serás redirigido a una página segura para realizar el
+            pago.
+          </p>
+        </div>
+
+        <div className="w-full">
+          <MercadoPagoButton
+            preferenceId={preferenceId}
+            fallbackUrl={mercadoPagoUrl}
+            buttonText="Pagar con MercadoPago"
+          />
+        </div>
+
+        <div className="mt-6 p-4 bg-blue-50 rounded-lg">
+          <h4 className="font-medium text-blue-900 mb-2">
+            ℹ️ Información importante:
+          </h4>
+          <ul className="text-sm text-blue-800 space-y-1">
+            <li>
+              • Tu carrito se vaciará automáticamente después del pago exitoso
+            </li>
+            <li>
+              • Recibirás un email de confirmación una vez completado el pago
+            </li>
+            <li>
+              • Puedes pagar con tarjeta de crédito, débito o transferencia
+              bancaria
+            </li>
+            <li>• El pago es 100% seguro y está protegido por MercadoPago</li>
+          </ul>
+        </div>
+
+        <div className="mt-8 border-t pt-6">
+          <div className="flex justify-between items-center text-sm text-gray-600">
+            <Link
+              href="/products"
+              className="hover:text-black transition-colors"
+            >
+              ← Seguir comprando
+            </Link>
+            <Link
+              href="/profile/orders"
+              className="hover:text-black transition-colors"
+            >
+              Ver mis pedidos →
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // En el return del componente, usar esta función:
   // Si ya tenemos preferenceId, mostrar solo el botón de MercadoPago
   if (preferenceId) {
     return (
       <div className="bg-white min-h-screen py-12">
         <div className="container mx-auto px-4 max-w-md">
-          <div className="bg-white p-8 border border-gray-200">
-            <h1 className="text-2xl font-bold mb-6">Completar Pago</h1>
-            <p className="mb-6 text-gray-600">
-              Tu orden ha sido creada. Por favor, haz clic en el botón a
-              continuación para completar el pago con MercadoPago.
-            </p>
-
-            <div className="w-full items-center ">
-              <MercadoPagoButton
-                preferenceId={preferenceId}
-                fallbackUrl={mercadoPagoUrl}
-                buttonText="Pagar con MercadoPago"
-              />
-            </div>
-
-            <p className="text-sm text-gray-500 mt-6">
-              Serás redirigido a MercadoPago para completar tu pago. Tu carrito
-              se vaciará una vez completado el pago.
-            </p>
-
-            <div className="mt-8 border-t pt-6">
-              <Link
-                href="/profile/orders"
-                className="text-black hover:underline font-medium"
-              >
-                Ver mis pedidos
-              </Link>
-            </div>
-          </div>
+          {renderMercadoPagoButton()}
         </div>
       </div>
     );
   }
+
+  // // Si ya tenemos preferenceId, mostrar solo el botón de MercadoPago
+  // if (preferenceId) {
+  //   return (
+  //     <div className="bg-white min-h-screen py-12">
+  //       <div className="container mx-auto px-4 max-w-md">
+  //         <div className="bg-white p-8 border border-gray-200">
+  //           <h1 className="text-2xl font-bold mb-6">Completar Pago</h1>
+  //           <p className="mb-6 text-gray-600">
+  //             Tu orden ha sido creada. Por favor, haz clic en el botón a
+  //             continuación para completar el pago con MercadoPago.
+  //           </p>
+
+  //           <div className="w-full items-center ">
+  //             <MercadoPagoButton
+  //               preferenceId={preferenceId}
+  //               fallbackUrl={mercadoPagoUrl}
+  //               buttonText="Pagar con MercadoPago"
+  //             />
+  //           </div>
+
+  //           <p className="text-sm text-gray-500 mt-6">
+  //             Serás redirigido a MercadoPago para completar tu pago. Tu carrito
+  //             se vaciará una vez completado el pago.
+  //           </p>
+
+  //           <div className="mt-8 border-t pt-6">
+  //             <Link
+  //               href="/profile/orders"
+  //               className="text-black hover:underline font-medium"
+  //             >
+  //               Ver mis pedidos
+  //             </Link>
+  //           </div>
+  //         </div>
+  //       </div>
+  //     </div>
+  //   );
+  // }
 
   return (
     <div className="bg-white min-h-screen py-12">
