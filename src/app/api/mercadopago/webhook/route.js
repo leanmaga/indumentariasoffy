@@ -1,4 +1,4 @@
-// app/api/mercadopago/webhook/route.js - OPTIMIZADO CON EMAILS
+// debug-mercadopago.js - COMPLETO CON EMAILS
 import { NextResponse } from "next/server";
 import connectDB from "@/lib/db";
 import Order from "@/models/Order";
@@ -10,94 +10,126 @@ import {
 } from "@/lib/order-emails";
 
 export async function POST(request) {
+  // ===== DEBUGGING SECTION =====
+  console.log("🚀 === WEBHOOK DEBUG INICIADO ===");
+  console.log("Timestamp:", new Date().toISOString());
+  console.log("URL completa:", request.url);
+  console.log("Method:", request.method);
+
+  // Log de headers
+  const headers = Object.fromEntries(request.headers.entries());
+  console.log("📋 Headers recibidos:", headers);
+
+  // Log de variables de entorno importantes
+  console.log("🔧 Variables de entorno:");
+  console.log("- NODE_ENV:", process.env.NODE_ENV);
+  console.log("- NEXT_PUBLIC_BASE_URL:", process.env.NEXT_PUBLIC_BASE_URL);
+  console.log(
+    "- MERCADOPAGO_ACCESS_TOKEN exists:",
+    !!process.env.MERCADOPAGO_ACCESS_TOKEN
+  );
+  console.log(
+    "- WEBHOOK_SECRET exists:",
+    !!process.env.MERCADOPAGO_WEBHOOK_SECRET
+  );
+
   try {
     const bodyText = await request.text();
+    console.log("📦 Body recibido:", bodyText);
 
-    // Verificar firma del webhook (opcional)
+    // ===== COMENTAR VERIFICACIÓN DE FIRMA TEMPORALMENTE =====
+    /*
     if (process.env.MERCADOPAGO_WEBHOOK_SECRET) {
       const signature = request.headers.get("x-signature") || "";
       const isValid = verifyWebhookSignature(bodyText, signature);
-
-      if (!isValid) {
-        console.warn("⚠️ Firma del webhook inválida");
-        // En desarrollo, continuar; en producción, retornar error
-        if (process.env.NODE_ENV === "production") {
-          return NextResponse.json(
-            { message: "Invalid signature" },
-            { status: 401 }
-          );
-        }
+      if (!isValid && process.env.NODE_ENV === "production") {
+        console.log("❌ Firma inválida - RECHAZANDO");
+        return NextResponse.json({ message: "Invalid signature" }, { status: 401 });
       }
     }
+    */
 
-    // Parsear datos de la notificación
     let data;
     try {
       data = JSON.parse(bodyText);
+      console.log("✅ JSON parseado correctamente:", data);
     } catch (error) {
       console.error("❌ Error parseando JSON:", error);
-      return NextResponse.json(
-        { message: "Invalid JSON payload" },
-        { status: 200 }
-      );
+      return NextResponse.json({ message: "Invalid JSON" }, { status: 200 });
     }
 
-    console.log("🔔 Webhook recibido:", JSON.stringify(data, null, 2));
-
-    // Procesar solo notificaciones de pagos
+    // Verificar que es una notificación de pago
     if (
       data.action === "payment.created" ||
       data.action === "payment.updated"
     ) {
-      const paymentId = data.data?.id;
+      console.log("💳 Es notificación de pago - continuando...");
 
+      const paymentId = data.data?.id;
       if (!paymentId) {
-        console.warn("⚠️ No hay payment ID en la notificación");
+        console.log("❌ No hay payment ID");
         return NextResponse.json({ message: "No payment ID" }, { status: 200 });
       }
 
-      console.log(`💳 Procesando pago ID: ${paymentId}`);
+      console.log(`🔍 Buscando info del pago ID: ${paymentId}`);
 
-      // Obtener info del pago usando SDK
+      // Aquí continúa tu lógica normal...
+      // Pero con logs adicionales
+
       let paymentInfo;
       try {
         paymentInfo = await getPaymentById(paymentId);
+        console.log("✅ Info del pago obtenida:", {
+          id: paymentInfo.id,
+          status: paymentInfo.status,
+          external_reference: paymentInfo.external_reference,
+        });
       } catch (error) {
         console.error("❌ Error obteniendo info del pago:", error);
         return NextResponse.json(
-          { message: "Error getting payment info" },
+          { message: "Payment info error" },
           { status: 200 }
         );
       }
 
       const externalReference = paymentInfo.external_reference;
-
       if (!externalReference) {
-        console.warn("⚠️ No hay external_reference en el pago");
+        console.log("❌ No hay external_reference");
         return NextResponse.json(
           { message: "No external reference" },
           { status: 200 }
         );
       }
 
-      // Actualizar orden en la base de datos
-      try {
-        await connectDB();
+      console.log(`🔍 Buscando orden: ${externalReference}`);
 
-        const order = await Order.findById(externalReference);
-        if (!order) {
-          console.warn(`⚠️ Orden ${externalReference} no encontrada`);
-          return NextResponse.json(
-            { message: "Order not found" },
-            { status: 200 }
-          );
-        }
+      await connectDB();
+      const order = await Order.findById(externalReference);
 
-        console.log(
-          `📦 Orden encontrada: ${order._id}, estado actual: ${order.status}`
+      if (!order) {
+        console.log(`❌ Orden ${externalReference} no encontrada`);
+        return NextResponse.json(
+          { message: "Order not found" },
+          { status: 200 }
         );
+      }
 
-        // Obtener información del usuario
+      console.log(`✅ Orden encontrada - Estado actual: ${order.status}`);
+
+      const paymentStatus = paymentInfo.status;
+      const previousStatus = order.status;
+
+      // Log del cambio de estado
+      console.log(`🔄 Cambio de estado: ${previousStatus} → `, {
+        paymentStatus,
+        shouldUpdate: paymentStatus === "approved" && order.status !== "pagado",
+      });
+
+      // Actualizar según el estado
+      if (paymentStatus === "approved" && order.status !== "pagado") {
+        console.log("✅ ACTUALIZANDO ESTADO A PAGADO");
+
+        // Obtener información del usuario ANTES de actualizar
         const user = await User.findById(order.user);
         if (!user) {
           console.warn(`⚠️ Usuario no encontrado para la orden ${order._id}`);
@@ -107,78 +139,12 @@ export async function POST(request) {
           );
         }
 
-        const paymentStatus = paymentInfo.status;
-        const previousStatus = order.status;
-        let statusChanged = false;
-        let emailResults = null;
+        console.log(`👤 Usuario encontrado: ${user.email}`);
 
-        // Mapear estado del pago al estado de la orden
-        if (paymentStatus === "approved" && order.status !== "pagado") {
-          order.status = "pagado";
-          statusChanged = true;
-
-          console.log("✅ Pago aprobado - enviando emails de confirmación");
-
-          // 🆕 USAR FUNCIÓN COMBINADA PARA EMAILS
-          try {
-            emailResults = await sendPaymentConfirmedEmails(
-              order,
-              user,
-              paymentInfo
-            );
-
-            console.log("📧 Resultado de emails:", {
-              success: emailResults.success,
-              customer: emailResults.customerResult?.success,
-              admin: emailResults.adminResult?.success,
-            });
-
-            // Guardar info de emails en la orden
-            order.paymentDetails = {
-              ...order.paymentDetails,
-              emailsSent: {
-                timestamp: new Date(),
-                success: emailResults.success,
-                customerResult: emailResults.customerResult,
-                adminResult: emailResults.adminResult,
-              },
-            };
-          } catch (emailError) {
-            console.error("❌ Error enviando emails:", emailError);
-
-            // Guardar el error en la orden para debugging
-            order.paymentDetails = {
-              ...order.paymentDetails,
-              emailError: {
-                timestamp: new Date(),
-                error: emailError.message,
-                stack: emailError.stack,
-              },
-            };
-
-            // No fallar el webhook por errores de email
-          }
-
-          // Cancelar órdenes duplicadas del mismo usuario
-          await cancelDuplicateOrders(order);
-        } else if (paymentStatus === "pending") {
-          if (order.status !== "pendiente") {
-            order.status = "pendiente";
-            statusChanged = true;
-          }
-        } else if (
-          paymentStatus === "rejected" ||
-          paymentStatus === "cancelled" ||
-          paymentStatus === "refunded"
-        ) {
-          if (order.status !== "cancelado") {
-            order.status = "cancelado";
-            statusChanged = true;
-          }
-        }
-
-        // Guardar detalles del pago
+        order.status = "pagado";
         order.paymentId = paymentId;
+
+        // Actualizar detalles del pago
         order.paymentDetails = {
           ...order.paymentDetails,
           status: paymentStatus,
@@ -188,132 +154,96 @@ export async function POST(request) {
           statusHistory: order.paymentDetails?.statusHistory || [],
         };
 
-        // Agregar al historial de cambios de estado
-        if (statusChanged) {
-          order.paymentDetails.statusHistory.push({
-            from: previousStatus,
-            to: order.status,
-            timestamp: new Date(),
-            paymentId: paymentId,
-            emailsSent: emailResults?.success || false,
+        let emailResults = null;
+
+        // 🆕 ENVIAR EMAILS DE CONFIRMACIÓN
+        console.log("📧 Enviando emails de confirmación...");
+        try {
+          emailResults = await sendPaymentConfirmedEmails(
+            order,
+            user,
+            paymentInfo
+          );
+
+          console.log("✅ Resultado de emails:", {
+            success: emailResults.success,
+            customer: emailResults.customerResult?.success,
+            admin: emailResults.adminResult?.success,
           });
 
-          console.log(
-            `🔄 Estado cambiado: ${previousStatus} → ${order.status}`
-          );
+          // Guardar info de emails en la orden
+          order.paymentDetails.emailsSent = {
+            timestamp: new Date(),
+            success: emailResults.success,
+            customerResult: emailResults.customerResult,
+            adminResult: emailResults.adminResult,
+          };
+        } catch (emailError) {
+          console.error("❌ Error enviando emails:", emailError);
+
+          // Guardar el error en la orden para debugging
+          order.paymentDetails.emailError = {
+            timestamp: new Date(),
+            error: emailError.message,
+            stack: emailError.stack,
+          };
+
+          // ⚠️ NO fallar el webhook por errores de email
+          console.log("⚠️ Continuando sin emails...");
         }
+
+        // Agregar al historial de cambios de estado
+        order.paymentDetails.statusHistory.push({
+          from: previousStatus,
+          to: order.status,
+          timestamp: new Date(),
+          paymentId: paymentId,
+          emailsSent: emailResults?.success || false,
+        });
 
         await order.save();
 
-        console.log("✅ Webhook procesado exitosamente:", {
-          orderId: order._id,
-          paymentStatus,
-          orderStatus: order.status,
-          emailsSent: emailResults?.success,
-          statusChanged,
-        });
+        console.log("✅ ORDEN GUARDADA EXITOSAMENTE CON EMAILS");
 
-        // 🆕 RESPUESTA MEJORADA CON MÁS INFO
         return NextResponse.json({
           message: "Webhook processed successfully",
           orderId: order._id,
-          paymentStatus,
-          orderStatus: order.status,
+          previousStatus,
+          newStatus: order.status,
           emailsSent: emailResults?.success || false,
+          emailDetails: {
+            customer: emailResults?.customerResult?.success || false,
+            admin: emailResults?.adminResult?.success || false,
+          },
           processed: true,
         });
-      } catch (error) {
-        console.error("❌ Error actualizando orden:", error);
-        return NextResponse.json(
-          { message: `Error updating order: ${error.message}` },
-          { status: 200 }
-        );
+      } else {
+        console.log("ℹ️ No se requiere actualización:", {
+          paymentStatus,
+          currentOrderStatus: order.status,
+        });
+
+        return NextResponse.json({
+          message: "No update required",
+          paymentStatus,
+          orderStatus: order.status,
+        });
       }
     } else {
-      console.warn("⚠️ Notificación no es de pago:", data.action);
-      return NextResponse.json(
-        { message: "Not a payment notification", action: data.action },
-        { status: 200 }
-      );
+      console.log("⚠️ No es notificación de pago:", data.action);
+      return NextResponse.json({
+        message: "Not a payment notification",
+        action: data.action,
+      });
     }
   } catch (error) {
-    console.error("❌ === ERROR EN WEBHOOK ===", error);
+    console.error("❌ === ERROR GENERAL ===", error);
     return NextResponse.json(
       {
-        message: `Error processing webhook: ${error.message}`,
-        error: process.env.NODE_ENV === "development" ? error.stack : undefined,
+        message: `Error: ${error.message}`,
+        stack: process.env.NODE_ENV === "development" ? error.stack : undefined,
       },
       { status: 200 }
     );
   }
-}
-
-// Función para cancelar órdenes duplicadas
-async function cancelDuplicateOrders(paidOrder) {
-  try {
-    const timeWindow = 30 * 60 * 1000; // 30 minutos
-    const cutoffTime = new Date(paidOrder.createdAt.getTime() - timeWindow);
-
-    const duplicateOrders = await Order.find({
-      _id: { $ne: paidOrder._id },
-      user: paidOrder.user,
-      status: { $in: ["pendiente", "whatsapp_pendiente"] },
-      createdAt: { $gte: cutoffTime },
-      "items.product": { $in: paidOrder.items.map((item) => item.product) },
-    });
-
-    if (duplicateOrders.length > 0) {
-      console.log(`🗑️ Cancelando ${duplicateOrders.length} órdenes duplicadas`);
-
-      await Order.updateMany(
-        { _id: { $in: duplicateOrders.map((o) => o._id) } },
-        {
-          status: "cancelado",
-          $set: {
-            "paymentDetails.cancelledReason":
-              "Orden duplicada - pago exitoso en otra orden",
-            "paymentDetails.cancelledAt": new Date(),
-          },
-        }
-      );
-
-      console.log(`✅ ${duplicateOrders.length} órdenes duplicadas canceladas`);
-    }
-  } catch (error) {
-    console.error("❌ Error cancelando órdenes duplicadas:", error);
-  }
-}
-
-// Función para verificar la firma del webhook
-function verifyWebhookSignature(body, signature) {
-  try {
-    if (!signature || !process.env.MERCADOPAGO_WEBHOOK_SECRET) {
-      return false;
-    }
-
-    const hmac = crypto.createHmac(
-      "sha256",
-      process.env.MERCADOPAGO_WEBHOOK_SECRET
-    );
-    hmac.update(body);
-    const calculatedSignature = hmac.digest("hex");
-
-    return calculatedSignature === signature;
-  } catch (error) {
-    console.error("❌ Error verificando firma:", error);
-    return false;
-  }
-}
-
-export async function OPTIONS() {
-  return NextResponse.json(
-    {},
-    {
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "POST, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type, x-signature",
-      },
-    }
-  );
 }

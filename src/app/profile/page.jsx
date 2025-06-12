@@ -77,23 +77,62 @@ export default function ProfilePage() {
             const ordersResponse = await fetch(
               "/api/users/orders?userOnly=true&limit=3"
             );
-            if (ordersResponse.ok) {
-              const ordersData = await ordersResponse.json();
-              setRecentOrders(ordersData.orders || []);
-            } else {
-              const ordersErrorData = await ordersResponse.json();
+
+            // ✅ MEJOR MANEJO DE ERRORES
+            if (!ordersResponse.ok) {
+              // Si es 404, el endpoint no existe
+              if (ordersResponse.status === 404) {
+                console.warn(
+                  "Endpoint de órdenes no encontrado, intentando ruta alternativa"
+                );
+
+                // Intentar con la ruta alternativa
+                const altResponse = await fetch("/api/profile/orders?limit=3");
+                if (altResponse.ok) {
+                  const altData = await altResponse.json();
+                  setRecentOrders(
+                    Array.isArray(altData) ? altData.slice(0, 3) : []
+                  );
+                }
+                return;
+              }
+
+              // Si es 405, método no permitido
+              if (ordersResponse.status === 405) {
+                console.warn("Método no permitido en endpoint de órdenes");
+                return;
+              }
+
+              // Otros errores
               throw new Error(
-                ordersErrorData.message || "Error al obtener pedidos recientes"
+                `Error ${ordersResponse.status}: ${ordersResponse.statusText}`
+              );
+            }
+
+            // ✅ VERIFICAR QUE LA RESPUESTA SEA JSON VÁLIDO
+            const contentType = ordersResponse.headers.get("content-type");
+            if (!contentType || !contentType.includes("application/json")) {
+              console.warn("La respuesta no es JSON válido");
+              return;
+            }
+
+            const ordersData = await ordersResponse.json();
+
+            // ✅ MANEJO SEGURO DE LA ESTRUCTURA DE DATOS
+            if (ordersData.success && ordersData.orders) {
+              setRecentOrders(ordersData.orders);
+            } else if (Array.isArray(ordersData)) {
+              setRecentOrders(ordersData.slice(0, 3));
+            } else {
+              console.warn(
+                "Estructura de datos de órdenes inesperada:",
+                ordersData
               );
             }
           } catch (orderError) {
             console.error("Error al obtener pedidos recientes:", orderError);
-            // No mostrar errores de órdenes al usuario para no interrumpir la experiencia
           }
         }
-      } catch (error) {
-        console.error("Error al cargar perfil:", error);
-        toast.error("No se pudieron cargar los datos del perfil");
       } finally {
         setLoading(false);
       }

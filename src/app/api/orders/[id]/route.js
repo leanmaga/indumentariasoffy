@@ -8,16 +8,23 @@ import User from "@/models/User";
 import { getPaymentsByExternalReference } from "@/lib/mercadopago";
 import { sendPaymentConfirmedEmails } from "@/lib/order-emails";
 
-// GET para obtener los detalles de una orden específica
 export async function GET(request, { params }) {
   try {
-    // Verificar la sesión del usuario
     const session = await getServerSession(authOptions);
     if (!session) {
       return NextResponse.json({ message: "No autorizado" }, { status: 401 });
     }
 
-    const orderId = params.id;
+    // ✅ CORRECTO: Await params antes de usar sus propiedades
+    const { id: orderId } = await params;
+
+    // Validar que el ID existe
+    if (!orderId) {
+      return NextResponse.json(
+        { message: "ID de orden no proporcionado" },
+        { status: 400 }
+      );
+    }
 
     // Conectar a la base de datos
     await connectDB();
@@ -45,7 +52,6 @@ export async function GET(request, { params }) {
     // Si la orden tiene MercadoPago como método de pago, obtener detalles adicionales
     let paymentDetails = null;
     if (order.paymentMethod === "mercadopago" && order.paymentId) {
-      // Obtener detalles del pago directamente por ID
       try {
         const payments = await getPaymentsByExternalReference(
           order._id.toString()
@@ -59,13 +65,13 @@ export async function GET(request, { params }) {
     }
 
     return NextResponse.json({
-      order,
+      order: JSON.parse(JSON.stringify(order)),
       paymentDetails,
     });
   } catch (error) {
-    console.error("Error al obtener la orden:", error);
+    console.error("Error al obtener orden:", error);
     return NextResponse.json(
-      { message: `Error al obtener la orden: ${error.message}` },
+      { message: "Error al obtener la orden: " + error.message },
       { status: 500 }
     );
   }
@@ -210,7 +216,6 @@ export async function PATCH(request, { params }) {
   }
 }
 
-// DELETE para cancelar una orden (opcional)
 export async function DELETE(request, { params }) {
   try {
     const session = await getServerSession(authOptions);
@@ -218,7 +223,16 @@ export async function DELETE(request, { params }) {
       return NextResponse.json({ message: "No autorizado" }, { status: 403 });
     }
 
-    const orderId = params.id;
+    // ✅ AWAIT params
+    const { id: orderId } = await params;
+
+    if (!orderId) {
+      return NextResponse.json(
+        { message: "ID de orden no proporcionado" },
+        { status: 400 }
+      );
+    }
+
     await connectDB();
 
     const order = await Order.findById(orderId);
