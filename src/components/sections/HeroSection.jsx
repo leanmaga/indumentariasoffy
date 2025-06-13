@@ -89,13 +89,6 @@ export default function HeroSection() {
           </div>
         </div>
       )}
-
-      {/* Mostrar error si hay problema (solo en development) */}
-      {process.env.NODE_ENV === "development" && error && (
-        <div className="absolute bottom-4 left-4 z-20 bg-red-500/80 text-white px-4 py-2 rounded-lg text-sm">
-          Error: {error}
-        </div>
-      )}
     </section>
   );
 }

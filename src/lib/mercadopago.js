@@ -221,8 +221,59 @@ export const getPaymentStatus = async (paymentId) => {
   }
 };
 
-// Función para verificar configuración
+// Función para verificar configuración - CORREGIDA PARA PRODUCCIÓN
 export const checkMercadoPagoStatus = async () => {
+  try {
+    await connectDB();
+    const config = await MercadoPagoConfigModel.getActiveConfig();
+
+    console.log("🔍 Verificando configuración de MercadoPago...");
+    console.log(
+      "📊 Config de base de datos:",
+      config ? "ENCONTRADA" : "NO ENCONTRADA"
+    );
+
+    // ✅ SOLO verificar configuración en base de datos para tienda real
+    if (config && config.accessToken) {
+      const isExpired = config.expiresAt && new Date() > config.expiresAt;
+
+      console.log("✅ Configuración válida en base de datos:", {
+        isExpired,
+        isProduction: config.isProduction,
+        expiresAt: config.expiresAt,
+      });
+
+      return {
+        isConfigured: !isExpired,
+        isProduction: config.isProduction,
+        expiresAt: config.expiresAt,
+        source: "database",
+        isExpired: isExpired,
+      };
+    }
+
+    // ✅ NO hacer fallback a variables de entorno para tienda real
+    console.log("❌ No hay configuración de MercadoPago del cliente");
+
+    return {
+      isConfigured: false,
+      isProduction: false,
+      source: "none",
+      message: "No hay cuenta de MercadoPago vinculada",
+    };
+  } catch (error) {
+    console.error("❌ Error al verificar estado de MercadoPago:", error);
+    return {
+      isConfigured: false,
+      isProduction: false,
+      source: "none",
+      error: error.message,
+    };
+  }
+};
+
+// ✅ FUNCIÓN SEPARADA para desarrollo/fallback (opcional)
+export const checkMercadoPagoStatusWithFallback = async () => {
   try {
     await connectDB();
     const config = await MercadoPagoConfigModel.getActiveConfig();
@@ -241,7 +292,9 @@ export const checkMercadoPagoStatus = async () => {
       };
     }
 
-    // Verificar configuración automática
+    // Fallback a configuración automática (solo para desarrollo)
+    console.warn("⚠️ Usando fallback a variables de entorno (desarrollo)");
+
     return {
       isConfigured: !!mpConfig.accessToken,
       isProduction: mpConfig.environment === "production",

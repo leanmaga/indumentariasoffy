@@ -1,7 +1,7 @@
-// app/admin/reviews/page.js - PÁGINA PRINCIPAL DE ADMIN PARA REVIEWS
+// app/admin/reviews/page
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { toast } from "react-hot-toast";
 import Image from "next/image";
@@ -13,25 +13,21 @@ import {
   TrashIcon,
   EyeIcon,
   CheckCircleIcon,
-  XCircleIcon,
   ExclamationTriangleIcon,
   MagnifyingGlassIcon,
-  FunnelIcon,
-  ChartBarIcon,
   UserIcon,
   CalendarIcon,
-  ClockIcon,
 } from "@heroicons/react/24/outline";
 
 const AdminReviewsPage = () => {
   const { data: session } = useSession();
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("ratings"); // ratings, questions, all
+  const [activeTab, setActiveTab] = useState("ratings");
   const [searchTerm, setSearchTerm] = useState("");
-  const [ratingFilter, setRatingFilter] = useState("all"); // all, 5, 4, 3, 2, 1
-  const [statusFilter, setStatusFilter] = useState("all"); // all, verified, reported
-  const [sortBy, setSortBy] = useState("newest"); // newest, oldest, highest, lowest, helpful
+  const [ratingFilter, setRatingFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [sortBy, setSortBy] = useState("newest");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(20);
   const [selectedReviews, setSelectedReviews] = useState(new Set());
@@ -48,12 +44,7 @@ const AdminReviewsPage = () => {
     ratingDistribution: [0, 0, 0, 0, 0],
   });
 
-  useEffect(() => {
-    if (session?.user?.role === "admin") {
-      fetchReviews();
-    }
-  }, [session?.user?.role, fetchReviews]);
-
+  // ✅ SOLUCIÓN: Mover fetchReviews antes del useEffect
   const fetchReviews = useCallback(async () => {
     try {
       setLoading(true);
@@ -94,6 +85,13 @@ const AdminReviewsPage = () => {
     currentPage,
     itemsPerPage,
   ]);
+
+  // ✅ Ahora el useEffect puede usar fetchReviews sin problemas
+  useEffect(() => {
+    if (session?.user?.role === "admin") {
+      fetchReviews();
+    }
+  }, [session?.user?.role, fetchReviews]);
 
   const handleDeleteReview = async (reviewId) => {
     if (!confirm("¿Estás seguro de que quieres eliminar esta review?")) {
@@ -266,23 +264,6 @@ const AdminReviewsPage = () => {
               Administra las opiniones y preguntas de los productos
             </p>
           </div>
-
-          {/* <div className="flex items-center space-x-3">
-            <Link
-              href="/admin/reviews/analytics"
-              className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700"
-            >
-              <ChartBarIcon className="h-4 w-4 mr-2" />
-              Analytics
-            </Link>
-            <Link
-              href="/admin/questions"
-              className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700"
-            >
-              <ChatBubbleLeftRightIcon className="h-4 w-4 mr-2" />
-              Gestionar Preguntas
-            </Link>
-          </div> */}
         </div>
 
         {/* Estadísticas Rápidas */}

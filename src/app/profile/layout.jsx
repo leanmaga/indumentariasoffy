@@ -1,4 +1,4 @@
-// app/profile/layout.jsx - VERSIÓN SIMPLE SIN POLLING EXCESIVO
+// app/profile/layout.jsx - CON CAMBIOS APLICADOS
 "use client";
 
 import { useSession } from "next-auth/react";
@@ -102,17 +102,6 @@ export default function ProfileLayout({ children }) {
             </button>
           </div>
 
-          {/* ✅ DEBUG temporal (remover después) */}
-          {process.env.NODE_ENV === "development" && (
-            <div className="mb-4 p-2 bg-blue-50 border border-blue-200 rounded text-xs">
-              <strong>DEBUG:</strong> Última actualización:{" "}
-              {lastFetch || "Nunca"} |
-              {isAdmin
-                ? ` Preguntas pendientes: ${unreadQuestions}`
-                : ` Mensajes no leídos: ${unreadMessages}`}
-            </div>
-          )}
-
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             {/* Barra de navegación lateral */}
             <div className="md:col-span-1">
@@ -129,17 +118,20 @@ export default function ProfileLayout({ children }) {
                     Mi Perfil
                   </Link>
 
-                  <Link
-                    href="/profile/orders"
-                    className={`font-sora-regular block px-4 py-2 rounded-md text-sm font-medium ${
-                      pathname === "/profile/orders" ||
-                      pathname.startsWith("/profile/orders/")
-                        ? "bg-indigo-50 text-indigo-600"
-                        : "text-gray-700 hover:bg-gray-100"
-                    }`}
-                  >
-                    Mis Pedidos
-                  </Link>
+                  {/* ✅ CAMBIO APLICADO: Solo mostrar "Mis Pedidos" si NO es admin */}
+                  {!isAdmin && (
+                    <Link
+                      href="/profile/orders"
+                      className={`font-sora-regular block px-4 py-2 rounded-md text-sm font-medium ${
+                        pathname === "/profile/orders" ||
+                        pathname.startsWith("/profile/orders/")
+                          ? "bg-indigo-50 text-indigo-600"
+                          : "text-gray-700 hover:bg-gray-100"
+                      }`}
+                    >
+                      Mis Pedidos
+                    </Link>
+                  )}
 
                   {/* Sección de Mensajes */}
                   <Link

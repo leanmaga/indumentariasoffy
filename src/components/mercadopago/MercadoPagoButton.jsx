@@ -165,21 +165,6 @@ const MercadoPagoButton = ({
           )}
         </button>
       )}
-
-      {/* Debug info en desarrollo */}
-      {process.env.NODE_ENV === "development" && (
-        <div className="mt-2 p-2 bg-gray-100 rounded text-xs text-gray-600">
-          <p>
-            Debug: SDK={isSDKLoaded ? "✅" : "❌"} | Button=
-            {buttonRendered ? "✅" : "❌"} | Preference=
-            {preferenceId ? "✅" : "❌"}
-          </p>
-          {preferenceId && <p>Preference ID: {preferenceId}</p>}
-          {fallbackUrl && (
-            <p>Fallback URL: {fallbackUrl.substring(0, 50)}...</p>
-          )}
-        </div>
-      )}
     </div>
   );
 };

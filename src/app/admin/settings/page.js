@@ -79,43 +79,6 @@ export default function AdminSettingsPage() {
             <h2 className="text-xl font-medium mb-4">Pagos y Facturación</h2>
             <div className="bg-white p-6 rounded-lg shadow-md">
               <MercadoPagoLinkButton />
-
-              <div className="mt-6 pt-6 border-t border-gray-200">
-                <h3 className="text-lg font-medium mb-4">
-                  Configuración de Pagos
-                </h3>
-                <div className="space-y-4">
-                  <div className="flex items-center">
-                    <input
-                      id="acceptCash"
-                      type="checkbox"
-                      defaultChecked
-                      className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-                    />
-                    <label
-                      htmlFor="acceptCash"
-                      className="ml-3 text-sm text-gray-700"
-                    >
-                      Aceptar pagos en efectivo
-                    </label>
-                  </div>
-
-                  <div className="flex items-center">
-                    <input
-                      id="acceptTransfer"
-                      type="checkbox"
-                      defaultChecked
-                      className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-                    />
-                    <label
-                      htmlFor="acceptTransfer"
-                      className="ml-3 text-sm text-gray-700"
-                    >
-                      Aceptar transferencias bancarias
-                    </label>
-                  </div>
-                </div>
-              </div>
             </div>
           </section>
         )}
