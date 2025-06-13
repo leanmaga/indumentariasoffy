@@ -11,6 +11,63 @@ import {
 import Image from "next/image";
 import MultipleImageUploader from "@/components/admin/MultipleImageUploader";
 
+// Categorías que usan variantes (talle + color)
+const variantCategories = ["camisetas", "pantalones", "calzado", "abrigos"];
+
+// Categorías que usan campos específicos
+const clothingCategories = [
+  "camisetas",
+  "pantalones",
+  "calzado",
+  "abrigos",
+  "accesorios",
+];
+
+// Opciones predefinidas de talles y colores por categoría
+const sizeOptions = {
+  camisetas: ["XS", "S", "M", "L", "XL", "XXL", "XXXL"],
+  pantalones: ["36", "38", "40", "42", "44", "46", "48", "50", "52", "54"],
+  calzado: [
+    "35",
+    "36",
+    "37",
+    "38",
+    "39",
+    "40",
+    "41",
+    "42",
+    "43",
+    "44",
+    "45",
+    "46",
+  ],
+  abrigos: ["XS", "S", "M", "L", "XL", "XXL"],
+  accesorios: ["Único"],
+};
+
+const commonColors = [
+  "Negro",
+  "Blanco",
+  "Azul",
+  "Rojo",
+  "Gris",
+  "Marrón",
+  "Verde",
+  "Amarillo",
+  "Naranja",
+  "Púrpura",
+  "Rosa",
+  "Beige",
+  "Navy",
+  "Khaki",
+];
+
+const genderOptions = ["hombre", "mujer", "unisex", "niños", "niñas", "bebés"];
+
+const seasonOptions = ["verano", "invierno", "primavera", "otoño", "todas"];
+const waistTypeOptions = ["regular", "alto", "bajo"];
+const fitOptions = ["skinny", "slim", "regular", "relaxed", "bootcut", "wide"];
+
 export default function AddProductPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -60,77 +117,6 @@ export default function AddProductPage() {
   const [showExtraFields, setShowExtraFields] = useState(false);
   const [clothingType, setClothingType] = useState("");
 
-  // Opciones predefinidas de talles y colores por categoría
-  const sizeOptions = {
-    camisetas: ["XS", "S", "M", "L", "XL", "XXL", "XXXL"],
-    pantalones: ["36", "38", "40", "42", "44", "46", "48", "50", "52", "54"],
-    calzado: [
-      "35",
-      "36",
-      "37",
-      "38",
-      "39",
-      "40",
-      "41",
-      "42",
-      "43",
-      "44",
-      "45",
-      "46",
-    ],
-    abrigos: ["XS", "S", "M", "L", "XL", "XXL"],
-    accesorios: ["Único"],
-  };
-
-  const commonColors = [
-    "Negro",
-    "Blanco",
-    "Azul",
-    "Rojo",
-    "Gris",
-    "Marrón",
-    "Verde",
-    "Amarillo",
-    "Naranja",
-    "Púrpura",
-    "Rosa",
-    "Beige",
-    "Navy",
-    "Khaki",
-  ];
-
-  const genderOptions = [
-    "hombre",
-    "mujer",
-    "unisex",
-    "niños",
-    "niñas",
-    "bebés",
-  ];
-
-  const seasonOptions = ["verano", "invierno", "primavera", "otoño", "todas"];
-  const waistTypeOptions = ["regular", "alto", "bajo"];
-  const fitOptions = [
-    "skinny",
-    "slim",
-    "regular",
-    "relaxed",
-    "bootcut",
-    "wide",
-  ];
-
-  // Categorías que usan variantes (talle + color)
-  const variantCategories = ["camisetas", "pantalones", "calzado", "abrigos"];
-
-  // Categorías que usan campos específicos
-  const clothingCategories = [
-    "camisetas",
-    "pantalones",
-    "calzado",
-    "abrigos",
-    "accesorios",
-  ];
-
   // Efecto para calcular el margen automáticamente
   useEffect(() => {
     if (autoCalculateMargin && formData.salePrice && formData.cost) {
@@ -165,7 +151,7 @@ export default function AddProductPage() {
         variants: [],
       }));
     }
-  }, [formData.category, clothingCategories, variantCategories]);
+  }, [formData.category]);
 
   // Efecto para autogenerar variantes cuando cambian talles o colores
   useEffect(() => {
