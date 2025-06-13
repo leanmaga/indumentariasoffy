@@ -52,9 +52,9 @@ const AdminReviewsPage = () => {
     if (session?.user?.role === "admin") {
       fetchReviews();
     }
-  }, [session, activeTab, ratingFilter, statusFilter, sortBy, currentPage]);
+  }, [session?.user?.role, fetchReviews]);
 
-  const fetchReviews = async () => {
+  const fetchReviews = useCallback(async () => {
     try {
       setLoading(true);
       const params = new URLSearchParams({
@@ -86,7 +86,14 @@ const AdminReviewsPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [
+    activeTab,
+    ratingFilter,
+    statusFilter,
+    sortBy,
+    currentPage,
+    itemsPerPage,
+  ]);
 
   const handleDeleteReview = async (reviewId) => {
     if (!confirm("¿Estás seguro de que quieres eliminar esta review?")) {

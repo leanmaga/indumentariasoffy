@@ -123,10 +123,8 @@ export default function OrderDetailsPage() {
         // Prioridad: init_point (producción) -> sandbox_init_point (desarrollo/test)
         if (result.paymentInfo.init_point) {
           redirectUrl = result.paymentInfo.init_point;
-          console.log("🚀 Usando URL de PRODUCCIÓN:", redirectUrl);
         } else if (result.paymentInfo.sandbox_init_point) {
           redirectUrl = result.paymentInfo.sandbox_init_point;
-          console.log("🧪 Usando URL de SANDBOX:", redirectUrl);
         } else {
           throw new Error("No se pudo obtener la URL de pago");
         }

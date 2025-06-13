@@ -137,18 +137,10 @@ export async function PATCH(request, { params }) {
 
       // 🆕 ENVIAR EMAILS CUANDO EL ESTADO CAMBIA A "PAGADO"
       if (data.status === "pagado" && previousStatus !== "pagado") {
-        console.log(
-          `📧 Admin cambió estado a 'pagado' - enviando emails para orden: ${orderId}`
-        );
-
         try {
           emailResults = await sendPaymentConfirmedEmails(order, user);
 
           if (emailResults.success) {
-            console.log(
-              "✅ Emails enviados exitosamente tras cambio manual a 'pagado'"
-            );
-
             // Agregar información sobre los emails enviados
             order.paymentDetails = {
               ...order.paymentDetails,

@@ -57,8 +57,6 @@ export async function POST(request) {
     const body = await request.json();
     const { action } = body;
 
-    console.log(`🧪 Ejecutando acción de prueba: ${action}`);
-
     switch (action) {
       // 🔧 TEST CONNECTION
       case "test_connection": {
@@ -68,12 +66,9 @@ export async function POST(request) {
 
       // 📦 CREATE TEST ORDER
       case "create_test_order": {
-        console.log("📦 Creando orden de prueba...");
-
         // Buscar o crear usuario de prueba
         let testUser = await User.findOne({ email: "test@example.com" });
         if (!testUser) {
-          console.log("👤 Creando usuario de prueba...");
           testUser = new User({
             name: "Usuario de Prueba",
             email: "test@example.com",
@@ -82,25 +77,17 @@ export async function POST(request) {
             role: "user",
           });
           await testUser.save();
-          console.log("✅ Usuario de prueba creado:", testUser._id);
         } else {
-          console.log(
-            "✅ Usuario de prueba existente encontrado:",
-            testUser._id
-          );
           // Verificar que tenga todos los campos necesarios
           if (!testUser.phone) {
             testUser.phone = "+54 11 1234-5678";
             await testUser.save();
-            console.log("✅ Usuario actualizado con teléfono");
           }
         }
 
         // Buscar productos existentes o crear productos de prueba
         let products = await Product.find().limit(2);
         if (products.length === 0) {
-          console.log("🛍️ No hay productos, creando productos de prueba...");
-
           const testProducts = [
             {
               title: "Producto de Prueba 1",
@@ -123,9 +110,6 @@ export async function POST(request) {
           ];
 
           products = await Product.insertMany(testProducts);
-          console.log("✅ Productos de prueba creados:", products.length);
-        } else {
-          console.log("✅ Productos existentes encontrados:", products.length);
         }
 
         // Crear orden de prueba
@@ -163,8 +147,6 @@ export async function POST(request) {
         });
 
         await testOrder.save();
-
-        console.log("✅ Orden de prueba creada:", testOrder._id);
 
         return NextResponse.json({
           success: true,
@@ -205,8 +187,6 @@ export async function POST(request) {
             { status: 404 }
           );
         }
-
-        console.log(`🧪 Probando emails para orden: ${orderId}`);
 
         const results = [];
 
@@ -293,10 +273,6 @@ export async function POST(request) {
             { status: 404 }
           );
         }
-
-        console.log(
-          `🔄 Reenviando emails para orden: ${orderId}, tipo: ${emailType}`
-        );
 
         const emailTypes =
           emailType === "both" ? ["customer", "admin"] : [emailType];

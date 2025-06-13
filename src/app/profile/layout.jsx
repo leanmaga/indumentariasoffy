@@ -31,7 +31,6 @@ export default function ProfileLayout({ children }) {
   // ✅ SIMPLE: Solo una carga inicial cuando se autentica
   useEffect(() => {
     if (session?.user && status === "authenticated") {
-      console.log("🚀 Loading initial unread counts for:", session.user.email);
       fetchUnreadCounts();
     }
   }, [session?.user?.id]); // ✅ Solo cuando cambia el ID del usuario
@@ -42,18 +41,14 @@ export default function ProfileLayout({ children }) {
 
     setLoading(true);
     try {
-      console.log("📡 Fetching unread counts...");
-
       const response = await fetch("/api/messages/unread-count");
       if (response.ok) {
         const data = await response.json();
 
         if (session.user.role === "admin") {
           setUnreadQuestions(data.pendingQuestions || 0);
-          console.log("✅ Admin - Pending questions:", data.pendingQuestions);
         } else {
           setUnreadMessages(data.unreadResponses || 0);
-          console.log("✅ User - Unread messages:", data.unreadResponses);
         }
 
         setLastFetch(new Date().toLocaleTimeString());
@@ -67,7 +62,6 @@ export default function ProfileLayout({ children }) {
 
   // ✅ Función para refresh manual
   const handleRefresh = () => {
-    console.log("🔄 Manual refresh triggered");
     fetchUnreadCounts();
   };
 

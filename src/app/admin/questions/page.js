@@ -33,21 +33,13 @@ const AdminQuestionsPage = () => {
   const pollingIntervalRef = useRef(null);
   const isActiveRef = useRef(true);
 
-  // Función de fetch optimizada con debounce
   const fetchQuestions = useCallback(
     async (showLoading = true) => {
       const now = Date.now();
-
-      // Evitar llamadas muy frecuentes (mínimo 2 segundos entre calls)
-      if (now - lastFetchRef.current < 2000) {
-        return;
-      }
+      if (now - lastFetchRef.current < 2000) return;
 
       lastFetchRef.current = now;
-
-      if (!session?.user?.role || session.user.role !== "admin") {
-        return;
-      }
+      if (!session?.user?.role || session.user.role !== "admin") return;
 
       try {
         if (showLoading) setLoading(true);
@@ -79,12 +71,11 @@ const AdminQuestionsPage = () => {
     [session, filter, currentPage]
   );
 
-  // Effect principal - solo fetch inicial y cuando cambian los filtros
   useEffect(() => {
     if (session?.user?.role === "admin") {
       fetchQuestions(true);
     }
-  }, [session, filter, currentPage]);
+  }, [session, filter, currentPage, fetchQuestions]);
 
   // Effect para polling automático (MUY REDUCIDO)
   useEffect(() => {
@@ -110,7 +101,7 @@ const AdminQuestionsPage = () => {
         pollingIntervalRef.current = null;
       }
     };
-  }, [stats.pending, fetchQuestions]);
+  }, [stats.pending, fetchQuestions, session?.user?.role]);
 
   // Effect para detectar cuando la página está activa/inactiva
   useEffect(() => {

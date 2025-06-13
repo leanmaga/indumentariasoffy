@@ -165,7 +165,7 @@ export default function AddProductPage() {
         variants: [],
       }));
     }
-  }, [formData.category]);
+  }, [formData.category, clothingCategories, variantCategories]);
 
   // Efecto para autogenerar variantes cuando cambian talles o colores
   useEffect(() => {
@@ -198,7 +198,7 @@ export default function AddProductPage() {
         variants: newVariants,
       }));
     }
-  }, [formData.sizes, formData.colors, showVariants]);
+  }, [showVariants, formData.sizes, formData.colors, formData.variants]);
 
   // Usar useEffect para la redirección
   useEffect(() => {

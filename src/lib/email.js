@@ -47,8 +47,6 @@ async function sendPaymentConfirmationToCustomer(
   paymentInfo = null
 ) {
   try {
-    console.log(`📧 Enviando confirmación de PAGO al cliente: ${user.email}`);
-
     const transporter = createEmailTransporter();
 
     // Obtener datos completos de los productos
@@ -95,12 +93,6 @@ async function sendPaymentConfirmationToCustomer(
     // Enviar el email
     const info = await transporter.sendMail(mailOptions);
 
-    console.log("✅ Email de confirmación de pago enviado al cliente:", {
-      messageId: info.messageId,
-      to: user.email,
-      orderId: order._id,
-    });
-
     return {
       success: true,
       messageId: info.messageId,
@@ -133,8 +125,6 @@ async function sendPaymentNotificationToAdmin(order, user, paymentInfo = null) {
         type: "payment_notification_admin",
       };
     }
-
-    console.log(`📧 Enviando notificación de PAGO al admin: ${adminEmail}`);
 
     const transporter = createEmailTransporter();
 
@@ -182,12 +172,6 @@ async function sendPaymentNotificationToAdmin(order, user, paymentInfo = null) {
     // Enviar el email
     const info = await transporter.sendMail(mailOptions);
 
-    console.log("✅ Email de notificación de pago enviado al admin:", {
-      messageId: info.messageId,
-      to: adminEmail,
-      orderId: order._id,
-    });
-
     return {
       success: true,
       messageId: info.messageId,
@@ -206,8 +190,6 @@ async function sendPaymentNotificationToAdmin(order, user, paymentInfo = null) {
 // Función para enviar email de confirmación al cliente (creación de orden)
 async function sendOrderConfirmationToCustomer(order, user) {
   try {
-    console.log(`📧 Enviando confirmación de orden al cliente: ${user.email}`);
-
     const transporter = createEmailTransporter();
 
     // Obtener datos completos de los productos
@@ -246,12 +228,6 @@ async function sendOrderConfirmationToCustomer(order, user) {
     // Enviar el email
     const info = await transporter.sendMail(mailOptions);
 
-    console.log("✅ Email de confirmación enviado al cliente:", {
-      messageId: info.messageId,
-      to: user.email,
-      orderId: order._id,
-    });
-
     return {
       success: true,
       messageId: info.messageId,
@@ -281,10 +257,6 @@ async function sendNewOrderNotificationToAdmin(order, user) {
         type: "admin_notification",
       };
     }
-
-    console.log(
-      `📧 Enviando notificación de nueva orden al admin: ${adminEmail}`
-    );
 
     const transporter = createEmailTransporter();
 
@@ -324,12 +296,6 @@ async function sendNewOrderNotificationToAdmin(order, user) {
     // Enviar el email
     const info = await transporter.sendMail(mailOptions);
 
-    console.log("✅ Email de notificación enviado al admin:", {
-      messageId: info.messageId,
-      to: adminEmail,
-      orderId: order._id,
-    });
-
     return {
       success: true,
       messageId: info.messageId,
@@ -348,10 +314,6 @@ async function sendNewOrderNotificationToAdmin(order, user) {
 // Función para enviar emails cuando el pago se confirma (usa las funciones correctas)
 async function sendPaymentConfirmedEmails(order, user) {
   try {
-    console.log(
-      `💳 Enviando emails de pago confirmado para orden: ${order._id}`
-    );
-
     const results = [];
 
     // Email al cliente usando la función de confirmación de pago
@@ -387,8 +349,6 @@ async function sendPaymentConfirmedEmails(order, user) {
 // Función para reenviar emails de orden (útil para casos de error)
 async function resendOrderEmails(orderId, emailTypes = ["customer", "admin"]) {
   try {
-    console.log(`🔄 Reenviando emails para orden: ${orderId}`);
-
     // Buscar la orden con el usuario
     const Order = (await import("@/models/Order")).default;
     const User = (await import("@/models/User")).default;

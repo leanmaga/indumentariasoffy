@@ -57,10 +57,6 @@ export async function POST(request, { params }) {
     }
 
     try {
-      console.log(
-        `📧 Reenviando emails de confirmación para orden: ${orderId}`
-      );
-
       // Determinar qué tipo de emails enviar según el estado
       let emailTypes = ["customer"];
 
@@ -73,13 +69,6 @@ export async function POST(request, { params }) {
       const emailResults = await resendEmails(order, user, emailTypes);
 
       if (emailResults.success) {
-        console.log("✅ Emails reenviados exitosamente:", {
-          orderId: order._id,
-          userEmail: user.email,
-          emailTypes,
-          results: emailResults.results,
-        });
-
         // Registrar el reenvío en la orden
         order.paymentDetails = {
           ...order.paymentDetails,

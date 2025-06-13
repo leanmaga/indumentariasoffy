@@ -11,20 +11,9 @@ export async function createEmailTransporter() {
       EMAIL_PASS: process.env.EMAIL_PASS,
     };
 
-    // Log para debugging (solo en desarrollo)
-    if (process.env.NODE_ENV !== "production") {
-      console.log("🔧 Email config check:", {
-        EMAIL_SERVICE: !!requiredEnvVars.EMAIL_SERVICE,
-        EMAIL_USER: !!requiredEnvVars.EMAIL_USER,
-        EMAIL_PASS: !!requiredEnvVars.EMAIL_PASS,
-      });
-    }
-
     // Si estamos en desarrollo y no hay configuración, usar Ethereal
     if (process.env.NODE_ENV !== "production") {
       if (!requiredEnvVars.EMAIL_USER || !requiredEnvVars.EMAIL_PASS) {
-        console.log("⚠️ Usando configuración de prueba para desarrollo");
-
         // Crear cuenta de prueba de Ethereal
         const testAccount = await nodemailer.createTestAccount();
 
@@ -88,7 +77,7 @@ export async function createEmailTransporter() {
 
       default:
         // Fallback a Gmail por defecto
-        console.log("📧 Usando Gmail como servicio por defecto");
+        "📧 Usando Gmail como servicio por defecto";
         return nodemailer.createTransport({
           service: "gmail",
           ...transportConfig,
@@ -112,7 +101,6 @@ export async function verifyEmailConfig() {
     const isConnected = await transporter.verify();
 
     if (isConnected) {
-      console.log("✅ Configuración de email verificada correctamente");
       return { success: true, message: "Email configurado correctamente" };
     } else {
       throw new Error("No se pudo verificar la conexión");
@@ -144,20 +132,13 @@ export async function sendEmailWithRetry(emailData, maxRetries = 3) {
         ...emailData,
       });
 
-      // Log en desarrollo
-      if (process.env.NODE_ENV !== "production") {
-        console.log("📧 Email enviado:", {
-          messageId: info.messageId,
-          to: emailData.to,
-          subject: emailData.subject,
-          attempt: attempt,
-        });
-
-        // URL de preview para Ethereal
-        if (info.messageId && info.messageId.includes("ethereal")) {
-          console.log("🔗 Preview URL:", nodemailer.getTestMessageUrl(info));
-        }
-      }
+      // // Log en desarrollo
+      // if (process.env.NODE_ENV !== "production") {
+      //   // URL de preview para Ethereal
+      //   if (info.messageId && info.messageId.includes("ethereal")) {
+      //     console.log("🔗 Preview URL:", nodemailer.getTestMessageUrl(info));
+      //   }
+      // }
 
       return { success: true, messageId: info.messageId, attempt };
     } catch (error) {

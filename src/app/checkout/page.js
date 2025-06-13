@@ -124,11 +124,8 @@ export default function CheckoutPage() {
 
     try {
       if (orderId) {
-        console.log("⚠️ Ya existe una orden creada:", orderId);
         return;
       }
-
-      console.log("🚀 Iniciando proceso de orden...");
 
       const orderData = {
         items: items.map((item) => ({
@@ -150,12 +147,6 @@ export default function CheckoutPage() {
         },
         idempotencyKey: idempotencyKey.current,
       };
-
-      console.log("📦 Datos de orden preparados:", {
-        items: orderData.items.length,
-        total: orderData.totalAmount,
-        paymentMethod: orderData.paymentMethod,
-      });
 
       // Crear timeout para la solicitud
       const controller = new AbortController();
@@ -185,21 +176,10 @@ export default function CheckoutPage() {
 
       const result = await response.json();
 
-      console.log("✅ Orden creada exitosamente:", {
-        orderId: result.orderId,
-        paymentInfo: !!result.paymentInfo,
-      });
-
       setOrderId(result.orderId);
       orderCreatedRef.current = true;
 
       if (selectedPaymentMethod === "mercadopago" && result.paymentInfo?.id) {
-        console.log("💳 Configurando MercadoPago...", {
-          preferenceId: result.paymentInfo.id,
-          initPoint: result.paymentInfo.init_point,
-          sandboxPoint: result.paymentInfo.sandbox_init_point,
-        });
-
         setPreferenceId(result.paymentInfo.id);
 
         // Determinar URL de redirección según el entorno
@@ -221,17 +201,13 @@ export default function CheckoutPage() {
         sessionStorage.setItem("lastPreferenceId", result.paymentInfo.id);
         sessionStorage.setItem("lastMercadoPagoUrl", redirectUrl);
 
-        console.log("💾 Datos guardados en sessionStorage para recuperación");
-
         // Mostrar mensaje de éxito
         toast.success("Orden creada. Redirigiendo a MercadoPago...");
       } else if (selectedPaymentMethod === "whatsapp") {
-        console.log("📱 Orden WhatsApp creada");
         toast.success("Orden creada para WhatsApp");
         clearCart();
         router.push("/checkout/success?method=whatsapp");
       } else {
-        console.log("✅ Orden completada con método:", selectedPaymentMethod);
         toast.success("Orden creada exitosamente");
         clearCart();
         router.push("/checkout/success");

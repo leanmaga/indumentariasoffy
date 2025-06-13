@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, Suspense } from "react";
+import { useEffect, useMemo, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 // Componente interno que maneja la redirección
@@ -8,23 +8,42 @@ function RedirectComponent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  // Obtener todos los parámetros de búsqueda para preservarlos en la redirección
-  const params = new URLSearchParams();
-  searchParams.forEach((value, key) => {
-    params.append(key, value);
-  });
+  // ✅ CORRECTO: Solo UNA definición de params con useMemo
+  const params = useMemo(
+    () => ({
+      redirect: searchParams.get("redirect") || "/",
+      callbackUrl: searchParams.get("callbackUrl") || "/",
+      error: searchParams.get("error"),
+    }),
+    [searchParams]
+  );
 
   useEffect(() => {
-    // Construir la URL de redirección con los mismos parámetros
-    const queryString = params.toString();
-    const redirectUrl = `/auth/login${queryString ? `?${queryString}` : ""}`;
+    // Usar los parámetros aquí
+    if (params.error) {
+      console.error("Error de autenticación:", params.error);
+    }
 
-    router.replace(redirectUrl);
-  }, [router, params]);
+    // Lógica de redirección
+    const targetUrl = params.redirect || params.callbackUrl || "/";
+
+    // Ejemplo de redirección después de un delay
+    const timer = setTimeout(() => {
+      router.push(targetUrl);
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, [params, router]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      Redirigiendo...
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+        <p className="text-gray-600">Redirigiendo...</p>
+        {params.error && (
+          <p className="text-red-600 mt-2 text-sm">Error: {params.error}</p>
+        )}
+      </div>
     </div>
   );
 }
@@ -35,7 +54,10 @@ export default function SignInRedirect() {
     <Suspense
       fallback={
         <div className="min-h-screen flex items-center justify-center bg-gray-50">
-          Cargando...
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Cargando...</p>
+          </div>
         </div>
       }
     >

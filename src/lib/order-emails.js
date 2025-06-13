@@ -667,12 +667,6 @@ export async function resendEmails(
   emailTypes = ["customer", "admin"]
 ) {
   try {
-    console.log(
-      `🔄 Reenviando emails para orden: ${order._id}, tipos: ${emailTypes.join(
-        ", "
-      )}`
-    );
-
     const results = [];
 
     if (emailTypes.includes("customer")) {
@@ -720,10 +714,6 @@ export async function resendEmails(
 // Función combinada para enviar emails de pago confirmado
 export async function sendPaymentConfirmedEmails(order, user, paymentDetails) {
   try {
-    console.log(
-      `📧 Enviando emails de pago confirmado para orden: ${order._id}`
-    );
-
     const customerResult = await sendPaymentConfirmationToCustomer(
       order,
       user,

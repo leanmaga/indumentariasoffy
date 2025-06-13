@@ -8,7 +8,6 @@ export function getMercadoPagoConfig() {
     const devPublicKey = process.env.NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY_DEV;
 
     if (devAccessToken && devPublicKey) {
-      console.log("🧪 Usando credenciales de TEST/Sandbox para desarrollo");
       return {
         accessToken: devAccessToken,
         publicKey: devPublicKey,
@@ -31,7 +30,6 @@ export function getMercadoPagoConfig() {
     }
   } else {
     // En producción, usar credenciales de producción
-    console.log("🚀 Usando credenciales de PRODUCCIÓN");
     return {
       accessToken:
         process.env.MERCADOPAGO_ACCESS_TOKEN_PROD ||

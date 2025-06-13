@@ -25,8 +25,6 @@ export async function POST(request) {
       );
     }
 
-    console.log(`🔄 Intentando reactivar pago para orden: ${orderId}`);
-
     // Conectar a la base de datos
     await connectDB();
 
@@ -81,10 +79,6 @@ export async function POST(request) {
     }
 
     try {
-      console.log(
-        `💳 Creando nueva preferencia de pago para orden: ${orderId}`
-      );
-
       // Crear nueva preferencia de pago usando tu configuración existente
       const preferenceResponse = await createPaymentPreference(order);
 
@@ -114,14 +108,6 @@ export async function POST(request) {
       });
 
       await order.save();
-
-      console.log("✅ Pago reactivado exitosamente:", {
-        orderId: order._id,
-        preferenceId: preferenceResponse.id,
-        userEmail: user.email,
-        previousStatus: previousStatus,
-        newStatus: order.status,
-      });
 
       return NextResponse.json({
         success: true,

@@ -4,17 +4,10 @@ import { NextResponse } from "next/server";
 
 export async function POST(request) {
   try {
-    console.log("🔄 POST /api/admin/general-settings - Iniciando...");
-
     // Conectar a la base de datos
     await connectDB();
-    console.log("✅ Conexión a DB establecida");
 
     const body = await request.json();
-    console.log("📝 Datos recibidos:", {
-      ...body,
-      contactEmail: body.contactEmail ? "***@***.***" : "undefined",
-    });
 
     const { storeName, contactEmail, storeDescription } = body;
 
@@ -42,8 +35,6 @@ export async function POST(request) {
         { status: 400 }
       );
     }
-
-    console.log("💾 Guardando configuraciones...");
 
     // Actualizar o crear cada configuración
     const updatePromises = [
@@ -74,7 +65,6 @@ export async function POST(request) {
     ];
 
     const results = await Promise.all(updatePromises);
-    console.log("✅ Configuraciones guardadas exitosamente");
 
     return NextResponse.json({
       success: true,
@@ -97,17 +87,12 @@ export async function POST(request) {
 
 export async function GET() {
   try {
-    console.log("🔄 GET /api/admin/general-settings - Iniciando...");
-
     // Conectar a la base de datos
     await connectDB();
-    console.log("✅ Conexión a DB establecida");
 
     const configs = await SiteConfig.find({
       key: { $in: ["store_name", "contact_email", "store_description"] },
     });
-
-    console.log("📊 Configuraciones encontradas:", configs.length);
 
     // Convertir a objeto para facilitar el acceso
     const settings = {};
@@ -123,8 +108,6 @@ export async function GET() {
         settings.store_description ||
         "Encuentra los mejores productos al mejor precio.",
     };
-
-    console.log("✅ Configuración devuelta exitosamente");
 
     return NextResponse.json(response);
   } catch (error) {

@@ -107,7 +107,6 @@ export default function WhatsAppButton({
       const result = await response.json();
 
       // 🆕 ===== ENVIAR EMAILS AUTOMÁTICAMENTE =====
-      console.log("📧 Enviando emails para orden WhatsApp:", result.orderId);
 
       try {
         // Crear objetos compatibles con las funciones de email
@@ -141,11 +140,6 @@ export default function WhatsAppButton({
           userForEmail
         );
 
-        console.log("✅ Resultados de emails WhatsApp:", {
-          customer: customerEmailResult.success,
-          admin: adminEmailResult.success,
-        });
-
         // Mostrar notificación de emails enviados
         if (customerEmailResult.success && adminEmailResult.success) {
           toast.success("📧 Emails de confirmación enviados");
@@ -155,7 +149,6 @@ export default function WhatsAppButton({
       } catch (emailError) {
         console.error("❌ Error enviando emails de WhatsApp:", emailError);
         // No mostrar error al usuario, solo log interno
-        console.log("🔄 Orden creada correctamente, emails fallaron");
       }
       // ===== FIN ENVÍO EMAILS =====
 

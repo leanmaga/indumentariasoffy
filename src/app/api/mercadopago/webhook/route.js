@@ -10,32 +10,11 @@ import {
 } from "@/lib/order-emails";
 
 export async function POST(request) {
-  // ===== DEBUGGING SECTION =====
-  console.log("🚀 === WEBHOOK DEBUG INICIADO ===");
-  console.log("Timestamp:", new Date().toISOString());
-  console.log("URL completa:", request.url);
-  console.log("Method:", request.method);
-
   // Log de headers
   const headers = Object.fromEntries(request.headers.entries());
-  console.log("📋 Headers recibidos:", headers);
-
-  // Log de variables de entorno importantes
-  console.log("🔧 Variables de entorno:");
-  console.log("- NODE_ENV:", process.env.NODE_ENV);
-  console.log("- NEXT_PUBLIC_BASE_URL:", process.env.NEXT_PUBLIC_BASE_URL);
-  console.log(
-    "- MERCADOPAGO_ACCESS_TOKEN exists:",
-    !!process.env.MERCADOPAGO_ACCESS_TOKEN
-  );
-  console.log(
-    "- WEBHOOK_SECRET exists:",
-    !!process.env.MERCADOPAGO_WEBHOOK_SECRET
-  );
 
   try {
     const bodyText = await request.text();
-    console.log("📦 Body recibido:", bodyText);
 
     // ===== COMENTAR VERIFICACIÓN DE FIRMA TEMPORALMENTE =====
     /*
@@ -52,7 +31,6 @@ export async function POST(request) {
     let data;
     try {
       data = JSON.parse(bodyText);
-      console.log("✅ JSON parseado correctamente:", data);
     } catch (error) {
       console.error("❌ Error parseando JSON:", error);
       return NextResponse.json({ message: "Invalid JSON" }, { status: 200 });
@@ -63,27 +41,14 @@ export async function POST(request) {
       data.action === "payment.created" ||
       data.action === "payment.updated"
     ) {
-      console.log("💳 Es notificación de pago - continuando...");
-
       const paymentId = data.data?.id;
       if (!paymentId) {
-        console.log("❌ No hay payment ID");
         return NextResponse.json({ message: "No payment ID" }, { status: 200 });
       }
-
-      console.log(`🔍 Buscando info del pago ID: ${paymentId}`);
-
-      // Aquí continúa tu lógica normal...
-      // Pero con logs adicionales
 
       let paymentInfo;
       try {
         paymentInfo = await getPaymentById(paymentId);
-        console.log("✅ Info del pago obtenida:", {
-          id: paymentInfo.id,
-          status: paymentInfo.status,
-          external_reference: paymentInfo.external_reference,
-        });
       } catch (error) {
         console.error("❌ Error obteniendo info del pago:", error);
         return NextResponse.json(
@@ -94,41 +59,27 @@ export async function POST(request) {
 
       const externalReference = paymentInfo.external_reference;
       if (!externalReference) {
-        console.log("❌ No hay external_reference");
         return NextResponse.json(
           { message: "No external reference" },
           { status: 200 }
         );
       }
 
-      console.log(`🔍 Buscando orden: ${externalReference}`);
-
       await connectDB();
       const order = await Order.findById(externalReference);
 
       if (!order) {
-        console.log(`❌ Orden ${externalReference} no encontrada`);
         return NextResponse.json(
           { message: "Order not found" },
           { status: 200 }
         );
       }
 
-      console.log(`✅ Orden encontrada - Estado actual: ${order.status}`);
-
       const paymentStatus = paymentInfo.status;
       const previousStatus = order.status;
 
-      // Log del cambio de estado
-      console.log(`🔄 Cambio de estado: ${previousStatus} → `, {
-        paymentStatus,
-        shouldUpdate: paymentStatus === "approved" && order.status !== "pagado",
-      });
-
       // Actualizar según el estado
       if (paymentStatus === "approved" && order.status !== "pagado") {
-        console.log("✅ ACTUALIZANDO ESTADO A PAGADO");
-
         // Obtener información del usuario ANTES de actualizar
         const user = await User.findById(order.user);
         if (!user) {
@@ -138,8 +89,6 @@ export async function POST(request) {
             { status: 200 }
           );
         }
-
-        console.log(`👤 Usuario encontrado: ${user.email}`);
 
         order.status = "pagado";
         order.paymentId = paymentId;
@@ -157,19 +106,12 @@ export async function POST(request) {
         let emailResults = null;
 
         // 🆕 ENVIAR EMAILS DE CONFIRMACIÓN
-        console.log("📧 Enviando emails de confirmación...");
         try {
           emailResults = await sendPaymentConfirmedEmails(
             order,
             user,
             paymentInfo
           );
-
-          console.log("✅ Resultado de emails:", {
-            success: emailResults.success,
-            customer: emailResults.customerResult?.success,
-            admin: emailResults.adminResult?.success,
-          });
 
           // Guardar info de emails en la orden
           order.paymentDetails.emailsSent = {
@@ -187,9 +129,6 @@ export async function POST(request) {
             error: emailError.message,
             stack: emailError.stack,
           };
-
-          // ⚠️ NO fallar el webhook por errores de email
-          console.log("⚠️ Continuando sin emails...");
         }
 
         // Agregar al historial de cambios de estado
@@ -202,8 +141,6 @@ export async function POST(request) {
         });
 
         await order.save();
-
-        console.log("✅ ORDEN GUARDADA EXITOSAMENTE CON EMAILS");
 
         return NextResponse.json({
           message: "Webhook processed successfully",
@@ -218,11 +155,6 @@ export async function POST(request) {
           processed: true,
         });
       } else {
-        console.log("ℹ️ No se requiere actualización:", {
-          paymentStatus,
-          currentOrderStatus: order.status,
-        });
-
         return NextResponse.json({
           message: "No update required",
           paymentStatus,
@@ -230,7 +162,6 @@ export async function POST(request) {
         });
       }
     } else {
-      console.log("⚠️ No es notificación de pago:", data.action);
       return NextResponse.json({
         message: "Not a payment notification",
         action: data.action,

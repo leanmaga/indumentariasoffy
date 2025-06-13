@@ -30,8 +30,6 @@ const getClient = async () => {
         const accessToken = config.getDecryptedAccessToken();
 
         if (accessToken) {
-          console.log("✅ Usando credenciales de base de datos");
-
           cachedClient = new MercadoPagoConfig({
             accessToken: accessToken,
             options: {
@@ -53,10 +51,6 @@ const getClient = async () => {
         "No se encontraron credenciales de MercadoPago. Configura las variables de entorno necesarias."
       );
     }
-
-    console.log(
-      `🔧 Usando credenciales de ${mpConfig.environment} (${process.env.NODE_ENV})`
-    );
 
     if (
       mpConfig.environment === "production" &&
@@ -86,8 +80,6 @@ const getClient = async () => {
 // Crear preferencia de pago - FUNCIÓN OPTIMIZADA
 export const createPaymentPreference = async (orderData) => {
   try {
-    console.log("🏗️ Creando preferencia de pago para orden:", orderData._id);
-
     const client = await getClient();
     const mpConfig = getMercadoPagoConfig();
 
@@ -113,8 +105,6 @@ export const createPaymentPreference = async (orderData) => {
       process.env.NEXT_PUBLIC_FRONTEND_URL ||
       process.env.NEXTAUTH_URL ||
       "http://localhost:3000";
-
-    console.log("🌐 URL base para redirecciones:", baseUrl);
 
     const cleanBaseUrl = baseUrl.endsWith("/") ? baseUrl.slice(0, -1) : baseUrl;
     const backUrls = {
@@ -176,26 +166,19 @@ export const createPaymentPreference = async (orderData) => {
       binary_mode: false,
     };
 
-    console.log("📝 Datos de preferencia preparados:", {
-      items: items.length,
-      total: items.reduce(
-        (sum, item) => sum + item.unit_price * item.quantity,
-        0
-      ),
-      external_reference: preferenceData.external_reference,
-      payer_email: preferenceData.payer.email,
-      environment: mpConfig.environment,
-    });
+    // console.log("📝 Datos de preferencia preparados:", {
+    //   items: items.length,
+    //   total: items.reduce(
+    //     (sum, item) => sum + item.unit_price * item.quantity,
+    //     0
+    //   ),
+    //   external_reference: preferenceData.external_reference,
+    //   payer_email: preferenceData.payer.email,
+    //   environment: mpConfig.environment,
+    // });
 
     const preference = new Preference(client);
     const response = await preference.create({ body: preferenceData });
-
-    console.log("✅ Preferencia creada exitosamente:", {
-      id: response.id,
-      init_point: response.init_point,
-      sandbox_init_point: response.sandbox_init_point,
-      environment: mpConfig.environment,
-    });
 
     // Validar respuesta
     if (!response.id) {
@@ -279,18 +262,9 @@ export const checkMercadoPagoStatus = async () => {
 // Función para obtener pago por ID
 export async function getPaymentById(paymentId) {
   try {
-    console.log(`🔍 Obteniendo pago por ID: ${paymentId}`);
-
     const client = await getClient();
     const payment = new Payment(client);
     const response = await payment.get({ id: paymentId });
-
-    console.log("✅ Pago obtenido exitosamente:", {
-      id: response.id,
-      status: response.status,
-      external_reference: response.external_reference,
-      amount: response.transaction_amount,
-    });
 
     return response;
   } catch (error) {
@@ -302,10 +276,6 @@ export async function getPaymentById(paymentId) {
 // Función para buscar pagos por external_reference
 export async function getPaymentsByExternalReference(externalReference) {
   try {
-    console.log(
-      `🔍 Buscando pagos por external_reference: ${externalReference}`
-    );
-
     const mpConfig = getMercadoPagoConfig();
     const accessToken = mpConfig.accessToken;
 
@@ -335,11 +305,6 @@ export async function getPaymentsByExternalReference(externalReference) {
     }
 
     const data = await response.json();
-
-    console.log("✅ Búsqueda de pagos completada:", {
-      found: data.results?.length || 0,
-      external_reference: externalReference,
-    });
 
     return data.results || [];
   } catch (error) {

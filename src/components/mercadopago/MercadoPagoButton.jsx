@@ -24,7 +24,6 @@ const MercadoPagoButton = ({
       script.crossOrigin = "anonymous";
 
       script.onload = () => {
-        console.log("✅ MercadoPago SDK cargado correctamente");
         setIsSDKLoaded(true);
       };
 
@@ -55,11 +54,6 @@ const MercadoPagoButton = ({
           throw new Error("MercadoPago public key no está configurada");
         }
 
-        console.log("🔧 Inicializando MercadoPago con:", {
-          publicKey: publicKey.substring(0, 20) + "...",
-          preferenceId,
-        });
-
         // Crear instancia de MercadoPago
         mpInstanceRef.current = new window.MercadoPago(publicKey, {
           locale: "es-AR",
@@ -84,12 +78,10 @@ const MercadoPagoButton = ({
           // 🆕 Agregar callbacks para mejor control
           callbacks: {
             onSubmit: () => {
-              console.log("🔄 Redirigiendo a MercadoPago...");
               setIsLoading(true);
               return true;
             },
             onReady: () => {
-              console.log("✅ Botón de MercadoPago listo");
               setButtonRendered(true);
             },
             onError: (error) => {
