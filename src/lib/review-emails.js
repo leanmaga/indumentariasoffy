@@ -74,7 +74,7 @@ export async function sendNewQuestionNotificationToAdmin(
 
     const info = await transporter.sendMail({
       from: `"IndumentariaSoffy Sistema" <${
-        process.env.EMAIL_USER || "indumentariasoffy@gmail.com"
+        process.env.EMAIL_USER || "sofiaballesta1424@gmail.com"
       }>`,
       to: process.env.ADMIN_EMAIL || process.env.EMAIL_USER,
       subject: `❓ Nueva pregunta sobre "${product.title}" de ${user.name}`,
@@ -229,7 +229,7 @@ export async function sendQuestionAnsweredEmail(question, product, user) {
 
     const info = await transporter.sendMail({
       from: `"IndumentariaSoffy" <${
-        process.env.EMAIL_USER || "indumentariasoffy@gmail.com"
+        process.env.EMAIL_USER || "sofiaballesta1424@gmail.com"
       }>`,
       to: user.email,
       subject: `✅ Tu pregunta sobre "${product.title}" fue respondida`,
@@ -356,7 +356,7 @@ export async function sendQuestionAnsweredEmail(question, product, user) {
                 </a>
                 <p style="margin: 20px 0 0 0; font-size: 12px; color: #999;">
                   ¿Tienes más preguntas? Contáctanos en 
-                  <a href="mailto:patagoniascript@gmail.com" style="color: #000;">patagoniascript@gmail.com</a>
+                  <a href="mailto:sofiaballesta1424@gmail.com" style="color: #000;">sofiaballesta1424@gmail.com</a>
                 </p>
               </td>
             </tr>

@@ -76,7 +76,7 @@ const OrderTable = ({ orders: initialOrders }) => {
   // Abrir chat de WhatsApp
   const openWhatsAppChat = (order) => {
     // Extraer el número de teléfono del pedido (si existe) o usar un número predeterminado
-    const phone = order.shippingInfo?.phone || "5491112345678"; // Reemplaza con tu número
+    const phone = order.shippingInfo?.phone || "5491126907696"; // Reemplaza con tu número
     const whatsappUrl = `https://wa.me/${phone.replace(/\D/g, "")}`; // Eliminar caracteres no numéricos
     window.open(whatsappUrl, "_blank");
   };

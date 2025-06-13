@@ -92,7 +92,7 @@ export async function sendVerificationEmail(email) {
     // Enviar email con diseño mejorado
     const info = await transporter.sendMail({
       from: `"IndumentariaSoffy" <${
-        process.env.EMAIL_USER || "indumentariasoffy@gmail.com"
+        process.env.EMAIL_USER || "sofiaballesta1424@gmail.com"
       }>`,
       to: user.email,
       subject: "Verifica tu cuenta en IndumentariaSoffy",
@@ -186,7 +186,7 @@ export async function sendVerificationEmail(email) {
                   </tr>
                   <tr>
                     <td style="text-align: center; font-size: 12px; color: #999999;">
-                      <p>Si tienes alguna pregunta, contacta con nuestro equipo de soporte en <a href="mailto:patagoniascript@gmail.com" style="color: #000000; text-decoration: none;">patagoniascript@gmail.com</a></p>
+                      <p>Si tienes alguna pregunta, contacta con nuestro equipo de soporte en <a href="mailto:sofiaballesta1424@gmail.com" style="color: #000000; text-decoration: none;">sofiaballesta1424@gmail.com</a></p>
                     </td>
                   </tr>
                 </table>
@@ -349,7 +349,7 @@ export async function sendPasswordResetEmail(email) {
                   </tr>
                   <tr>
                     <td style="text-align: center; font-size: 12px; color: #999999;">
-                      <p>Si tienes alguna pregunta, contacta con nuestro equipo de soporte en <a href="mailto:patagoniascript@gmail.com" style="color: #000000; text-decoration: none;">patagoniascript@gmail.com</a></p>
+                      <p>Si tienes alguna pregunta, contacta con nuestro equipo de soporte en <a href="mailto:sofiaballesta1424@gmail.com" style="color: #000000; text-decoration: none;">sofiaballesta1424@gmail.com</a></p>
                     </td>
                   </tr>
                 </table>

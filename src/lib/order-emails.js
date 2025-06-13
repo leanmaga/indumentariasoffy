@@ -211,7 +211,7 @@ export async function sendOrderConfirmationToCustomer(order, user) {
                   <img src="https://i.ibb.co/NNwdYSF/instagram-icon.png" alt="Instagram" width="20" height="20">
                 </a>
                 <p style="margin: 20px 0 0 0; font-size: 12px; color: #999;">
-                  ¿Preguntas? Contactanos en <a href="mailto:patagoniascript@gmail.com" style="color: #000;">patagoniascript@gmail.com</a>
+                  ¿Preguntas? Contactanos en <a href="mailto:sofiaballesta1424@gmail.com" style="color: #000;">sofiaballesta1424@gmail.com</a>
                 </p>
               </td>
             </tr>

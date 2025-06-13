@@ -17,10 +17,10 @@ const colors = {
 
 // Configuración
 const config = {
-  EMAIL_USER: process.env.EMAIL_USER || "patagoniascript@gmail.com",
+  EMAIL_USER: process.env.EMAIL_USER || "sofiaballesta1424@gmail.com",
   EMAIL_PASS: process.env.EMAIL_PASS || "gnpbxdmpuemjguqz",
   EMAIL_SERVICE: process.env.EMAIL_SERVICE || "gmail",
-  ADMIN_EMAIL: process.env.ADMIN_EMAIL || "patagoniascript@gmail.com",
+  ADMIN_EMAIL: process.env.ADMIN_EMAIL || "sofiaballesta1424@gmail.com",
 };
 
 console.log(`${colors.cyan}=== TEST DE SISTEMA DE EMAILS ===${colors.reset}\n`);

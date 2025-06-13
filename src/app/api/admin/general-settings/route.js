@@ -102,8 +102,7 @@ export async function GET() {
 
     const response = {
       storeName: settings.store_name || "Indumentaria Soffy",
-      contactEmail:
-        settings.contact_email || "patagoniascript@indumentariasoffy.com",
+      contactEmail: settings.contact_email || "sofiaballesta1424@gmail.com",
       storeDescription:
         settings.store_description ||
         "Encuentra los mejores productos al mejor precio.",
