@@ -1,169 +1,210 @@
+// src/components/mercadopago/MercadoPagoButton.js
 "use client";
 
 import { useState, useEffect, useRef } from "react";
 
 const MercadoPagoButton = ({
   preferenceId,
-  buttonText = "Pagar con MercadoPago",
   fallbackUrl,
+  buttonText = "Pagar con MercadoPago",
+  className = "",
+  onError = null,
+  onLoad = null,
 }) => {
-  const [isSDKLoaded, setIsSDKLoaded] = useState(false);
-  const [buttonRendered, setButtonRendered] = useState(false);
+  const [publicKey, setPublicKey] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const mpInstanceRef = useRef(null);
-  const containerRef = useRef(null);
+  const [scriptLoaded, setScriptLoaded] = useState(false);
+  const walletInitialized = useRef(false);
 
-  // Load MercadoPago SDK
+  // 1. Obtener la public key desde la API
   useEffect(() => {
-    if (!isSDKLoaded && !document.getElementById("mercadopago-script")) {
+    const fetchPublicKey = async () => {
+      try {
+        console.log("🔍 MercadoPago: Obteniendo public key...");
+
+        const response = await fetch("/api/mercadopago/public-key");
+        const data = await response.json();
+
+        if (response.ok) {
+          console.log("✅ MercadoPago: Public key obtenida:", data.source);
+          setPublicKey(data.publicKey);
+          onLoad?.(data);
+        } else {
+          console.error(
+            "❌ MercadoPago: Error al obtener public key:",
+            data.error
+          );
+          setError(data.message || data.error);
+          onError?.(data.error);
+        }
+      } catch (err) {
+        console.error("❌ MercadoPago: Error de conexión:", err);
+        const errorMsg = "Error de conexión al obtener configuración de pagos";
+        setError(errorMsg);
+        onError?.(errorMsg);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPublicKey();
+  }, [onError, onLoad]);
+
+  // 2. Cargar script de MercadoPago cuando tengamos la public key
+  useEffect(() => {
+    if (!publicKey) return;
+
+    const loadMercadoPagoScript = () => {
+      // Verificar si el script ya existe
+      if (document.getElementById("mercadopago-sdk")) {
+        console.log("🔄 MercadoPago: Script ya cargado");
+        setScriptLoaded(true);
+        return;
+      }
+
+      console.log("📦 MercadoPago: Cargando SDK...");
+
       const script = document.createElement("script");
-      script.id = "mercadopago-script";
+      script.id = "mercadopago-sdk";
       script.src = "https://sdk.mercadopago.com/js/v2";
       script.async = true;
-      script.crossOrigin = "anonymous";
 
       script.onload = () => {
-        setIsSDKLoaded(true);
+        console.log("✅ MercadoPago: SDK cargado exitosamente");
+        setScriptLoaded(true);
       };
 
-      script.onerror = (e) => {
-        console.error("❌ Error loading MercadoPago SDK:", e);
-        setError("Error al cargar el SDK de MercadoPago");
+      script.onerror = () => {
+        console.error("❌ MercadoPago: Error al cargar SDK");
+        setError("Error al cargar el sistema de pagos");
       };
 
-      document.body.appendChild(script);
-    } else if (window.MercadoPago) {
-      setIsSDKLoaded(true);
-    }
-  }, [isSDKLoaded]);
+      document.head.appendChild(script);
+    };
 
-  // Render button when SDK is loaded
+    loadMercadoPagoScript();
+  }, [publicKey]);
+
+  // 3. Inicializar wallet cuando todo esté listo
   useEffect(() => {
     if (
-      isSDKLoaded &&
-      preferenceId &&
-      !buttonRendered &&
-      containerRef.current &&
-      window.MercadoPago
+      !scriptLoaded ||
+      !publicKey ||
+      !preferenceId ||
+      walletInitialized.current
     ) {
-      try {
-        const publicKey = process.env.NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY;
+      return;
+    }
 
-        if (!publicKey) {
-          throw new Error("MercadoPago public key no está configurada");
-        }
+    console.log("🚀 MercadoPago: Inicializando wallet...");
 
-        // Crear instancia de MercadoPago
-        mpInstanceRef.current = new window.MercadoPago(publicKey, {
-          locale: "es-AR",
-        });
-
-        // Limpiar contenedor anterior
-        containerRef.current.innerHTML = "";
-
-        // Renderizar el botón
-        mpInstanceRef.current.checkout({
-          preference: {
-            id: preferenceId,
-          },
-          render: {
-            container: "#mercadopago-button-container",
-            label: buttonText,
-          },
-          theme: {
-            elementsColor: "#4F46E5",
-            headerColor: "#4F46E5",
-          },
-          // 🆕 Agregar callbacks para mejor control
-          callbacks: {
-            onSubmit: () => {
-              setIsLoading(true);
-              return true;
-            },
-            onReady: () => {
-              setButtonRendered(true);
-            },
-            onError: (error) => {
-              console.error("❌ Error en MercadoPago checkout:", error);
-              setError("Error al procesar el pago");
-              setIsLoading(false);
-            },
-          },
-        });
-
-        setButtonRendered(true);
-      } catch (err) {
-        console.error("❌ Error rendering MercadoPago button:", err);
-        setError(`Error al renderizar el botón: ${err.message}`);
+    try {
+      // Limpiar contenedor anterior
+      const container = document.getElementById("wallet_container");
+      if (container) {
+        container.innerHTML = "";
       }
+
+      // Verificar que MercadoPago esté disponible
+      if (typeof window.MercadoPago === "undefined") {
+        throw new Error("MercadoPago SDK no está disponible");
+      }
+
+      // Inicializar MercadoPago
+      const mp = new window.MercadoPago(publicKey);
+
+      // Crear wallet
+      const wallet = mp.bricks().create("wallet", "wallet_container", {
+        initialization: {
+          preferenceId: preferenceId,
+        },
+        customization: {
+          texts: {
+            valueProp: "smart_option",
+          },
+        },
+      });
+
+      walletInitialized.current = true;
+      console.log("✅ MercadoPago: Wallet inicializado exitosamente");
+    } catch (error) {
+      console.error("❌ MercadoPago: Error al inicializar wallet:", error);
+      setError("Error al inicializar el sistema de pagos");
     }
-  }, [isSDKLoaded, preferenceId, buttonRendered, buttonText]);
+  }, [scriptLoaded, publicKey, preferenceId]);
 
-  // Manual redirect fallback
-  const handleManualRedirect = () => {
-    if (fallbackUrl) {
-      console.log("🔄 Redirigiendo manualmente a:", fallbackUrl);
-      setIsLoading(true);
-      window.location.href = fallbackUrl;
-    } else {
-      setError("No hay URL de redirección disponible");
-    }
-  };
+  // 4. Limpiar al desmontar el componente
+  useEffect(() => {
+    return () => {
+      walletInitialized.current = false;
+    };
+  }, []);
 
-  // Si hay error o no funciona el SDK, mostrar botón alternativo
-  const showFallbackButton =
-    error ||
-    (!isSDKLoaded && preferenceId) ||
-    (!buttonRendered && preferenceId && isSDKLoaded);
+  // Renderizar estados
 
-  return (
-    <div className="w-full">
-      {error && (
-        <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-md text-sm">
-          <p className="font-medium">Error de pago:</p>
-          <p>{error}</p>
-          <p className="mt-1 text-xs">
-            Intenta usar el botón alternativo o recarga la página.
-          </p>
-        </div>
-      )}
-
-      {/* Loading state */}
-      {!isSDKLoaded && (
-        <div className="w-full bg-gray-100 animate-pulse rounded-lg py-3 px-4 text-center text-gray-500">
-          Cargando MercadoPago...
-        </div>
-      )}
-
-      {/* Contenedor del botón de MercadoPago */}
+  // Loading state
+  if (loading) {
+    return (
       <div
-        id="mercadopago-button-container"
-        ref={containerRef}
-        className="w-full mb-2"
-        style={{ minHeight: isSDKLoaded ? "48px" : "0" }}
-      ></div>
+        className={`flex items-center justify-center p-6 bg-gray-50 rounded-lg ${className}`}
+      >
+        <div className="flex items-center space-x-3">
+          <div className="animate-spin rounded-full h-6 w-6 border-2 border-blue-500 border-t-transparent"></div>
+          <span className="text-gray-600">Cargando opciones de pago...</span>
+        </div>
+      </div>
+    );
+  }
 
-      {/* Botón alternativo/fallback */}
-      {showFallbackButton && fallbackUrl && (
-        <button
-          className={`w-full py-3 px-4 rounded-lg transition flex items-center justify-center font-medium ${
-            isLoading
-              ? "bg-gray-400 cursor-not-allowed"
-              : "bg-blue-600 hover:bg-blue-700 text-white"
-          }`}
-          onClick={handleManualRedirect}
-          disabled={isLoading}
-        >
-          {isLoading ? (
-            <>
-              <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white mr-2"></div>
-              Redirigiendo...
-            </>
-          ) : (
-            <>💳 {buttonText} (Alternativo)</>
-          )}
-        </button>
+  // Error state
+  if (error) {
+    return (
+      <div
+        className={`p-6 bg-red-50 border border-red-200 rounded-lg ${className}`}
+      >
+        <div className="text-red-800 mb-4">
+          <strong>Error de configuración:</strong>
+          <p className="text-sm mt-1">{error}</p>
+        </div>
+
+        {fallbackUrl && (
+          <div className="space-y-3">
+            <p className="text-red-700 text-sm">
+              Intenta usar el botón alternativo o recarga la página.
+            </p>
+            <a
+              href={fallbackUrl}
+              target="_self"
+              className="inline-block w-full bg-blue-500 hover:bg-blue-600 text-white font-medium py-3 px-6 rounded-lg text-center transition-colors"
+            >
+              💳 {buttonText} (Alternativo)
+            </a>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Success state - Mostrar el wallet
+  return (
+    <div className={`w-full ${className}`}>
+      <div id="wallet_container" className="w-full"></div>
+
+      {/* Botón de fallback por si el wallet no carga */}
+      {fallbackUrl && (
+        <div className="mt-4 p-4 bg-blue-50 rounded-lg">
+          <p className="text-blue-800 text-sm mb-3">
+            ¿Problemas con el botón? Usa el enlace directo:
+          </p>
+          <a
+            href={fallbackUrl}
+            target="_self"
+            className="inline-block w-full bg-blue-500 hover:bg-blue-600 text-white font-medium py-3 px-6 rounded-lg text-center transition-colors"
+          >
+            💳 {buttonText} (Alternativo)
+          </a>
+        </div>
       )}
     </div>
   );
