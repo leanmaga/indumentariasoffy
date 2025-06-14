@@ -12,8 +12,6 @@ export async function GET() {
       return NextResponse.json({ error: "No autorizado" }, { status: 403 });
     }
 
-    console.log("🧪 Iniciando verificación de configuración MercadoPago...");
-
     // Verificar variables de entorno
     const envCheck = {
       NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY:
@@ -25,11 +23,8 @@ export async function GET() {
       NEXTAUTH_URL: !!process.env.NEXTAUTH_URL,
     };
 
-    console.log("🔧 Variables de entorno:", envCheck);
-
     // Verificar estado de configuración
     const mpStatus = await checkMercadoPagoStatus();
-    console.log("📊 Estado de MercadoPago:", mpStatus);
 
     // Verificar URLs
     const baseUrl =

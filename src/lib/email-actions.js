@@ -80,7 +80,7 @@ export async function sendVerificationEmail(email) {
     await user.save();
 
     // Crear transportador
-    const transporter = await createEmailTransporter();
+    const transporter = await createEmailTransport();
 
     // URL de verificación (usando la función getBaseUrl)
     const verificationUrl = `${getBaseUrl()}/auth/verify-email?token=${verificationToken}`;
@@ -243,7 +243,7 @@ export async function sendPasswordResetEmail(email) {
     await user.save();
 
     // Crear transportador
-    const transporter = await createEmailTransporter();
+    const transporter = await createEmailTransport();
 
     // URL de restablecimiento (usando la función getBaseUrl)
     const resetUrl = `${getBaseUrl()}/auth/reset-password/${resetToken}`;

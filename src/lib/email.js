@@ -1,6 +1,6 @@
 // 📤 EXPORTACIONES (asegurar que todas estén disponibles)
 export {
-  createEmailTransporter,
+  createEmailTransport,
   getOrderProductsData,
   orderConfirmationTemplate,
   adminOrderNotificationTemplate,
@@ -11,7 +11,7 @@ export {
   sendPaymentConfirmedEmails,
   resendOrderEmails,
 }; // lib/order-emails.js
-import { createEmailTransporter } from "./email";
+import { createEmailTransport } from "./email";
 import {
   orderConfirmationTemplate,
   adminOrderNotificationTemplate,
@@ -47,7 +47,7 @@ async function sendPaymentConfirmationToCustomer(
   paymentInfo = null
 ) {
   try {
-    const transporter = createEmailTransporter();
+    const transporter = createEmailTransport();
 
     // Obtener datos completos de los productos
     const productsData = await getOrderProductsData(order.items);
@@ -126,7 +126,7 @@ async function sendPaymentNotificationToAdmin(order, user, paymentInfo = null) {
       };
     }
 
-    const transporter = createEmailTransporter();
+    const transporter = createEmailTransport();
 
     // Obtener datos completos de los productos
     const productsData = await getOrderProductsData(order.items);
@@ -190,7 +190,7 @@ async function sendPaymentNotificationToAdmin(order, user, paymentInfo = null) {
 // Función para enviar email de confirmación al cliente (creación de orden)
 async function sendOrderConfirmationToCustomer(order, user) {
   try {
-    const transporter = createEmailTransporter();
+    const transporter = createEmailTransport();
 
     // Obtener datos completos de los productos
     const productsData = await getOrderProductsData(order.items);
@@ -258,7 +258,7 @@ async function sendNewOrderNotificationToAdmin(order, user) {
       };
     }
 
-    const transporter = createEmailTransporter();
+    const transporter = createEmailTransport();
 
     // Obtener datos completos de los productos
     const productsData = await getOrderProductsData(order.items);

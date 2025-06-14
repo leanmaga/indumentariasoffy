@@ -10,7 +10,7 @@ function getBaseUrl() {
 }
 
 // Función para crear el transportador de email
-async function createEmailTransporter() {
+async function createEmailTransport() {
   if (process.env.NODE_ENV === "production") {
     const testAccount = await nodemailer.createTestAccount();
 
@@ -63,7 +63,7 @@ export async function sendNewQuestionNotificationToAdmin(
   user
 ) {
   try {
-    const transporter = await createEmailTransporter();
+    const transporter = await createEmailTransport();
     const baseUrl = getBaseUrl();
     const logoUrl =
       "https://indumentaria-soffy.vercel.app/_next/image?url=%2Fimages%2Flogo.jpeg&w=96&q=75";
@@ -221,7 +221,7 @@ export async function sendNewQuestionNotificationToAdmin(
 // EMAIL 2: Notificar al usuario que su pregunta fue respondida
 export async function sendQuestionAnsweredEmail(question, product, user) {
   try {
-    const transporter = await createEmailTransporter();
+    const transporter = await createEmailTransport();
     const baseUrl = getBaseUrl();
     const logoUrl =
       "https://indumentaria-soffy.vercel.app/_next/image?url=%2Fimages%2Flogo.jpeg&w=96&q=75";

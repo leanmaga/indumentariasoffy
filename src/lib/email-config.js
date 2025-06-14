@@ -2,7 +2,7 @@
 import nodemailer from "nodemailer";
 
 // Función mejorada para crear transportador de email
-export async function createEmailTransporter() {
+export async function createEmailTransport() {
   try {
     // Verificar variables de entorno necesarias
     const requiredEnvVars = {
@@ -95,7 +95,7 @@ export async function createEmailTransporter() {
 // Función para verificar configuración de email
 export async function verifyEmailConfig() {
   try {
-    const transporter = await createEmailTransporter();
+    const transporter = await createEmailTransport();
 
     // Verificar conexión
     const isConnected = await transporter.verify();
@@ -125,7 +125,7 @@ export async function sendEmailWithRetry(emailData, maxRetries = 3) {
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
-      const transporter = await createEmailTransporter();
+      const transporter = await createEmailTransport();
 
       const info = await transporter.sendMail({
         from: `"IndumentariaSoffy" <${process.env.EMAIL_USER}>`,
