@@ -8,30 +8,42 @@ import { getMercadoPagoConfig } from "./config";
 let cachedClient = null;
 let cacheExpiry = null;
 
-// Obtener el cliente de MercadoPago - SOLO BASE DE DATOS EN PRODUCCIÓN
+// En lib/mercadopago.js - Función getClient con logs detallados
+
 const getClient = async () => {
+  console.log("🚀 Iniciando getClient()...");
+
   // Verificar si tenemos un cliente en caché válido
   if (cachedClient && cacheExpiry && new Date() < cacheExpiry) {
+    console.log("💾 Usando cliente desde caché");
     return cachedClient;
   }
 
   try {
-    // SIEMPRE intentar obtener credenciales de la base de datos PRIMERO
+    console.log("🔌 Conectando a la base de datos...");
     await connectDB();
+    console.log("✅ Conectado a la base de datos");
+
+    console.log("🔍 Buscando configuración activa...");
     const config = await MercadoPagoConfigModel.getActiveConfig();
 
     if (config && config.accessToken) {
+      console.log("✅ Configuración encontrada en la base de datos");
+
       // Verificar si el token no ha expirado
       if (config.expiresAt && new Date() > config.expiresAt) {
+        console.log("⏰ Token expirado:", config.expiresAt);
         throw new Error(
           "Token de MercadoPago expirado. La tienda debe renovar su conexión."
         );
       }
 
+      console.log("🔐 Obteniendo token descifrado...");
       const accessToken = config.getDecryptedAccessToken();
 
       if (accessToken) {
-        console.log("✅ Usando configuración de la base de datos (cliente)");
+        console.log("✅ Token descifrado exitosamente");
+        console.log("🏗️ Creando cliente de MercadoPago...");
 
         cachedClient = new MercadoPagoConfig({
           accessToken: accessToken,
@@ -41,18 +53,26 @@ const getClient = async () => {
         });
 
         cacheExpiry = new Date(Date.now() + 5 * 60 * 1000);
+        console.log(
+          "🎉 Cliente creado exitosamente usando configuración de la BD"
+        );
         return cachedClient;
+      } else {
+        console.log("❌ No se pudo descifrar el token");
       }
+    } else {
+      console.log("❌ No se encontró configuración o no tiene accessToken");
     }
 
-    // ❌ EN PRODUCCIÓN: NO hacer fallback, lanzar error
+    // EN PRODUCCIÓN: NO hacer fallback, lanzar error
     if (process.env.NODE_ENV === "production") {
+      console.log("🚫 Producción: No hay configuración válida");
       throw new Error(
         "No hay cuenta de MercadoPago vinculada. La tienda debe conectar su cuenta primero."
       );
     }
 
-    // ✅ EN DESARROLLO: Permitir fallback solo para desarrollo
+    // EN DESARROLLO: Permitir fallback solo para desarrollo
     console.warn("⚠️ DESARROLLO: Usando variables de entorno como fallback");
     const mpConfig = getMercadoPagoConfig();
 
@@ -72,7 +92,11 @@ const getClient = async () => {
     cacheExpiry = new Date(Date.now() + 5 * 60 * 1000);
     return cachedClient;
   } catch (error) {
-    console.error("❌ Error al obtener cliente de MercadoPago:", error);
+    console.error("❌ Error detallado en getClient():", {
+      message: error.message,
+      stack: error.stack,
+      nodeEnv: process.env.NODE_ENV,
+    });
     throw error;
   }
 };
