@@ -15,105 +15,30 @@ export default function Home() {
       {/* Hero Section - Ahora dinámico */}
       <HeroSection />
 
-      {/* Featured Categories */}
-      <section className="py-12 bg-white">
-        <div className="container mx-auto px-4">
-          <h2 className="font-sora-bold uppercase text-3xl font-bold text-center mb-12 text-gray-800">
-            Categorías Destacadas
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="bg-indigo-50 rounded-lg p-6 text-center hover:shadow-lg transition">
-              <div className="bg-indigo-100 w-20 h-20 mx-auto rounded-full flex items-center justify-center mb-4">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-10 w-10 text-indigo-500"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M10 2a4 4 0 00-4 4v1H5a1 1 0 00-.994.89l-1 9A1 1 0 004 18h12a1 1 0 00.994-1.11l-1-9A1 1 0 0015 7h-1V6a4 4 0 00-4-4zm2 5V6a2 2 0 10-4 0v1h4zm-6 3a1 1 0 112 0 1 1 0 01-2 0zm7-1a1 1 0 100 2 1 1 0 000-2z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-              </div>
-              <h3 className="text-xl font-semibold mb-2 text-gray-800">Ropa</h3>
-              <p className="text-gray-600">
-                Lo último en moda para todas las edades.
-              </p>
-              <Link
-                href="/products?category=ropa"
-                className="mt-4 inline-block  font-medium text-indigo-500"
-              >
-                Ver productos
-              </Link>
-            </div>
-
-            <div className="bg-purple-50 rounded-lg p-6 text-center hover:shadow-lg transition">
-              <div className="bg-purple-100 w-20 h-20 mx-auto rounded-full flex items-center justify-center mb-4">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-10 w-10 text-indigo-500"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M7 2a2 2 0 00-2 2v12a2 2 0 002 2h6a2 2 0 002-2V4a2 2 0 00-2-2H7zm3 14a1 1 0 100-2 1 1 0 000 2z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-              </div>
-              <h3 className="text-xl font-semibold mb-2 text-gray-800">
-                Electrónica
-              </h3>
-              <p className="text-gray-600">Tecnología de última generación.</p>
-              <Link
-                href="/products?category=electronica"
-                className="mt-4 inline-block text-indigo-500 hover:text-gray-400 font-medium"
-              >
-                Ver productos
-              </Link>
-            </div>
-
-            <div className="bg-pink-50 rounded-lg p-6 text-center hover:shadow-lg transition">
-              <div className="bg-pink-100 w-20 h-20 mx-auto rounded-full flex items-center justify-center mb-4">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-10 w-10 text-indigo-500"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                >
-                  <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
-                </svg>
-              </div>
-              <h3 className="text-xl font-semibold mb-2 text-gray-800">
-                Hogar
-              </h3>
-              <p className="text-gray-600">
-                Todo para hacer tu hogar más cómodo.
-              </p>
-              <Link
-                href="/products?category=hogar"
-                className="mt-4 inline-block text-indigo-500 hover:text-gray-400 font-medium"
-              >
-                Ver productos
-              </Link>
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* Featured Products */}
       <section className="py-12 bg-gray-50">
         <div className="container mx-auto px-4">
-          <h2 className="font-sora-bold uppercase text-3xl font-bold text-center mb-12 text-gray-800">
-            Productos Destacados
-          </h2>
-          <FeaturedProducts />
-          <div className="text-center mt-10">
+          <div className="text-center mb-16">
+            <div className="bg-indigo-500 inline-block px-4 py-2 text-white text-xs font-medium rounded-full mb-6 tracking-widest uppercase">
+              Precios bajos todos los días
+            </div>
+            <h2 className="text-5xl md:text-6xl font-black text-gray-900 mb-4 tracking-tight">
+              Productos{/* */}
+              <span className="block text-transparent bg-clip-text bg-gradient-to-r from-gray-600 to-gray-800">
+                Destacados
+              </span>
+            </h2>
+            <p className="text-gray-600 text-lg max-w-2xl mx-auto leading-relaxed">
+              Visitá nuestra selección de productos destacados y encontrá
+              ofertas increíbles. Actualizamos nuestra selección semanalmente.
+            </p>
+          </div>
+
+          <div className="text-center my-10">
             <ButtonProducts />
           </div>
+
+          <FeaturedProducts />
         </div>
       </section>
 
@@ -167,11 +92,14 @@ export default function Home() {
       </section>
 
       {/* Contact CTA */}
-      <section className="py-16 bg-black text-white">
+      <section className="py-16 text-white bg-indigo-500">
         <div className="container mx-auto px-4 text-center">
-          <h2 className="text-3xl font-bold mb-4">¿Tienes preguntas?</h2>
+          <h2 className="text-3xl font-bold mb-4">
+            ¿Tenés preguntas sobre nuestros productos?
+          </h2>
           <p className="text-xl mb-8">
-            Estamos aquí para ayudarte con cualquier duda o sugerencia.
+            Contactanos por WhatsApp y te respondemos de inmediato. Atención
+            cordial garantizada.
           </p>
           <ButtonContact />
         </div>
