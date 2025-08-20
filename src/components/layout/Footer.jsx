@@ -41,9 +41,20 @@ const Footer = () => {
                 SOFFY
               </Link>
               {/* Copyright */}
-              <div className="text-center sm:text-left">
+              <div className="text-center sm:text-left mt-2">
                 <p className="text-xs text-gray-400 font-drop">
-                  © {currentYear} IndumentariaSoffy
+                  © {currentYear} Indumentaria-Soffy
+                </p>
+                <p className="text-[10px] text-gray-500 mt-1">
+                  Sitio desarrollado por{" "}
+                  <Link
+                    href="https://patagoniascript.vercel.app"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline hover:text-white transition"
+                  >
+                    PatagoniaScript
+                  </Link>
                 </p>
               </div>
             </div>
